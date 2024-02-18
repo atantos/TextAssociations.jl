@@ -3,6 +3,19 @@ uuid = "7b6babba-2ab1-4176-83fb-e096766ccca2"
 authors = ["atantos <atantos@gmail.com> and contributors"]
 version = "1.0.0-DEV"
 
+[deps]
+Chain = "8be319e6-bccf-4806-a6f7-6fae938471bc"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
+FreqTables = "da1fdf0e-e0ff-5433-a45f-9bb5ff651cb1"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Memoize = "c03570c3-d221-55d1-a50c-7939bbd78826"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+TextAnalysis = "a2db99b7-8b79-58f8-94bf-bbc811eef33d"
+WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
+
 [compat]
 julia = "1.10"
 

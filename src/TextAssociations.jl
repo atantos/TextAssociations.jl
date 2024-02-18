@@ -13,8 +13,6 @@ using Chain
 using TextAnalysis
 
 
-# Write your package code here.
-
 # Exports
 export
     # generic functions
