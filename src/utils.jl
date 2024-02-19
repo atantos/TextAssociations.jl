@@ -1,11 +1,11 @@
 # helper functions for creating a vocabulary from a StringDocument or a Vector{String}
 # Converts a StringDocument to Vector{String}
-to_string_vector(doc::StringDocument) = tokens(doc)
+tostringvector(doc::StringDocument) = tokens(doc)
 # Identity function for Vector{String}
-to_string_vector(vec::Vector{String}) = vec
+tostringvector(vec::Vector{String}) = vec
 
-function vocab(input::Union{StringDocument,Vector{String}})
-    string_vector = to_string_vector(input) |> unique
+function createvocab(input::Union{StringDocument,Vector{String}})
+    string_vector = tostringvector(input) |> unique
     # string_vector = length(string_vector) != length(unique(string_vector)) ? unique(string_vector) : string_vector
 
     # preallocating the ordered dictionary with the size of the string_vector
@@ -20,7 +20,7 @@ function vocab(input::Union{StringDocument,Vector{String}})
 end
 
 # Function for preparing the input string
-function prep_string(input_string::AbstractString)
+function prepstring(input_string::AbstractString)
     # for the length of the input string. Windows upper limit for filepaths is 256 chars
     if length(input_string) < 256 && isfile(input_string)
         content = read(input_string, String)
@@ -34,8 +34,8 @@ function prep_string(input_string::AbstractString)
     return contentdoc
 end
 
-function cont_tbl(input_string::StringDocument{String}, target_word::AbstractString, windowsize::Int64=5, minfreq::Int64=3)
-    # input_string_clean = prepare_input_string(input_string)
+function conttbl(input_string::StringDocument{String}, target_word::AbstractString, windowsize::Int64=5, minfreq::Int64=3)
+    input_string = prepstring(input_string)
 
     input_string_tokenized = TextAnalysis.tokenize(language(input_string), text(input_string))
 

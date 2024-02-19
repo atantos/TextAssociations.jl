@@ -15,46 +15,63 @@ using TextAnalysis
 
 # Exports
 export
-    # generic functions
-    evaluate,
-    log_likelihood_ratio,
+    # generic function
+    evalassoc,
 
     # generic types/functions
     AssociationMetric,
     AssociationDataFormat,
     ContingencyTable,
 
-    # specific measure types
+    # Metric Types
     PMI,
     PMI2,
     PMI3,
     PPMI,
-    LogLikelihoodRatio,
-    MutualInformation,
-    TScore,
-    ZScore,
-    DeltaP,
-    ChiSquare,
-    FisherExactTest,
+    LLR,
+    DeltaPi,
+    Dice,
     LogDice,
+    RelRisk,
+    LogRelRisk,
+    RiskDiff,
+    AttrRisk,
+    OddsRatio,
     LogRatio,
+    LogOddsRatio,
     JaccardIndex,
     OchiaiIndex,
+    OchiaiCoef,
     PiatetskyShapiro,
     YuleQ,
     YuleY,
-    DiceCoefficient,
-    PhiCoefficient,
+    PhiCoef,
     CramersV,
     TschuprowT,
-    ContingencyCoefficient,
-    UncertaintyCoefficient,
-    CosineSimilarity,
-    OverlapCoefficient,
-    KulczynskiSimilarity,
+    ContCoef,
+    CosineSim,
+    OverlapCoef,
+    KulczynskiSim,
+    TanimotoCoef,
+    GoodmanKruskalIndex,
+    GowerCoef,
+    CzekanowskiDiceCoef,
+    SorgenfreyIndex,
+    MountfordCoef,
+    SokalSneathIndex,
+    RogersTanimotoCoef,
+    SokalmMchenerCoef,
+    Tscore,
+    Zscore,
+    ChiSquare,
+    FisherExactTest,
 
-    # convenience functions
-    createcoom
+    # Utility Functions
+    tostringvector,
+    prepstring,
+    createvocab,
+    conttbl
+
 
 include("types.jl")
 include("utils.jl")

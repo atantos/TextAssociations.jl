@@ -406,22 +406,12 @@ const poisson = eval_poisson
 
 # Define a general evaluate function for the AssociationMetric type
 
-metrics = (PMI, PMI2, PMI3, PPMI, LLR, DeltaPi, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIndex, OchiaiIndex, OchiaiCoef, PiatetskyShapiro, YuleQ, YuleY, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, GoodmanKruskalIndex, GowerCoef, CzekanowskiDiceCoef, SorgenfreyIndex, MountfordCoef, SokalSneathIndex, RogersTanimotoCoef, SokalmMchenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest) # Assuming these are defined types
-
-# for M in metrics
-#     @eval begin
-#         @inline function (::$M)(data::ContingencyTable)
-#             eval_fn_name = Symbol("eval_", lowercase(string($M)))
-#             eval_fn = getfield(StringAssociations, eval_fn_name)
-#             invoke(eval_fn, Tuple{typeof(data)}, data)
-#         end
-#     end
-# end
+metrics = (PMI, PMI2, PMI3, PPMI, LLR, DeltaPi, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIndex, OchiaiIndex, OchiaiCoef, PiatetskyShapiro, YuleQ, YuleY, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, GoodmanKruskalIndex, GowerCoef, CzekanowskiDiceCoef, SorgenfreyIndex, MountfordCoef, SokalSneathIndex, RogersTanimotoCoef, SokalmMchenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest)
 
 for M in metrics
     eval_fn_symbol = Symbol("eval_", lowercase(string(M)))
     @eval begin
-        @inline function evaluate(::$M, data::ContingencyTable)
+        @inline function evalassoc(::$M, data::ContingencyTable)
             invoke($(eval_fn_symbol), Tuple{ContingencyTable}, data)
         end
     end
