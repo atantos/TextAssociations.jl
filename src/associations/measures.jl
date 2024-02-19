@@ -56,12 +56,12 @@ const δπ = eval_deltapi
 
 
 # minimum sensitivity
-function eval_min_sen(data::ContingencyTable)
+function eval_minsensitivity(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     min_sensitivity = min(con_tbl.a ./ con_tbl.m, con_tbl.a ./ con_tbl.k)
 end
 
-const min_sen = eval_min_sen
+const minsen = eval_minsensitivity
 
 
 # a + b  = m, c + d = n, a + c = k, b + d = l
@@ -78,303 +78,296 @@ const dice = eval_dice
 # Log Dice
 function eval_logdice(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    log_dice = log.((2 .* con_tbl.a) ./ (con_tbl.m + con_tbl.k))
+    logdice = log.((2 .* con_tbl.a) ./ (con_tbl.m + con_tbl.k))
 end
 
-const log_dice = eval_logdice
+const logdice = eval_logdice
 
 
 # Relative Risk 
-function eval_relative_risk(data::ContingencyTable)
+function eval_relrisk(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    relative_risk = (con_tbl.a ./ con_tbl.m) ./ (con_tbl.c ./ con_tbl.n)
+    relrisk = (con_tbl.a ./ con_tbl.m) ./ (con_tbl.c ./ con_tbl.n)
 end
 
-const rel_risk = eval_relative_risk
-const rr = eval_relative_risk
+const rel_risk = eval_relrisk
+const rr = eval_relrisk
 
 
 # Log Relative Risk
-function eval_log_relative_risk(data::ContingencyTable)
+function eval_logrelrisk(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    log_relative_risk = log.(con_tbl.a ./ con_tbl.m) .- log.(con_tbl.c ./ con_tbl.n)
+    logrelrisk = log.(con_tbl.a ./ con_tbl.m) .- log.(con_tbl.c ./ con_tbl.n)
 end
 
-const log_rel_risk = eval_log_relative_risk
-const lrr = eval_log_relative_risk
+const log_rel_risk = eval_logrelrisk
+const lrr = eval_logrelrisk
 
 
 # Risk Difference
-function eval_risk_difference(data::ContingencyTable)
+function eval_riskdiff(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    risk_difference = (con_tbl.a ./ con_tbl.m) .- (con_tbl.c ./ con_tbl.n)
+    riskdiff = (con_tbl.a ./ con_tbl.m) .- (con_tbl.c ./ con_tbl.n)
 end
 
-const risk_diff = eval_risk_difference
-const rd = eval_risk_difference
+const riskdiff = eval_riskdiff
+const rd = eval_riskdiff
 
 
 # Attributable Risk
-function eval_attributable_risk(data::ContingencyTable)
+function eval_attrrisk(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    attributable_risk = (con_tbl.a ./ con_tbl.m) .- (con_tbl.c ./ con_tbl.n)
+    attrrisk = (con_tbl.a ./ con_tbl.m) .- (con_tbl.c ./ con_tbl.n)
 end
 
-const attr_risk = eval_attributable_risk
-const ar = eval_attributable_risk
+const attr_risk = eval_attrrisk
+const ar = eval_attrrisk
 
 
 # Odds Ratio
-function eval_odds_ratio(data::ContingencyTable)
+function eval_oddsratio(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    odds_ratio = (con_tbl.a ./ con_tbl.b) ./ (con_tbl.c ./ con_tbl.d)
+    oddsratio = (con_tbl.a ./ con_tbl.b) ./ (con_tbl.c ./ con_tbl.d)
 end
 
-const odds_ratio = eval_odds_ratio
-const or = eval_odds_ratio
+const odds_ratio = eval_oddsratio
+const or = eval_oddsratio
 
 
 # Log Odds Ratio
-function eval_log_odds_ratio(data::ContingencyTable)
+function eval_logoddsratio(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    log_odds_ratio = log.(con_tbl.a ./ con_tbl.b) .- log.(con_tbl.c ./ con_tbl.d)
+    logoddsratio = log.(con_tbl.a ./ con_tbl.b) .- log.(con_tbl.c ./ con_tbl.d)
 end
 
-const log_odds_ratio = eval_log_odds_ratio
-const lor = eval_log_odds_ratio
+const logoddsratio = eval_logoddsratio
+const lor = eval_logoddsratio
 
 
 # Jaccard Index
 # "Jaccard", a/(a + b + c)
-function eval_jaccard_index(data::ContingencyTable)
+function eval_jaccardindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    jaccard_index = con_tbl.a ./ (con_tbl.a .+ con_tbl.b .+ con_tbl.c)
+    jaccardindex = con_tbl.a ./ (con_tbl.a .+ con_tbl.b .+ con_tbl.c)
 end
 
-const jaccard = eval_jaccard_index
+const jaccard = eval_jaccardindex
 
 
 # Ochiai Index
 # "Ochiai", a / sqrt((a + b) * (a + c))
-function eval_ochiai_index(data::ContingencyTable)
+function eval_ochiaiindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    ochiai_index = con_tbl.a ./ sqrt.((con_tbl.a .+ con_tbl.b) .* (con_tbl.a .+ con_tbl.c))
+    ochiaiindex = con_tbl.a ./ sqrt.((con_tbl.a .+ con_tbl.b) .* (con_tbl.a .+ con_tbl.c))
 end
 
-const ochiai = eval_ochiai_index
+const ochiai = eval_ochiaiindex
 
+# Ochiai Coefficient
+# "Ochiai Coefficient", a / sqrt((k + m) * (k + c))
+function eval_ochiaicoef(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    ochiaicoef = con_tbl.a ./ sqrt.((con_tbl.k .+ con_tbl.m) .* (con_tbl.k .+ con_tbl.c))
+end
+
+const ochiai_ochiaicoef = eval_ochiaicoef
 
 # Piatetsky Shapiro
 # "Piatetsky Shapiro", a - ((k + m) / N)
-function eval_piatetsky_shapiro(data::ContingencyTable)
+function eval_piatetskyshapiro(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    piatetsky_shapiro = con_tbl.a .- ((con_tbl.k .* con_tbl.m) ./ con_tbl.N)
+    piatetskyshapiro = con_tbl.a .- ((con_tbl.k .* con_tbl.m) ./ con_tbl.N)
 end
 
-const piatetsky_shapiro = eval_piatetsky_shapiro
+const piatetskyshapiro = eval_piatetskyshapiro
 
 
 # Yule's Q
 # "Yule's Q", (a * d - b * c) / (a * d + b * c)
-function eval_yule_q(data::ContingencyTable)
+function eval_yuleq(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    yule_q = (con_tbl.a .* con_tbl.d .- con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d .+ con_tbl.b .* con_tbl.c)
+    yuleq = (con_tbl.a .* con_tbl.d .- con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d .+ con_tbl.b .* con_tbl.c)
 end
 
-const yule_q = eval_yule_q
+const yuleq = eval_yuleq
 
 
 # Yule's Y
 # "Yule's Y", sqrt((a * d) - (b * c)) / sqrt((a * d) + (b * c))
-function eval_yule_y(data::ContingencyTable)
+function eval_yuley(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    yule_y = sqrt.((con_tbl.a .* con_tbl.d) .- (con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d) .+ (con_tbl.b .* con_tbl.c))
+    yuley = sqrt.((con_tbl.a .* con_tbl.d) .- (con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d) .+ (con_tbl.b .* con_tbl.c))
 end
 
-const yule_y = eval_yule_y
+const yuley = eval_yuley
 
-
-
-
+# Phi Coefficient
 # (a * d - b * c) / sqrt((a + b) * (c + d) * (a + c) * (b + d))
-function eval_phi_coefficient(data::ContingencyTable)
+function eval_phicoef(data::ContingencyTable)
     cont_tbl = extract_cached_data(data.con_tbl)
-    phi_coefficient = (cont_tbl.a .* cont_tbl.d .- cont_tbl.b .* cont_tbl.c) ./ sqrt.((cont_tbl.a .+ cont_tbl.b) .* (cont_tbl.c .+ cont_tbl.d) .* (cont_tbl.a .+ cont_tbl.c) .* (cont_tbl.b .+ cont_tbl.d))
+    phicoef = (cont_tbl.a .* cont_tbl.d .- cont_tbl.b .* cont_tbl.c) ./ sqrt.((cont_tbl.a .+ cont_tbl.b) .* (cont_tbl.c .+ cont_tbl.d) .* (cont_tbl.a .+ cont_tbl.c) .* (cont_tbl.b .+ cont_tbl.d))
 end
 
-const phi = eval_phi_coefficient
-const φ = eval_phi_coefficient
+const phi = eval_phicoef
+const φ = eval_phicoef
 
 
 # Cramers V
 # "Cramers V", sqrt(chi2 / (N * (min(k, l) - 1)))
-function eval_cramers_v(data::ContingencyTable)
+function eval_cramersv(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    cramers_v = sqrt.(chi_square(data) ./ (con_tbl.N * (min.(con_tbl.k, con_tbl.l) .- 1)))
+    cramersv = sqrt.(chi_square(data) ./ (con_tbl.N * (min.(con_tbl.k, con_tbl.l) .- 1)))
 end
 
-const cramers_v = eval_cramers_v
+const cramersv = eval_cramersv
 
 
 # Tschuprow's T
 # "Tschuprow's T", sqrt(chi2 / (N * (min(k, l) - 1)))
 
-function eval_tschuprow_t(data::ContingencyTable)
+function eval_tschuprowt(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    tschuprow_t = sqrt.(chi_square(data) ./ (con_tbl.N .* (min.(con_tbl.k, con_tbl.l) .- 1)))
+    tschuprowt = sqrt.(chi_square(data) ./ (con_tbl.N .* (min.(con_tbl.k, con_tbl.l) .- 1)))
 end
 
-const tschuprow_t = eval_tschuprow_t
+const tschuprowt = eval_tschuprowt
 
 
 # Contingency Coefficient
 # "Contingency Coefficient", sqrt(chi2 / (chi2 + N))
-function eval_contingency_coefficient(data::ContingencyTable)
+function eval_contcoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    contingency_coefficient = sqrt.(chi_square(data) ./ (chi_square(data) .+ con_tbl.N))
+    contcoef = sqrt.(chi_square(data) ./ (chi_square(data) .+ con_tbl.N))
 end
 
-const contingency_coefficient = eval_contingency_coefficient
+const contcoef = eval_contcoef
 
 
 # Cosine Similarity
 # "Cosine Similarity", a / sqrt((a + b) * (a + c))
-function eval_cosine_similarity(data::ContingencyTable)
+function eval_cosinesim(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    cosine_similarity = con_tbl.a ./ sqrt.((con_tbl.a .+ con_tbl.b) .* (con_tbl.a .+ con_tbl.c))
+    cosinesim = con_tbl.a ./ sqrt.((con_tbl.a .+ con_tbl.b) .* (con_tbl.a .+ con_tbl.c))
 end
 
-const cosine_similarity = eval_cosine_similarity
+const cosinesim = eval_cosinesim
 
 
 # Overlap Coefficient
 # "Overlap Coefficient", a / min(m, k)
-function eval_overlap_coefficient(data::ContingencyTable)
+function eval_overlapcoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    overlap_coefficient = con_tbl.a ./ min(con_tbl.m, con_tbl.k)
+    overlapcoef = con_tbl.a ./ min(con_tbl.m, con_tbl.k)
 end
 
-const overlap_coefficient = eval_overlap_coefficient
+const overlapcoef = eval_overlapcoef
 
 
 # Kulczynski Similarity
 # "Kulczynski Similarity", a / ((k + m) / 2)
-function eval_kulczynski_similarity(data::ContingencyTable)
+function eval_kulczynskisim(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    kulczynski_similarity = con_tbl.a ./ ((con_tbl.k .+ con_tbl.m) ./ 2)
+    kulczynskisim = con_tbl.a ./ ((con_tbl.k .+ con_tbl.m) ./ 2)
 end
 
-const kulczynski_similarity = eval_kulczynski_similarity
+const kulczynskisim = eval_kulczynskisim
 
 
 # Tanimoto Coefficient
 # "Tanimoto Coefficient", a / (k + m - a)
-function eval_tanimoto_coefficient(data::ContingencyTable)
+function eval_tanimotocoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    tanimoto_coefficient = con_tbl.a ./ (con_tbl.k .+ con_tbl.m .- con_tbl.a)
+    tanimotocoef = con_tbl.a ./ (con_tbl.k .+ con_tbl.m .- con_tbl.a)
 end
 
-const tanimoto_coefficient = eval_tanimoto_coefficient
+const tanimotocoef = eval_tanimotocoef
 
 
 # Hamann Similarity
 # "Hamann Similarity", (a + d - b - c) / N
-function eval_hamann_similarity(data::ContingencyTable)
+function eval_hamannsim(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    hamann_similarity = (con_tbl.a .+ con_tbl.d .- con_tbl.b .- con_tbl.c) ./ con_tbl.N
+    hamannsim = (con_tbl.a .+ con_tbl.d .- con_tbl.b .- con_tbl.c) ./ con_tbl.N
 end
 
-const hamann_similarity = eval_hamann_similarity
-
+const hamannsim = eval_hamannsim
 
 # Goodman-Kruskal Index
 # "Goodman-Kruskal Index", (a * d - b * c) / (a * d + b * c)
-function eval_goodman_kruskal_index(data::ContingencyTable)
+function eval_goodmankruskalindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    goodman_kruskal_index = (con_tbl.a .* con_tbl.d .- con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d .+ con_tbl.b .* con_tbl.c)
+    goodmankruskalindex = (con_tbl.a .* con_tbl.d .- con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d .+ con_tbl.b .* con_tbl.c)
 end
 
-const goodman_kruskal_index = eval_goodman_kruskal_index
+const goodmankruskalindex = eval_goodmankruskalindex
 
 
 # Gower's Coefficient
 # "Gower's Coefficient", (a + d) / (a + d + 2 * (b + c))
-function eval_gower_coefficient(data::ContingencyTable)
+function eval_gowercoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    gower_coefficient = (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* (con_tbl.b .+ con_tbl.c))
+    gowercoef = (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* (con_tbl.b .+ con_tbl.c))
 end
 
-const gower_coefficient = eval_gower_coefficient
+const gowercoef = eval_gowercoef
 
 
 # Czekanowski-Dice Coefficient
 # "Czekanowski-Dice Coefficient", 2 * a / (2 * a + b + c)
-function eval_czekanowski_dice_coefficient(data::ContingencyTable)
+function eval_czekanowskidicecoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    czekanowski_dice_coefficient = 2 .* con_tbl.a ./ (2 .* con_tbl.a .+ con_tbl.b .+ con_tbl.c)
+    czekanowskidicecoef = 2 .* con_tbl.a ./ (2 .* con_tbl.a .+ con_tbl.b .+ con_tbl.c)
 end
 
-const czekanowski_dice_coefficient = eval_czekanowski_dice_coefficient
-
-
-# Ochiai Coefficient
-# "Ochiai Coefficient", a / sqrt((k + m) * (k + c))
-function eval_ochiai_coefficient(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    ochiai_coefficient = con_tbl.a ./ sqrt.((con_tbl.k .+ con_tbl.m) .* (con_tbl.k .+ con_tbl.c))
-end
-
-const ochiai_coefficient = eval_ochiai_coefficient
-
+const czekanowskidicecoef = eval_czekanowskidicecoef
 
 # Sorgenfrey Index
 # "Sorgenfrey Index", (a + d) / (2 * (a + d) + b + c)
-function eval_sorgenfrey_index(data::ContingencyTable)
+function eval_sorgenfreyindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    sorgenfrey_index = (con_tbl.a .+ con_tbl.d) ./ (2 .* (con_tbl.a .+ con_tbl.d) .+ con_tbl.b .+ con_tbl.c)
+    sorgenfreyindex = (con_tbl.a .+ con_tbl.d) ./ (2 .* (con_tbl.a .+ con_tbl.d) .+ con_tbl.b .+ con_tbl.c)
 end
 
-const sorgenfrey_index = eval_sorgenfrey_index
+const sorgenfreyindex = eval_sorgenfreyindex
 
 
 # Mountford's Coefficient
 # "Mountford's Coefficient", (a + d) / (a + d + 2 * sqrt((b + c) * (k + m)))
-function eval_mountford_coefficient(data::ContingencyTable)
+function eval_mountfordcoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    mountford_coefficient = (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* sqrt.((con_tbl.b .+ con_tbl.c) .* (con_tbl.k .+ con_tbl.m)))
+    mountfordcoef = (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* sqrt.((con_tbl.b .+ con_tbl.c) .* (con_tbl.k .+ con_tbl.m)))
 end
 
-const mountford_coefficient = eval_mountford_coefficient
-
+const mountfordcoef = eval_mountfordcoef
 
 # Sokal-Sneath Index
 # "Sokal-Sneath Index", a / (a + 2 *
-function eval_sokal_sneath_index(data::ContingencyTable)
+function eval_sokalsneathindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    sokal_sneath_index = con_tbl.a ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c))
+    sokalsneathindex = con_tbl.a ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c))
 end
 
-const sokal_sneath_index = eval_sokal_sneath_index
+const sokalsneathindex = eval_sokalsneathindex
 
 
 # Rogers-Tanimoto Coefficient
 # "Rogers-Tanimoto Coefficient", a / (a + 2 * (b + c))
-function eval_rogers_tanimoto_coefficient(data::ContingencyTable)
+function eval_rogerstanimotocoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    rogers_tanimoto_coefficient = con_tbl.a ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c))
+    rogerstanimotocoef = con_tbl.a ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c))
 end
 
-const rogers_tanimoto_coefficient = eval_rogers_tanimoto_coefficient
+const rogerstanimotocoef = eval_rogerstanimotocoef
 
 
 # Sokal-Michener Coefficient
 # "Sokal-Michener Coefficient", (a + d) / (a + d + 2 * (
-function eval_sokal_michener_coefficient(data::ContingencyTable)
+function eval_sokalmichenercoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    sokal_michener_coefficient = (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* (con_tbl.b .+ con_tbl.c))
+    sokalmichenercoef = (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* (con_tbl.b .+ con_tbl.c))
 end
 
-const sokal_michener = eval_sokal_michener_coefficient
+const sokalmichenercoef = eval_sokalmichenercoef
 
 
 # Gravity G Index
@@ -411,40 +404,28 @@ end
 
 const poisson = eval_poisson
 
-# Define a general _evaluate function for the AssociationMetric type
+# Define a general evaluate function for the AssociationMetric type
 
-# Define specific implementations of _evaluate for each metric type
-# _evaluate(metric::PMI, data::ContingencyTable; node=nothing, kwargs...) = eval_pmi(data, node; kwargs...)
-# _evaluate(metric::PMI2, data::ContingencyTable; node=nothing, kwargs...) = eval_pmi2(data, node; kwargs...)
-# _evaluate(metric::PMI3, data::ContingencyTable; node=nothing, kwargs...) = eval_pmi3(data, node; kwargs...)
-# _evaluate(metric::PPMI, data::ContingencyTable; node=nothing, kwargs...) = eval_ppmi(data, node; kwargs...)
-# _evaluate(metric::LLR, data::ContingencyTable; node=nothing, kwargs...) = eval_llr(data, node; kwargs...)
-# _evaluate(metric::Dice, data::ContingencyTable; node=nothing, kwargs...) = eval_dice(data, node; kwargs...)
-# _evaluate(metric::LogDice, data::ContingencyTable; node=nothing, kwargs...) = eval_log_dice(data, node; kwargs...)
-# _evaluate(metric::DeltaP, data::ContingencyTable; node=nothing, kwargs...) = eval_deltapi(data, node; kwargs...)
-# _evaluate(metric::DeltaP, data::ContingencyTable; node=nothing, kwargs...) = eval_deltapi(data, node; kwargs...)
-# _evaluate(metric::DeltaP, data::ContingencyTable; node=nothing, kwargs...) = eval_deltapi(data, node; kwargs...)
-# _evaluate(metric::DeltaP, data::ContingencyTable; node=nothing, kwargs...) = eval_deltapi(data, node; kwargs...)
-# _evaluate(metric::DeltaP, data::ContingencyTable; node=nothing, kwargs...) = eval_deltapi(data, node; kwargs...)
-# _evaluate(metric::DeltaP, data::ContingencyTable; node=nothing, kwargs...) = eval_deltapi(data, node; kwargs...)
+metrics = (PMI, PMI2, PMI3, PPMI, LLR, DeltaPi, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIndex, OchiaiIndex, OchiaiCoef, PiatetskyShapiro, YuleQ, YuleY, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, GoodmanKruskalIndex, GowerCoef, CzekanowskiDiceCoef, SorgenfreyIndex, MountfordCoef, SokalSneathIndex, RogersTanimotoCoef, SokalmMchenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest) # Assuming these are defined types
 
-
-# for M in (metrics...)
-#     @eval @inline (metric::$M)(data, node; kwargs...) = _evaluate(metric, data; node=node, kwargs...)
+# for M in metrics
+#     @eval begin
+#         @inline function (::$M)(data::ContingencyTable)
+#             eval_fn_name = Symbol("eval_", lowercase(string($M)))
+#             eval_fn = getfield(StringAssociations, eval_fn_name)
+#             invoke(eval_fn, Tuple{typeof(data)}, data)
+#         end
+#     end
 # end
 
-metrics = (PMI, PMI2, PMI3, PPMI, LLR, Dice, LogDice, DeltaPi) # Assuming these are defined types
-
 for M in metrics
+    eval_fn_symbol = Symbol("eval_", lowercase(string(M)))
     @eval begin
-        @inline function (::$M)(data::ContingencyTable)
-            eval_fn_name = Symbol("eval_", lowercase(string($M)))
-            eval_fn = getfield(StringAssociations, eval_fn_name)
-            invoke(eval_fn, Tuple{typeof(data)}, data)
+        @inline function evaluate(::$M, data::ContingencyTable)
+            invoke($(eval_fn_symbol), Tuple{ContingencyTable}, data)
         end
     end
 end
-
 
 # DeltaP
 # ChiSquare

@@ -3,11 +3,11 @@ abstract type AssociationMetric <: SemiMetric end
 abstract type AssociationDataFormat end
 
 # List of metric names
-metric_names = [:PMI, :PMI2, :PMI3, :PPMI, :LLR, :Dice, :LogDice, :DeltaPi]
+metric_names = [:PMI, :PMI2, :PMI3, :PPMI, :LLR, :DeltaPi, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIndex, :OchiaiIndex, :OchiaiCoef, :PiatetskyShapiro, :YuleQ, :YuleY, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :GoodmanKruskalIndex, :GowerCoef, :CzekanowskiDiceCoef, :SorgenfreyIndex, :MountfordCoef, :SokalSneathIndex, :RogersTanimotoCoef, :SokalmMchenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest]
 
 # Programmatically define an abstract type for each metric
 for name in metric_names
-    @eval struct $name <: AssociationMetric end
+    @eval abstract type $name <: AssociationMetric end
 end
 
 
