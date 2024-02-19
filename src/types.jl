@@ -49,18 +49,6 @@ struct ContingencyTable <: AssociationDataFormat
     end
 end
 
-#################################################################################
-#
-#  Help functions for navigating the CachedData type
-#
-#  extract_cached_coom(m::CachedData) = extract_cached_data(m.coo_matrix)
-#  extract_cached_freq(m::CachedData) = extract_cached_data(m.unigram_frequencies)
-#  extract_cached_paircounts(cached_data::CachedData) = extract_cached_data(cached_data.paircounts)
-#  get_N(m::CachedData) = extract_cached_data(m.unigram_frequencies)
-#  browse_coom_pairs(coo::CooMatrix, term1::AbstractString, term2::AbstractString)
-# 
-#################################################################################
-
 """
     extract_cached_data(z::LazyProcess{T}) 
 
