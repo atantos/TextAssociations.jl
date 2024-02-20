@@ -1,7 +1,7 @@
 
 # log2((a / N) / ((k / N) * (m / N)))
 function eval_pmi(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
+    con_tbl = TextAssociations.extract_cached_data(data.con_tbl)
     log2.((con_tbl.a ./ con_tbl.N) .- log2.((con_tbl.k ./ con_tbl.N) .* (con_tbl.m ./ con_tbl.N)))
 end
 
@@ -406,15 +406,21 @@ const poisson = eval_poisson
 
 # Define a general evaluate function for the AssociationMetric type
 
-metrics = (PMI, PMI2, PMI3, PPMI, LLR, DeltaPi, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIndex, OchiaiIndex, OchiaiCoef, PiatetskyShapiro, YuleQ, YuleY, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, GoodmanKruskalIndex, GowerCoef, CzekanowskiDiceCoef, SorgenfreyIndex, MountfordCoef, SokalSneathIndex, RogersTanimotoCoef, SokalmMchenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest)
+# metrics = (PMI, PMI2, PMI3, PPMI, LLR, DeltaPi, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIndex, OchiaiIndex, OchiaiCoef, PiatetskyShapiro, YuleQ, YuleY, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, GoodmanKruskalIndex, GowerCoef, CzekanowskiDiceCoef, SorgenfreyIndex, MountfordCoef, SokalSneathIndex, RogersTanimotoCoef, SokalmMchenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest)
 
-for M in metrics
-    eval_fn_symbol = Symbol("eval_", lowercase(string(M)))
-    @eval begin
-        @inline function evalassoc(::$M, data::ContingencyTable)
-            invoke($(eval_fn_symbol), Tuple{ContingencyTable}, data)
-        end
-    end
+# for M in metrics
+#     eval_fn_symbol = Symbol("eval_", lowercase(string(M)))
+#     @eval begin
+#         @inline function evalassoc(::Type{$M}, data::ContingencyTable)
+#             invoke($(eval_fn_symbol), Tuple{ContingencyTable}, data)
+#         end
+#     end
+# end
+
+function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
+    func_name = Symbol("eval_", lowercase(string(metricType)))  # Construct function name
+    func = getfield(@__MODULE__, func_name)  # Get the function from the current module
+    return func(data)  # Call the function
 end
 
 # DeltaP

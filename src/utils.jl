@@ -35,7 +35,6 @@ function prepstring(input_string::AbstractString)
 end
 
 function conttbl(input_string::StringDocument{String}, target_word::AbstractString, windowsize::Int64=5, minfreq::Int64=3)
-    input_string = prepstring(input_string)
 
     input_string_tokenized = TextAnalysis.tokenize(language(input_string), text(input_string))
 

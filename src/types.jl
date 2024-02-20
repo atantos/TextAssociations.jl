@@ -42,8 +42,8 @@ struct ContingencyTable <: AssociationDataFormat
     minfreq::Int64
 
     function ContingencyTable(inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int64=5; auto_prep::Bool=true)
-        prepared_string = auto_prep ? prep_string(inputstring) : inputstring
-        con_tbl = LazyProcess{DataFrame}(() -> cont_tbl(prepared_string, node, windowsize, minfreq))
+        prepared_string = auto_prep ? prepstring(inputstring) : inputstring
+        con_tbl = LazyProcess{DataFrame}(() -> conttbl(prepared_string, node, windowsize, minfreq))
 
         new(con_tbl, node, windowsize, minfreq)
     end
