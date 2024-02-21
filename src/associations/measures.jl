@@ -416,7 +416,42 @@ const poisson = eval_poisson
 #         end
 #     end
 # end
+"""
+    evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
 
+Evaluate an association metric based on the provided metric type and a contingency table. This function dynamically dispatches the calculation to the appropriate function determined by `metricType`.
+
+# Usage
+
+```julia-doc
+result = evalassoc(MetricType, data)
+```
+
+Replace `MetricType` with the desired association metric type (e.g., `PMI`, `Dice`) and data with your contingency table.
+
+# Examples
+**PMI (Pointwise Mutual Information)**:
+
+```julia-doc
+result = evalassoc(PMI, data)
+```
+
+**Dice Coefficient**:
+
+```julia-doc
+result = evalassoc(Dice, data)
+```
+
+You can see all supported metrics through `listmetrics()`.
+
+# Further Reading
+
+For detailed mathematical definitions and discussions on each metric, refer to our documentation site.
+
+# Tips
+
+Ensure your data is a `ContingencyTable` instance object. To create one, use the `ContingencyTable` constructor. 
+"""
 function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
     func_name = Symbol("eval_", lowercase(string(metricType)))  # Construct function name
     func = getfield(@__MODULE__, func_name)  # Get the function from the current module

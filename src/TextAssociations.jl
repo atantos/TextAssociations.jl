@@ -17,6 +17,7 @@ using TextAnalysis
 export
     # generic function
     evalassoc,
+    listmetrics,
 
     # generic types/functions
     AssociationMetric,
