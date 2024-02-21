@@ -7,11 +7,11 @@ makedocs(;
     modules=[TextAssociations],
     authors="atantos <atantos@gmail.com> and contributors",
     sitename="TextAssociations.jl",
-    format=Documenter.HTML(),
-    #     canonical="https://atantos.github.io/TextAssociations.jl",
-    #     edit_link="main",
-    #     assets=String[],
-    # ),
+    format=Documenter.HTML(
+        canonical="https://atantos.github.io/TextAssociations.jl",
+        edit_link="main",
+        assets=String[],
+    ),
     pages=[
         "Intro" => "index.md",
         "Quick Start" => "tutorial.md",
@@ -22,6 +22,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/atantos/TextAssociations.jl.git",
+    repo="github.com/atantos/TextAssociations.jl",
     devbranch="main",
 )
