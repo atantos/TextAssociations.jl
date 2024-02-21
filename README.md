@@ -10,7 +10,7 @@
 
 ## Core Features
 
-**Association Metrics**: Compute a complete set of association metrics like Pointwise Mutual Information (PMI), Dice Coefficient, Jaccard Index, and many others, to quantify the association strength between words.
+**Association Metrics**: Compute a comprehensive set of association metrics based on the corpus/text analysis literature, such as Pointwise Mutual Information (PMI), Dice Coefficient, Jaccard Index, and many others, to quantify the association strength between words. For more on the list of association metrics, see [below](#supported-metrics) on the Supported metrics section.
 
 **Contingency Table Support**: Utilize `ContingencyTable` structures to efficiently organize and analyze word co-occurrence data.
 
@@ -59,8 +59,8 @@ pmi_result = evalassoc(PMI, cont_table)
 `TextAssociations.jl` provides a wide range of metrics for analyzing text associations. To see all available metrics, use the `listmetrics()` function:
 
 ```julia
-metrics_list = listmetrics()
-println(metrics_list)
+julias> show(listmetrics())
+[:PMI, :PMI2, :PMI3, :PPMI, :LLR, :DeltaPi, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIndex, :OchiaiIndex, :OchiaiCoef, :PiatetskyShapiro, :YuleQ, :YuleY, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :GoodmanKruskalIndex, :GowerCoef, :CzekanowskiDiceCoef, :SorgenfreyIndex, :MountfordCoef, :SokalSneathIndex, :RogersTanimotoCoef, :SokalmMchenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest]
 ```
 
 Each metric offers unique insights into the text, from simple co-occurrence frequencies to complex statistical measures that reveal deeper semantic or syntactic patterns.
