@@ -16,8 +16,6 @@
 
 **Flexible Data Input**: Support for diverse data formats, enabling analyses on raw texts, pre-processed corpora, or custom data structures.
 
-**Performance Optimization**: Leverages Julia's high-performance computing capabilities, offering fast computations even on large text datasets.
-
 **Extensibility**: Designed with extensibility in mind, allowing for the integration of additional metrics and data formats.
 
 ## Getting Started
@@ -26,14 +24,14 @@ To begin using `TextAssociations.jl`, install the package through Julia's packag
 
 ```
 using Pkg
-Pkg.add("TextAssociations")
+Pkg.add("https://github.com/atantos/TextAssociations.jl")
 
 using TextAssociations
 ```
 
 ## Basic Usage
 
-At the heart of `TextAssociations.jl` is the `evalassoc()` function, which dynamically evaluates association metrics based on the provided metric type and data encapsulated in a `ContingencyTable`. Here's a simple example to calculate the PMI between a node word and its collocates:
+At the heart of `TextAssociations.jl` is the `evalassoc()` function, which dynamically evaluates association metrics based on the provided metric type and data encapsulated in a `ContingencyTable`. Here's a simple example to calculate the `PMI` between a node word and its collocates:
 
 ### Create a ContingencyTable
 
@@ -41,34 +39,34 @@ Prepare your textual data, specify the node word, window size and minimum freque
 
 
 ```julia
-text_data = "Your text data here..."
-node_word = "example"
-window_size = 5
-min_frequency = 3
-cont_table = ContingencyTable(text_data, node_word, window_size, min_frequency)
+julia> text_data = "Your text data here..."
+julia> node_word = "example"
+julia> window_size = 5
+julia> min_frequency = 3
+julia> cont_table = ContingencyTable(text_data, node_word, window_size, min_frequency)
 ```
 
 ### Evaluate PMI
 
 ```julia
-pmi_result = evalassoc(PMI, cont_table)
+julia> evalassoc(PMI, cont_table)
 ```
 
 ### Supported Metrics
 
-`TextAssociations.jl` provides a wide range of metrics for analyzing text associations. To see all available metrics, use the `listmetrics()` function:
+`TextAssociations.jl` provides a wide range of metrics for analyzing word co-occurrence associations. To see all available metrics, use the `listmetrics()` function:
 
 ```julia
-julias> show(listmetrics())
+julia> show(listmetrics())
 [:PMI, :PMI2, :PMI3, :PPMI, :LLR, :DeltaPi, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIndex, :OchiaiIndex, :OchiaiCoef, :PiatetskyShapiro, :YuleQ, :YuleY, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :GoodmanKruskalIndex, :GowerCoef, :CzekanowskiDiceCoef, :SorgenfreyIndex, :MountfordCoef, :SokalSneathIndex, :RogersTanimotoCoef, :SokalmMchenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest]
 ```
 
-Each metric offers unique insights into the text, from simple co-occurrence frequencies to complex statistical measures that reveal deeper semantic or syntactic patterns.
+Each association metric offers insights as to the association of a node word of interest to a collocate word that reveals deeper semantic or syntactic patterns.
 
 ### Further Exploration
 
-For those interested in the mathematical foundations of these metrics or in exploring advanced usage scenarios, we encourage diving into the detailed documentation provided with the package. This includes in-depth discussions on each metric, examples of advanced analyses, and tips for optimizing performance.
+For those interested in the maths of these metrics or in exploring advanced usage scenarios, dive into the package [documentation](https://atantos.github.io/TextAssociations.jl/dev/). 
 
-## Conclusion
+## Aims & scope
 
-`TextAssociations.jl` aims to be a robust and user-friendly tool for linguists, data scientists, and anyone interested in text analysis. By providing a rich set of functionalities for association metric calculations, it opens up new possibilities for understanding and exploring textual data.
+`TextAssociations.jl` aims to be a robust and user-friendly tool for humanities researchers, such as (corpus) linguists, philologists, historians or literary scholars and language data analysts, and anyone interested in word co-occurrence analysis. 
