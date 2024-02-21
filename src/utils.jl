@@ -122,3 +122,20 @@ end
 
 
 #  create a function that within a window size that the user will set, will count the type frequency of the words that are in the window of the node word. It will separate the type frequencies of the words that precede and come after the node word.
+
+"""
+    listmetrics() -> Vector{Symbol}
+
+Returns a list of all association metrics supported by the package. This function provides an easy way for users to discover and understand the different types of metrics they can calculate using the package.
+
+# Returns
+- `Vector{Symbol}`: A vector containing the symbols representing each of the supported association metrics.
+
+# Examples
+```julia-doc
+metricsvector = listmetrics()
+println(metricsvector)
+"""
+function listmetrics()
+    return [:PMI, :PMI2, :PMI3, :PPMI, :LLR, :DeltaPi, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIndex, :OchiaiIndex, :OchiaiCoef, :PiatetskyShapiro, :YuleQ, :YuleY, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :GoodmanKruskalIndex, :GowerCoef, :CzekanowskiDiceCoef, :SorgenfreyIndex, :MountfordCoef, :SokalSneathIndex, :RogersTanimotoCoef, :SokalmMchenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest]
+end

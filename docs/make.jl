@@ -24,4 +24,7 @@ makedocs(;
 deploydocs(;
     repo="github.com/atantos/TextAssociations.jl",
     devbranch="main",
+    # Add the following if you want to generate 'stable' docs:
+    # stablebranch="main",
+    # push_preview=true, # You can set this to `false` after you've confirmed it works.
 )
