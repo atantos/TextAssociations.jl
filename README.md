@@ -6,11 +6,11 @@
 
 # Introduction
 
-`TextAssociations.jl` is a `Julia` package designed for text analysis, focusing on the calculation of association metrics between words (nodes) and their collocates within textual data. This package offers a comprehensive suite of tools for analyzing the strength and nature of these associations, facilitating deeper insights into text structure, semantics, and word usage patterns.
+`TextAssociations.jl` is a `Julia` package designed for text analysis, focusing on the calculation of association metrics between words (nodes) and their collocates within textual data. This package offers a comprehensive suite of tools for analyzing the strength and nature of a comprehensive set of association measures, facilitating deeper insights into text structure, syntagmatic relations, and word combination patterns.
 
 ## Core Features
 
-**Association Metrics**: Compute various metrics like Pointwise Mutual Information (PMI), Dice Coefficient, Jaccard Index, and many others, to quantify the association strength between words.
+**Association Metrics**: Compute a complete set of association metrics like Pointwise Mutual Information (PMI), Dice Coefficient, Jaccard Index, and many others, to quantify the association strength between words.
 
 **Contingency Table Support**: Utilize `ContingencyTable` structures to efficiently organize and analyze word co-occurrence data.
 
