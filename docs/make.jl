@@ -22,6 +22,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/atantos/TextAssociations.jl",
+    repo="github.com/atantos/TextAssociations.jl.git",
     devbranch="main",
 )
