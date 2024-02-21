@@ -18,6 +18,7 @@ TextAnalysis = "a2db99b7-8b79-58f8-94bf-bbc811eef33d"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
 
 [compat]
+DataStructures = "0.18"
 julia = "1.10"
 
 [extras]
