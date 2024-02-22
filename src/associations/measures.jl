@@ -90,7 +90,7 @@ function eval_relrisk(data::ContingencyTable)
     relrisk = (con_tbl.a ./ con_tbl.m) ./ (con_tbl.c ./ con_tbl.n)
 end
 
-const rel_risk = eval_relrisk
+const relrisk = eval_relrisk
 const rr = eval_relrisk
 
 
@@ -100,7 +100,7 @@ function eval_logrelrisk(data::ContingencyTable)
     logrelrisk = log.(con_tbl.a ./ con_tbl.m) .- log.(con_tbl.c ./ con_tbl.n)
 end
 
-const log_rel_risk = eval_logrelrisk
+const logrelrisk = eval_logrelrisk
 const lrr = eval_logrelrisk
 
 
@@ -120,7 +120,7 @@ function eval_attrrisk(data::ContingencyTable)
     attrrisk = (con_tbl.a ./ con_tbl.m) .- (con_tbl.c ./ con_tbl.n)
 end
 
-const attr_risk = eval_attrrisk
+const atrisk = eval_attrrisk
 const ar = eval_attrrisk
 
 
@@ -130,7 +130,7 @@ function eval_oddsratio(data::ContingencyTable)
     oddsratio = (con_tbl.a ./ con_tbl.b) ./ (con_tbl.c ./ con_tbl.d)
 end
 
-const odds_ratio = eval_oddsratio
+const oddsratio = eval_oddsratio
 const or = eval_oddsratio
 
 
@@ -170,7 +170,7 @@ function eval_ochiaicoef(data::ContingencyTable)
     ochiaicoef = con_tbl.a ./ sqrt.((con_tbl.k .+ con_tbl.m) .* (con_tbl.k .+ con_tbl.c))
 end
 
-const ochiai_ochiaicoef = eval_ochiaicoef
+const ochiaicoef = eval_ochiaicoef
 
 # Piatetsky Shapiro
 # "Piatetsky Shapiro", a - ((k + m) / N)
