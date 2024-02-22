@@ -60,7 +60,47 @@ julia> evalassoc(PMI, cont_table)
 
 ```julia
 julia> show(listmetrics())
-[:PMI, :PMI2, :PMI3, :PPMI, :LLR, :DeltaPi, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIndex, :OchiaiIndex, :OchiaiCoef, :PiatetskyShapiro, :YuleQ, :YuleY, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :GoodmanKruskalIndex, :GowerCoef, :CzekanowskiDiceCoef, :SorgenfreyIndex, :MountfordCoef, :SokalSneathIndex, :RogersTanimotoCoef, :SokalmMchenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest]
+[:PMI,
+:PMI2,
+:PMI3,
+:PPMI,
+:LLR,
+:DeltaPi,
+:Dice,
+:LogDice,
+:RelRisk,
+:LogRelRisk,
+:RiskDiff,
+:AttrRisk,
+:OddsRatio,
+:LogRatio,
+:LogOddsRatio,
+:JaccardIndex,
+:OchiaiIndex,
+:OchiaiCoef,
+:PiatetskyShapiro,
+:YuleQ,
+:YuleY,
+:PhiCoef,
+:CramersV,
+:TschuprowT,
+:ContCoef,
+:CosineSim,
+:OverlapCoef,
+:KulczynskiSim,
+:TanimotoCoef,
+:GoodmanKruskalIndex,
+:GowerCoef,
+:CzekanowskiDiceCoef,
+:SorgenfreyIndex,
+:MountfordCoef,
+:SokalSneathIndex,
+:RogersTanimotoCoef,
+:SokalmMchenerCoef,
+:Tscore,
+:Zscore,
+:ChiSquare,
+:FisherExactTest]
 ```
 
 Each association metric offers insights as to the association of a node word of interest to a collocate word that reveals deeper semantic or syntactic patterns.
