@@ -23,19 +23,19 @@
 To begin using `TextAssociations.jl`, install the package through Julia's package manager and import it into your project:
 
 ```
-using Pkg
-Pkg.add("https://github.com/atantos/TextAssociations.jl")
+julia> using Pkg
+julia> Pkg.add("https://github.com/atantos/TextAssociations.jl")
 
-using TextAssociations
+julia> using TextAssociations
 ```
 
 ## Basic Usage
 
-At the heart of `TextAssociations.jl` is the `evalassoc()` function, which dynamically evaluates association metrics based on the provided metric type and data encapsulated in a `ContingencyTable`. Here's a simple example to calculate the `PMI` between a node word and its collocates:
+At the heart of `TextAssociations.jl` is the `evalassoc()` function, which evaluates association metrics based on the provided metric type and data encapsulated in a `ContingencyTable`. The result is a vector of the node words' collocates and their association score on the selected metric. Here's a simple example to calculate the `PMI` between a node word and its collocates:
 
 ### Create a ContingencyTable
 
-Prepare your textual data, specify the node word, window size and minimum frequency that will be considered while creating the contingency table.
+First step is to create a `ContingencyTable` instance that prepares the textual data and returns the contingency tables of the node word with all its collocates found within a window size that co-occur to a minimum frequency with the node word. You need to specify the node word, the window size and minimum frequency that will be considered, while creating the contingency table.
 
 
 ```julia
@@ -46,7 +46,9 @@ julia> min_frequency = 3
 julia> cont_table = ContingencyTable(text_data, node_word, window_size, min_frequency)
 ```
 
-### Evaluate PMI
+### Evaluate association scores
+
+The second step is to use the `evalassoc()` function that takes an association metric as its first argument and the `ContingencyTable` instance created in the previous step. 
 
 ```julia
 julia> evalassoc(PMI, cont_table)
