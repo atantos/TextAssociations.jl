@@ -22,7 +22,7 @@
 
 To begin using `TextAssociations.jl`, install the package through Julia's package manager and import it into your project:
 
-```
+```julia
 julia> using Pkg
 julia> Pkg.add("https://github.com/atantos/TextAssociations.jl")
 
@@ -67,7 +67,7 @@ Each association metric offers insights as to the association of a node word of 
 
 ### Further Exploration
 
-For those interested in the maths of these metrics or in exploring advanced usage scenarios, dive into the package [documentation](https://atantos.github.io/TextAssociations.jl/dev/). 
+If you are interested in diving into the maths of these metrics or in exploring advanced usage scenarios, visit the package [documentation](https://atantos.github.io/TextAssociations.jl/dev/). 
 
 ## Aims & scope
 
