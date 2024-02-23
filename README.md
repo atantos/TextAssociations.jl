@@ -105,6 +105,11 @@ julia> show(listmetrics())
 
 Each association metric offers insights as to the association of a node word of interest to a collocate word that reveals deeper semantic or syntactic patterns.
 
+| Association Metric | Metric Type | Math formula |
+| ------------------ | ----------- | ------------ | 
+|Pearson's $\chi^2$ test |  `ChiSquare` | $`\sum_{i, j}\frac{\left(f_{i j}-\hat{f}_{i j}\right)^2}{\hat{f}_{i j}}`$ |
+
+
 ### Further Exploration
 
 If you are interested in diving into the maths of these metrics or in exploring advanced usage scenarios, visit the package [documentation](https://atantos.github.io/TextAssociations.jl/dev/). 
