@@ -45,6 +45,14 @@ end
 
 const llr = eval_llr
 
+# 2 * (a * log(a) - (a + b) * log(a + b) + c * log(c) - (c + d) * log(c + d))
+function eval_llr2(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const llr2 = eval_llr2
+
 # deltapi
 function eval_deltapi(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
@@ -127,7 +135,8 @@ const ar = eval_attrrisk
 # Odds Ratio
 function eval_oddsratio(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    oddsratio = (con_tbl.a ./ con_tbl.b) ./ (con_tbl.c ./ con_tbl.d)
+    # oddsratio = (con_tbl.a ./ con_tbl.b) ./ (con_tbl.c ./ con_tbl.d)
+    oddsratio = (con_tbl.a .* con_tbl.d) ./ (con_tbl.b .* con_tbl.c)
 end
 
 const oddsratio = eval_oddsratio
@@ -137,7 +146,8 @@ const or = eval_oddsratio
 # Log Odds Ratio
 function eval_logoddsratio(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    logoddsratio = log.(con_tbl.a ./ con_tbl.b) .- log.(con_tbl.c ./ con_tbl.d)
+    # logoddsratio = log.(con_tbl.a ./ con_tbl.b) .- log.(con_tbl.c ./ con_tbl.d)
+    logoddsratio = log.(con_tbl.a .* con_tbl.d) .- log.(con_tbl.b .* con_tbl.c)
 end
 
 const logoddsratio = eval_logoddsratio
@@ -272,17 +282,6 @@ end
 
 const kulczynskisim = eval_kulczynskisim
 
-
-# Tanimoto Coefficient
-# "Tanimoto Coefficient", a / (k + m - a)
-function eval_tanimotocoef(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    tanimotocoef = con_tbl.a ./ (con_tbl.k .+ con_tbl.m .- con_tbl.a)
-end
-
-const tanimotocoef = eval_tanimotocoef
-
-
 # Hamann Similarity
 # "Hamann Similarity", (a + d - b - c) / N
 function eval_hamannsim(data::ContingencyTable)
@@ -349,6 +348,14 @@ end
 
 const sokalsneathindex = eval_sokalsneathindex
 
+# Tanimoto Coefficient
+# "Tanimoto Coefficient", a / (k + m - a)
+function eval_tanimotocoef(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    tanimotocoef = con_tbl.a ./ (con_tbl.k .+ con_tbl.m .- con_tbl.a)
+end
+
+const tanimotocoef = eval_tanimotocoef
 
 # Rogers-Tanimoto Coefficient
 # "Rogers-Tanimoto Coefficient", a / (a + 2 * (b + c))
@@ -403,6 +410,317 @@ function eval_poisson(data::ContingencyTable)
 end
 
 const poisson = eval_poisson
+
+function eval_jointprob(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const jointprob = eval_jointprob
+
+function eval_conditionalprob(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const conditionalprob = eval_conditionalprob
+
+function eval_revconditionalprob(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const revconditionalprob = eval_revconditionalprob
+
+function eval_mutualdep(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const mutualdep = eval_mutualdep
+
+function eval_logfreqmd(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const logfreqmd = eval_logfreqmd
+
+function eval_normexpectation(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const normexpectation = eval_normexpectation
+
+function eval_mutualexpectation(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const mutualexpectation = eval_mutualexpectation
+
+function eval_salience(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const salience = eval_salience
+
+function eval_pearsonchi2(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const pearsonchi2 = eval_pearsonchi2
+
+function eval_ttest(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const ttest = eval_ttest
+
+function eval_zscore(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const zscore = eval_zscore
+
+function eval_klosgen(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const klosgen = eval_klosgen
+
+function eval_russellrao(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const russellrao = eval_russellrao
+
+function eval_sokalmichener(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const sokalmichener = eval_sokalmichener
+
+# look eval_hamannsim above
+function eval_hamann(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const hamann = eval_hamann
+
+function eval_kulczynsky1(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const kulczynsky1 = eval_kulczynsky1
+
+function eval_yulesomega(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const yulesomega = eval_yulesomega
+
+function eval_driverkroeber(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const driverkroeber = eval_driverkroeber
+
+function eval_pearsoncor(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const pearsoncor = eval_pearsoncor
+
+function eval_baroniurbani(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const baroniurbani = eval_baroniurbani
+
+function eval_braunblanquet(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const braunblanquet = eval_braunblanquet
+
+function eval_simpsonidx(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const simpsonidx = eval_simpsonidx
+
+function eval_michaelidx(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const michaelidx = eval_michaelidx
+
+function eval_fageridx(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const fageridx = eval_fageridx
+
+function eval_unisubtypes(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const unisubtypes = eval_unisubtypes
+
+function eval_ucost(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const ucost = eval_ucost
+
+function eval_rcost(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const rcost = eval_rcost
+
+function eval_scost(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const scost = eval_scost
+
+function eval_tcombcost(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const tcombcost = eval_tcombcost
+
+function eval_kappa(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const kappa = eval_kappa
+
+function eval_jmeasure(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const jmeasure = eval_jmeasure
+
+function eval_giniidx(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const giniidx = eval_giniidx
+
+function eval_confmeasure(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const confmeasure = eval_confmeasure
+
+function eval_laplace(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const laplace = eval_laplace
+
+function eval_convictmeasure(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const convictmeasure = eval_convictmeasure
+
+function eval_certaintymeasure(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const certaintymeasure = eval_certaintymeasure
+
+function eval_addedvaluemeasure(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const addedvaluemeasure = eval_addedvaluemeasure
+
+function eval_collectivestrength(data::ContingencyTable)
+    con_tbl = extract_cached_data(data.con_tbl)
+    # implementation
+end
+
+const collectivestrength = eval_collectivestrength
+
+# Joint Probability: joint_probability
+# Conditional Probability: conditional_probability
+# Reverse Conditional Probability: reverse_conditional_probability
+# Mutual Dependency (MD): mutual_dependency
+# Log Frequency Biased MD: log_freq_biased_md
+# Normalized Expectation: normalized_expectation
+# Mutual Expectation: mutual_expectation
+# Salience: salience_measure
+# Pearson's Chi-Squared Test: pearson_chi2_test
+# T Test: t_test
+# Z Score: z_score
+# Squared Log Likelihood Ratio: squared_log_likelihood_ratio
+# Klosgen: klosgen_measure
+# Russell-Rao: russell_rao
+# Sokal-Michener: sokal_michener
+# First Kulczynsky: first_kulczynsky
+# Yule's Omega (ω): yules_omega
+# Driver-Kroeber: driver_kroeber
+# Pearson (for correlation): pearson_correlation
+# Baroni-Urbani: baroni_urbani
+# Braun-Blanquet: braun_blanquet
+# Simpson: simpson_index
+# Michael: michael_index
+# Fager: fager_index
+# Unigram Subtuples: unigram_subtuples
+# U Cost: u_cost
+# S Cost: s_cost
+# R Cost: r_cost
+# T Combined Cost: t_combined_cost
+# Kappa: kappa
+# J-Measure: j_measure
+# Gini Index: gini_index
+# Confidence: confidence_measure
+# Laplace: laplace_measure
+# Conviction: conviction_measure
+# Certainty: certainty_measure
+# Added Value: added_value_measure
+# Collective Strength: collective_strength
+# ========================================
+
+# check if the following are included in the package
+# Poisson Significance Measure: poisson_significance_measure
+# Hamann: hamann
 
 # Define a general evaluate function for the AssociationMetric type
 
@@ -470,3 +788,81 @@ end
 # ContingencyCoefficient
 # CosineSimilarity
 # OverlapCoefficient
+
+# pmi, pmi2, pmi3, ppmi, llr, deltapi, minsensitivity, dice, logdice, relrisk, logrelrisk, riskdiff, attrrisk, oddsratio, logoddsratio, jaccardindex, ochiaiindex, ochiaicoef, piatetskyshapiro, yuleq, yuley, phicoef, cramersv, tschuprowt, contcoef, cosinesim, overlapcoef, kulczynskisim, tanimotocoef, hamannsim, goodmankruskalindex, gowercoef, czekanowskidicecoef, sorgenfreyindex, mountfordcoef, sokalsneathindex, rogerstanimotocoef, sokalmichenercoef, fisher_exact_test, chi_square, poisson
+
+# List all available statistical assoiation measures from Pecina's paper
+
+# 1. Joint probability
+# 2. Conditional probability 
+# 3. Reverse conditional probability
+
+# 5. Mutual dependency $(M D)
+# 6. Log frequency biased $M D$
+# 7. Normalized expectation
+# 8. Mutual expectation
+# 9. Salience 
+# 10. Pearson's chi^2 test
+
+# 12. t test
+# 13. z score
+# 14. Poison significance measure 
+
+# 16. Squared log likelihood ratio 
+# 17. Russel-Rao
+# 18. Sokal-Michiner
+
+# 20. Hamann
+
+# 23. First Kulczynsky
+
+# 28. Yulle's $\omega$
+
+# 30. Driver-Kroeber
+
+# 32. Pearson 
+# 33. Baroni-Urbani
+# 34. Braun-Blanquet
+# 35. Simpson 
+# 36. Michael 
+
+# 38. Fager 
+# 39. Unigram subtuples 
+# 40. $U$ cost 
+# 41. $S$ cost 
+# 42. $R$ cost 
+# 43. $T$ combined cost
+
+# 45. Kappa
+# 45. J-measure
+
+# 47. Gini index
+# 48. Confidence
+# 49. Laplace
+# 50. Conviction
+
+# 52. Certainity
+# 53. Added value
+# 54. Collective
+# 55. Klosgen
+
+# DONE or INCLUDED in the package
+
+# 4. Pointwise mutual information DONE
+# 15. Log likelihood ratio DONE
+# 22. Jaccard DONE
+# 44. Phi coefficient DONE
+# 51. Piatersky-Shapiro DONE
+# 27. Odds ratio DONE
+# 29. Yulle's $Q$ INCLUDED
+# 31. Fifth Sokal-Sneath INCLUDED
+# 11. Fisher's exact test INCLUDED
+# 19. Rogers-Tanimoto INCLUDED
+# 21. Third Sokal-Sneath INCLUDED
+# 24. Second Sokal-Sneath INCLUDED
+# 25. Second Kulczynski INCLUDED
+# 26. Fourth Sokal-Sneath INCLUDED
+# 37. Mountford INCLUDED
+# 46. Gower INCLUDED
+
+
