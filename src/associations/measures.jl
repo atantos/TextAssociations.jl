@@ -192,24 +192,23 @@ end
 const piatetskyshapiro = eval_piatetskyshapiro
 
 
-# Yule's Q
-# "Yule's Q", (a * d - b * c) / (a * d + b * c)
-function eval_yuleq(data::ContingencyTable)
+# Yulle's Omega (ω) Coefficient
+# "Yulle's Omega", sqrt((a * d) - (b * c)) / sqrt((a * d) + (b * c))
+function eval_yulleomega(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    yuleq = (con_tbl.a .* con_tbl.d .- con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d .+ con_tbl.b .* con_tbl.c)
+    yuley = (sqrt.((con_tbl.a .* con_tbl.d)) .- sqrt.(con_tbl.b .* con_tbl.c)) ./ (sqrt.(con_tbl.a .* con_tbl.d) .+ sqrt.(con_tbl.b .* con_tbl.c))
 end
 
-const yuleq = eval_yuleq
+const yulleomega = eval_yulleomega
 
-
-# Yule's Y
-# "Yule's Y", sqrt((a * d) - (b * c)) / sqrt((a * d) + (b * c))
-function eval_yuley(data::ContingencyTable)
+# Yulle's Q  Coefficient
+# "Yulle's Q", sqrt((a * d) - (b * c)) / sqrt((a * d) + (b * c))
+function eval_yulleq(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    yuley = sqrt.((con_tbl.a .* con_tbl.d) .- (con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d) .+ (con_tbl.b .* con_tbl.c))
+    yuley = ((con_tbl.a .* con_tbl.d) .- (con_tbl.b .* con_tbl.c)) ./ ((con_tbl.a .* con_tbl.d) .+ (con_tbl.b .* con_tbl.c))
 end
 
-const yuley = eval_yuley
+const yulleq = eval_yulleq
 
 # Phi Coefficient
 # (a * d - b * c) / sqrt((a + b) * (c + d) * (a + c) * (b + d))
@@ -283,7 +282,7 @@ end
 const kulczynskisim = eval_kulczynskisim
 
 # Hamann Similarity
-# "Hamann Similarity", (a + d - b - c) / N
+# "Hamann Similarity", (a + d - b - c) / N  DONE
 function eval_hamannsim(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     hamannsim = (con_tbl.a .+ con_tbl.d .- con_tbl.b .- con_tbl.c) ./ con_tbl.N
@@ -358,20 +357,20 @@ end
 const tanimotocoef = eval_tanimotocoef
 
 # Rogers-Tanimoto Coefficient
-# "Rogers-Tanimoto Coefficient", a / (a + 2 * (b + c))
+# "Rogers-Tanimoto Coefficient", (a + d) / (a + 2 * (b + c) + d) DONE
 function eval_rogerstanimotocoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    rogerstanimotocoef = con_tbl.a ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c))
+    rogerstanimotocoef = (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c) + con_tbl.d)
 end
 
 const rogerstanimotocoef = eval_rogerstanimotocoef
 
 
 # Sokal-Michener Coefficient
-# "Sokal-Michener Coefficient", (a + d) / (a + d + 2 * (
+# "Sokal-Michener Coefficient", DONE
 function eval_sokalmichenercoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    sokalmichenercoef = (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* (con_tbl.b .+ con_tbl.c))
+    sokalmichenercoef = (con_tbl.a .+ con_tbl.d) ./ con_tbl.N
 end
 
 const sokalmichenercoef = eval_sokalmichenercoef
@@ -495,27 +494,12 @@ end
 
 const klosgen = eval_klosgen
 
-function eval_russellrao(data::ContingencyTable)
+function eval_russellrao(data::ContingencyTable) # DONE
     con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
+    con_tbl.a ./ con_tbl.N
 end
 
 const russellrao = eval_russellrao
-
-function eval_sokalmichener(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const sokalmichener = eval_sokalmichener
-
-# look eval_hamannsim above
-function eval_hamann(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const hamann = eval_hamann
 
 function eval_kulczynsky1(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
@@ -531,9 +515,9 @@ end
 
 const yulesomega = eval_yulesomega
 
-function eval_driverkroeber(data::ContingencyTable)
+function eval_driverkroeber(data::ContingencyTable) # DONE
     con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
+    driverkroeber = con_tbl.a ./ sqrt.((con_tbl.a .+ con_tbl.b) .* (con_tbl.a .+ con_tbl.c))
 end
 
 const driverkroeber = eval_driverkroeber
@@ -809,16 +793,8 @@ end
 # 14. Poison significance measure 
 
 # 16. Squared log likelihood ratio 
-# 17. Russel-Rao
-# 18. Sokal-Michiner
-
-# 20. Hamann
 
 # 23. First Kulczynsky
-
-# 28. Yulle's $\omega$
-
-# 30. Driver-Kroeber
 
 # 32. Pearson 
 # 33. Baroni-Urbani
@@ -848,16 +824,21 @@ end
 
 # DONE or INCLUDED in the package
 
+# 28. Yulle's $\omega$ DONE
+# 30. Driver-Kroeber DONE
+# 18. Sokal-Michener DONE
+# 17. Russel-Rao DONE
+# 20. Hamann DONE
 # 4. Pointwise mutual information DONE
 # 15. Log likelihood ratio DONE
 # 22. Jaccard DONE
 # 44. Phi coefficient DONE
 # 51. Piatersky-Shapiro DONE
 # 27. Odds ratio DONE
-# 29. Yulle's $Q$ INCLUDED
+# 29. Yulle's $Q$ DONE
 # 31. Fifth Sokal-Sneath INCLUDED
 # 11. Fisher's exact test INCLUDED
-# 19. Rogers-Tanimoto INCLUDED
+# 19. Rogers-Tanimoto DONE
 # 21. Third Sokal-Sneath INCLUDED
 # 24. Second Sokal-Sneath INCLUDED
 # 25. Second Kulczynski INCLUDED
