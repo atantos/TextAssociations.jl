@@ -9,3 +9,7 @@ Documentation for [TextAssociations](https://github.com/atantos/TextAssociations
 ```@index
 
 ```
+
+```@autodocs
+Modules = [TextAssociations]
+```

@@ -6,10 +6,8 @@ CurrentModule = TextAssociations
 
 Documentation for [TextAssociations](https://github.com/atantos/TextAssociations.jl).
 
-```@index
+## Install
 
-```
-
-```@autodocs
-Modules = [TextAssociations]
+```julia-repl
+julia> add https://github.com/atantos/TextAssociations.jl
 ```
