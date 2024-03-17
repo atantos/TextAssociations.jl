@@ -26,6 +26,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 DataStructures = "0.18"
 Distances = "0.10"
 TextAnalysis = "0.7"
+TextEncodeBase = "0.8"
 WordTokenizers = "0.5"
 julia = "1.10"
 
