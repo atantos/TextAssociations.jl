@@ -36,7 +36,7 @@ end
 
 const ppmi = eval_ppmi
 
-
+# simplified version
 # 2 * (a * log(a) - (a + b) * log(a + b) + c * log(c) - (c + d) * log(c + d))
 function eval_llr(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
@@ -44,6 +44,8 @@ function eval_llr(data::ContingencyTable)
 end
 
 const llr = eval_llr
+
+# TODO: complete version for llr
 
 # 2 * (a * log(a) - (a + b) * log(a + b) + c * log(c) - (c + d) * log(c + d))
 function eval_llr2(data::ContingencyTable)
