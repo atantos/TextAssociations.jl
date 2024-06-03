@@ -40,7 +40,7 @@ const ppmi = eval_ppmi
 # 2 * (a * log(a) - (a + b) * log(a + b) + c * log(c) - (c + d) * log(c + d))
 function eval_llr(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    2 * (con_tbl.a * log(con_tbl.a) - (con_tbl.a + con_tbl.b) * log(con_tbl.a + con_tbl.b) + con_tbl.c * log(con_tbl.c) - (con_tbl.c + con_tbl.d) * log(con_tbl.c + con_tbl.d))
+    2 * (con_tbl.a .* log.(con_tbl.a) .- (con_tbl.a .+ con_tbl.b) .* log.(con_tbl.a .+ con_tbl.b) .+ con_tbl.c .* log.(con_tbl.c) .- (con_tbl.c .+ con_tbl.d) .* log.(con_tbl.c .+ con_tbl.d))
 end
 
 const llr = eval_llr
