@@ -109,15 +109,26 @@ Each association metric offers insights as to the association of a node word of 
 
 | Association Metric | Metric Type | Math formula |
 | ------------------ | ----------- | ------------ | 
-|Pearson's $\chi^2$ test |  `ChiSquare` | $`\sum_{i, j}\frac{\left(f_{i j}-\hat{f}_{i j}\right)^2}{\hat{f}_{i j}}`$ |
-|Pointwise Mutual Information (PMI)| `PMI` |$`\text{PMI}(x, y) = \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right)`$|
-|Squared PMI| `PMI²` |$`\text{PMI}^2(x, y) = \left( \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right) \right)^2`$|
-|Cubed PMI| `PMI³` |$`\text{PMI}^3(x, y) = \left( \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right) \right)^3`$|
-|Positive PMI| `PPMI` |$`\text{PPMI}(x, y) = \max\left(0, \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right)\right)`$|
-|Log Likelihood Ratio | `LLR` | $`\text{LLR} = 2 \sum_{i,j} \left( O_{ij} \ln \left( \frac{O_{ij}}{E_{ij}} \right) \right)`$|
-|Log Likelihood Ratio 2 | `LLR2` | $`\text{LLR2} = 2 \sum_{i,j} \left( O_{ij} \ln \left( \frac{O_{ij}}{E_{ij}} \right) \right) + 2 \left( \sum_{i,j} O_{ij} - \sum_{i,j} E_{ij} \right)`$|
-| Squared LLR | `LLR²` |$`\text{Squared LLR} = \sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}`$|
-
+| $\text{Pearson's}  \chi  \text{Squared Test}$ |  `ChiSquare` | $`\sum_{i, j}\frac{\left(f_{i j}-\hat{f}_{i j}\right)^2}{\hat{f}_{i j}}`$ |
+| $\text{Pointwise Mutual Information (PMI)}$ | `PMI` |$`\log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right)`$|
+| $\text{Squared PMI}$ | `PMI²` |$`\left( \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right) \right)^2`$|
+| $\text{Cubed PMI}$ | `PMI³` |$`\left( \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right) \right)^3`$|
+| $\text{Positive PMI}$ | `PPMI` |$`\max\left(0, \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right)\right)`$|
+| $\text{Log Likelihood Ratio}$ | `LLR` | $`2 \sum_{i,j} \left( O_{ij} \ln \left( \frac{O_{ij}}{E_{ij}} \right) \right)`$|
+| $\text{Log Likelihood Ratio 2}$ | `LLR2` | $`2 \sum_{i,j} \left( O_{ij} \ln \left( \frac{O_{ij}}{E_{ij}} \right) \right) + 2 \left( \sum_{i,j} O_{ij} - \sum_{i,j} E_{ij} \right)`$|
+| $\text{Squared LLR}$ | `LLR²` |$`\sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}`$|
+| $\Delta \pi$ | `DeltaPi` | $`\frac{a}{a + b} - \frac{c}{c + d}`$|
+| $\text{Minimum Sensitivity}$ | `MinSens` | $`\min\left(\frac{a}{a + b}, \frac{d}{c + d}\right)`$|
+| $\text{Dice}$ | `Dice` | $`\frac{2a}{2a + b + c}`$|
+| $\text{Log Dice}$ | `LogDice` | $`14 + \log_2\left(\frac{2a}{2a + b + c}\right)`$|
+| $\text{Relative Risk}$ | `RelRisk` | $`\frac{\frac{a}{a + b}}{\frac{c}{c + d}}`$|
+| $\text{Log Relative Risk}$ | `LogRelRisk` | $`\log\left(\frac{\frac{a}{a + b}}{\frac{c}{c + d}}\right)`$|
+| $\text{Risk Difference}$ | `RiskDiff` | $`\frac{a}{a + b} - \frac{c}{c + d}`$|
+| $\text{Attributable Risk}$ | `AttrRisk` | $`\frac{a}{a + b} - \frac{c}{c + d}`$|
+| $\text{Odds Ratio}$ | `OddsRation` | $`\frac{a \cdot d}{b \cdot c}`$|
+| $\text{Log Odds Ratio}$ | `LogOddsRatio` | $`\log\left(\frac{a \cdot d}{b \cdot c}\right)`$|
+| $\text{Jaccard Index}$ | `JaccardIdx` | $`\frac{a}{a + b + c}`$|
+| $\text{Ochiai Index}$ | `OchiaiIdx` | $`\frac{a}{\sqrt{(a + b)(a + c)}}`$|
 
 ### Further Exploration
 
