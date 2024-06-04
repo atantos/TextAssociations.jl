@@ -115,6 +115,11 @@ function conttbl(input_string::StringDocument{String}, target_word::AbstractStri
         transform!(AsTable([:a, :c]) => (x -> x.a .+ x.c) => :k)
         transform!(AsTable([:b, :d]) => (x -> x.b .+ x.d) => :l)
         transform!(AsTable([:m, :n]) => (x -> x.m .+ x.n) => :N)
+        transform!(AsTable([:m, :k]) => (x -> (x.m .+ x.k) ./ x.N) => :E₁₁)
+        transform!(AsTable([:m, :l]) => (x -> (x.m .+ x.l) ./ x.N) => :E₁₂)
+        transform!(AsTable([:k, :n]) => (x -> (x.n .+ x.l) ./ x.N) => :E₂₁)
+        transform!(AsTable([:l, :n]) => (x -> (x.n .+ x.d) ./ x.N) => :E₂₂)
+
     end
 end
 
