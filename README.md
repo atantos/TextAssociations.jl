@@ -108,6 +108,7 @@ Each association metric offers insights as to the association of a node word of 
 | Association Metric | Metric Type | Math formula |
 | ------------------ | ----------- | ------------ | 
 |Pearson's $\chi^2$ test |  `ChiSquare` | $`\sum_{i, j}\frac{\left(f_{i j}-\hat{f}_{i j}\right)^2}{\hat{f}_{i j}}`$ |
+|Log Likelihood Ratio | `LLR` | $`\text{LLR} = 2 \sum_{i,j} \left( O_{ij} \ln \left( \frac{O_{ij}}{E_{ij}} \right) \right)`$|
 
 
 ### Further Exploration
