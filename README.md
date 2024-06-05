@@ -8,7 +8,7 @@
 
 `TextAssociations.jl` is a `Julia` package designed for text analysis, focusing on the calculation of association metrics between words of interest -usually called node words- and their collocates within a prespecified window of a few words found in textual data. This package is planned to offer a comprehensive suite of tools for analyzing the strength and nature of a large set of association measures, facilitating deeper insights into text structure, syntagmatic relations, and word combination patterns. 
 
-Word-word association measures still play important roles in various aspects of natural language processing (NLP) and computational linguistics, even in the era of word2vec and transformer-based models. There are several reasons why associatio measures are still relevant, nowadays. Word-word association measures:
+Word-word association measures still play an important role in various aspects of natural language processing (NLP) and computational linguistics, even in the era of word2vec and transformer-based models. There are several reasons why associatio measures are still relevant, nowadays. Word-word association measures:
 
 - are often more interpretable and transparent than the dense, high-dimensional vectors produced by neural models. They provide clear insights into why words are considered related based on observable statistics.
 - can be used alongside neural embeddings to enhance performance. For example, they can help refine or interpret the relationships captured by word vectors.
