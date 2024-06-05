@@ -152,7 +152,7 @@ Each association metric offers insights as to the association of a node word of 
 | $\text{Sorgenfrey Index 2}$ | `SorgenfreyIdx2` | $`\frac{a + d}{2(a + d) + b + c}`$|
 | $\text{Mountford's Coefficient}$ | `MountfordCoef` | $`\frac{a}{a + 2b + 2c}`$|
 | $\text{Mountford's Coefficient 2}$ | `MountfordCoef2` | $`\frac{a + d}{a + d + 2 \sqrt{(b + c) \cdot (k + m)}}`$|
-
+| $\text{Sokal-Sneath Index}$ | `SokalSneathIdx` | $`\frac{a}{a + 2(b + c)}`$|
 
 
 
