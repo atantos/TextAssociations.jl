@@ -140,10 +140,20 @@ Each association metric offers insights as to the association of a node word of 
 | $\text{Overlap Coefficient}$ | `OverlapCoef` | $`\frac{a}{\min(a + b, a + c)}`$|
 | $\text{Kulczynski Similarity}$ | `KulczynskiSim` | $`\frac{a}{a + b} + \frac{a}{a + c}`$|
 | $\text{Tanimoto Coefficient}$ | `TanimotoCoef` | $`\frac{a}{a + b + c}`$|
-| $text{Rogers-Tanimoto Coefficient}$ | `RogersTanimotoCoef` | $`\frac{a}{a + 2(b + c)}`$|
-| $text{Rogers-Tanimoto Coefficient 2}$ | `RogersTanimotoCoef2` | $`\frac{a + d}{a + 2(b + c) + d}`$|
+| $\text{Rogers-Tanimoto Coefficient}$ | `RogersTanimotoCoef` | $`\frac{a}{a + 2(b + c)}`$|
+| $\text{Rogers-Tanimoto Coefficient 2}$ | `RogersTanimotoCoef2` | $`\frac{a + d}{a + 2(b + c) + d}`$|
 | $\text{Hamman Similarity}$ | `HammanSim` | $`\frac{a + d - b - c}{N}`$|
 | $\text{Hamman Similarity 2}$ | `HammanSim2` | $`\frac{a - d}{a + b + c - d}`$|
+| $\text{Goodman-Kruskal Index } \gamma$ | `GoodmanKruskalIdx` | $`\frac{a - d}{a + d}`$|
+| $\text{Gower's Coefficient}$ | `GowerCoef` | $`\frac{a}{a + b + c}`$|
+| $\text{Gower's Coefficient 2}$ | `GowerCoef2` | $`\frac{a + d}{a + d + 2(b + c)}`$|
+| $\text{Czekanowski Dice Coefficient}$ | `CzekanowskiDiceCoef` | $`\frac{2a}{2a + b + c}`$|
+| $\text{Sorgenfrey Index}$ | `SorgenfreyIdx` | $`\frac{2a - b - c}{2a + b + c}`$|
+| $\text{Sorgenfrey Index 2}$ | `SorgenfreyIdx2` | $`\frac{a + d}{2(a + d) + b + c}`$|
+| $\text{Mountford's Coefficient}$ | `MountfordCoef` | $`\frac{a}{a + 2b + 2c}`$|
+| $\text{Mountford's Coefficient 2}$ | `MountfordCoef2` | $`\frac{a + d}{a + d + 2 \sqrt{(b + c) \cdot (k + m)}}`$|
+
+
 
 
 
