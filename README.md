@@ -129,6 +129,23 @@ Each association metric offers insights as to the association of a node word of 
 | $\text{Log Odds Ratio}$ | `LogOddsRatio` | $`\log\left(\frac{a \cdot d}{b \cdot c}\right)`$|
 | $\text{Jaccard Index}$ | `JaccardIdx` | $`\frac{a}{a + b + c}`$|
 | $\text{Ochiai Index}$ | `OchiaiIdx` | $`\frac{a}{\sqrt{(a + b)(a + c)}}`$|
+| $\text{Piatetsky-Shapiro}$ | `PiatetskyShapiro` | $`\frac{a}{n} - \frac{(a + b)(a + c)}{n^2}`$|
+| $\text{Yule's Omega}$ | `YuleOmega` | $`\frac{\sqrt{a \cdot d} - \sqrt{b \cdot c}}{\sqrt{a \cdot d} + \sqrt{b \cdot c}}`$|
+| $\text{Yule's Q}$ | `YuleQ` | $`\frac{a \cdot d - b \cdot c}{a \cdot d + b \cdot c}`$|
+| $\phi$ | `PhiCoef` | $`\frac{a \cdot d - b \cdot c}{\sqrt{(a + b)(c + d)(a + c)(b + d)}}`$|
+| $\text{Cramer's V}$ | `CramersV` | $`\sqrt{\frac{\phi^2}{\min(1, 1)}} = \sqrt{\phi^2} = \|\phi\|`$| 
+| $\text{Tschuprow's T}$ | `TschuprowT` | $`\sqrt{\frac{\chi^2}{n \cdot \sqrt{(k - 1)(r - 1)}}}`$|
+| $\text{Contigency Coefficient}$ | `ContCoef` | $`\sqrt{\frac{\chi^2}{\chi^2 + n}}`$|
+| $\text{Cosine Similarity}$ | `CosineSim` | $`\frac{a}{\sqrt{(a + b)(a + c)}}`$|
+| $\text{Overlap Coefficient}$ | `OverlapCoef` | $`\frac{a}{\min(a + b, a + c)}`$|
+| $\text{Kulczynski Similarity}$ | `KulczynskiSim` | $`\frac{a}{a + b} + \frac{a}{a + c}`$|
+| $\text{Tanimoto Coefficient}$ | `TanimotoCoef` | $`\frac{a}{a + b + c}`$|
+| $text{Rogers-Tanimoto Coefficient}$ | `RogersTanimotoCoef` | $`\frac{a}{a + 2(b + c)}`$|
+| $text{Rogers-Tanimoto Coefficient 2}$ | `RogersTanimotoCoef2` | $`\frac{a + d}{a + 2(b + c) + d}`$|
+| $\text{Hamman Similarity}$ | `HammanSim` | $`\frac{a + d - b - c}{N}`$|
+| $\text{Hamman Similarity 2}$ | `HammanSim2` | $`\frac{a - d}{a + b + c - d}`$|
+
+
 
 ### Further Exploration
 
