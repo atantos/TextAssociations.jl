@@ -3,7 +3,7 @@ abstract type AssociationMetric <: SemiMetric end
 abstract type AssociationDataFormat end
 
 # List of metric names
-metric_names = [:PMI, :PMI2, :PMI3, :PPMI, :LLR, :DeltaPi, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIndex, :OchiaiIndex, :OchiaiCoef, :PiatetskyShapiro, :YuleQ, :YuleY, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :GoodmanKruskalIndex, :GowerCoef, :CzekanowskiDiceCoef, :SorgenfreyIndex, :MountfordCoef, :SokalSneathIndex, :RogersTanimotoCoef, :SokalmMchenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest]
+metric_names = [:PMI, :PMI², :PMI³, :PPMI, :LLR, :LLR2, :LLR², :DeltaPi, :MinSens, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIdx, :OchiaiIdx, :PiatetskyShapiro, :YuleOmega, :YuleQ, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :RogersTanimotoCoef, :RogersTanimotoCoef2, :HammanSim, :HammanSim2, :GoodmanKruskalIdx, :GowerCoef, :GowerCoef2, :CzekanowskiDiceCoef, :SorgenfreyIdx, :SorgenfreyIdx2, :MountfordCoef, :MountfordCoef2, :SokalSneathIdx, :SokalMichenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest, :CohensKappa]
 
 # Programmatically define an abstract type for each metric
 for name in metric_names
