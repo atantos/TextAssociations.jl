@@ -6,8 +6,15 @@
 
 # Introduction
 
-`TextAssociations.jl` is a `Julia` package designed for text analysis, focusing on the calculation of association metrics between words -usually called node words- and their collocates within a prespecified window of a few words found in textual data. This package is planned to offer a comprehensive suite of tools for analyzing the strength and nature of a large set of association measures, facilitating deeper insights into text structure, syntagmatic relations, and word combination patterns.
+`TextAssociations.jl` is a `Julia` package designed for text analysis, focusing on the calculation of association metrics between words of interest -usually called node words- and their collocates within a prespecified window of a few words found in textual data. This package is planned to offer a comprehensive suite of tools for analyzing the strength and nature of a large set of association measures, facilitating deeper insights into text structure, syntagmatic relations, and word combination patterns. 
 
+Word-word association measures still play important roles in various aspects of natural language processing (NLP) and computational linguistics, even in the era of word2vec and transformer-based models. There are several reasons why associatio measures are still relevant, nowadays. Word-word association measures:
+
+- are often more interpretable and transparent than the dense, high-dimensional vectors produced by neural models. They provide clear insights into why words are considered related based on observable statistics.
+- can be used alongside neural embeddings to enhance performance. For example, they can help refine or interpret the relationships captured by word vectors.
+- may serve as benchmarks to evaluate the performance of more complex models. They provide a baseline against which the improvements offered by word2vec or transformers can be quantified.
+- may still provide useful information when neural models fail to generalize due to insufficient training examples.
+  
 ## Core Features
 
 **Association Metrics**: Compute a large set of association metrics based on the corpus/text analysis literature, such as Pointwise Mutual Information (PMI), Dice Coefficient, Jaccard Index, and many others, to quantify the association strength between words. For more on the list of the supported association metrics, see the relevant section [below](#supported-metrics).
