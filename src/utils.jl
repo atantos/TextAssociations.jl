@@ -140,6 +140,7 @@ Returns a list of all association metrics supported by the package. This functio
 ```julia-doc
 metricsvector = listmetrics()
 println(metricsvector)
+```
 """
 function listmetrics()
     return [:PMI, :PMI2, :PMI3, :PPMI, :LLR, :DeltaPi, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIndex, :OchiaiIndex, :OchiaiCoef, :PiatetskyShapiro, :YuleQ, :YuleY, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :GoodmanKruskalIndex, :GowerCoef, :CzekanowskiDiceCoef, :SorgenfreyIndex, :MountfordCoef, :SokalSneathIndex, :RogersTanimotoCoef, :SokalmMchenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest]

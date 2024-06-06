@@ -292,7 +292,7 @@ const tanimotocoef = eval_tanimotocoef
 # "Rogers-Tanimoto Coefficient", \frac{a}{a + 2(b + c)}
 function eval_rogerstanimotocoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)a
-    # TODO
+    con_tbl.a ./ (con_tbl.a .+ 2(con_tbl.b .+ con_tbl.c))
 end
 
 const rogerstanimotocoef = eval_rogerstanimotocoef
@@ -302,7 +302,7 @@ const rogerstanimotocoef = eval_rogerstanimotocoef
 # "Rogers-Tanimoto Coefficient", (a + d) / (a + 2 * (b + c) + d)
 function eval_rogerstanimotocoef2(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)a
-    (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c) + con_tbl.d)
+    (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ 2(con_tbl.b .+ con_tbl.c) + con_tbl.d)
 end
 
 const rogerstanimotocoef2 = eval_rogerstanimotocoef2
@@ -320,7 +320,7 @@ const hamannsim = eval_hamannsim
 # "Hamann Similarity", \frac{a - d}{a + b + c - d}
 function eval_hamannsim2(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    # TODO
+    (con_tbl.a .- con_tbl.d) ./ (con_tbl.a .+ con_tbl.b .+ con_tbl.c .- con_tbl.d)
 end
 
 const hamannsim2 = eval_hamannsim2
@@ -339,7 +339,7 @@ const goodmankruskalidx = eval_goodmankruskalindex
 # "Gower's Coefficient", 
 function eval_gowercoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    # TODO
+    con_tbl.a ./ (con_tbl.a .+ con_tbl.b .+ con_tbl.c)
 end
 
 const gowercoef = eval_gowercoef
@@ -348,17 +348,16 @@ const gowercoef = eval_gowercoef
 # "Gower's Coefficient", (a + d) / (a + d + 2 * (b + c))
 function eval_gowercoef2(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* (con_tbl.b .+ con_tbl.c))
+    (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2(con_tbl.b .+ con_tbl.c))
 end
 
 const gowercoef2 = eval_gowercoef2
-
 
 # Czekanowski-Dice Coefficient, \frac{2a}{2a + b + c}
 # "Czekanowski-Dice Coefficient", 2 * a / (2 * a + b + c)
 function eval_czekanowskidicecoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    czekanowskidicecoef = 2 .* con_tbl.a ./ (2 .* con_tbl.a .+ con_tbl.b .+ con_tbl.c)
+    2 * con_tbl.a ./ (2 * con_tbl.a .+ con_tbl.b .+ con_tbl.c)
 end
 
 const czekanowskidicecoef = eval_czekanowskidicecoef
@@ -367,16 +366,17 @@ const czekanowskidicecoef = eval_czekanowskidicecoef
 # "Sorgenfrey Index",
 function eval_sorgenfreyindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    # TODO
+    # \frac{2a - b - c}{2a + b + c}
+    (2 * con_tbl.a .- con_tbl.b .- con_tbl.c) ./ (2 * con_tbl.a .+ con_tbl.b .+ con_tbl.c)
 end
 
-const sorgenfreydx = eval_sorgenfreyindex
+const sorgenfreyidx = eval_sorgenfreyindex
 
 # Sorgenfrey Index
 # "Sorgenfrey Index", (a + d) / (2 * (a + d) + b + c)
 function eval_sorgenfreyindex2(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    (con_tbl.a .+ con_tbl.d) ./ (2 .* (con_tbl.a .+ con_tbl.d) .+ con_tbl.b .+ con_tbl.c)
+    (con_tbl.a .+ con_tbl.d) ./ (2 * (con_tbl.a .+ con_tbl.d) .+ con_tbl.b .+ con_tbl.c)
 end
 
 const sorgenfreyidx2 = eval_sorgenfreyindex2
@@ -385,7 +385,8 @@ const sorgenfreyidx2 = eval_sorgenfreyindex2
 # "Mountford's Coefficient", 
 function eval_mountfordcoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    # TODO
+    # \frac{a}{a + 2b + 2c}
+    con_tbl.a ./ (con_tbl.a .+ 2 * (con_tbl.b .+ con_tbl.c))
 end
 
 const mountfordcoef = eval_mountfordcoef
@@ -403,16 +404,16 @@ const mountfordcoef2 = eval_mountfordcoef2
 # "Sokal-Sneath Index", a / (a + 2 * (b + c))
 function eval_sokalsneathindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    con_tbl.a ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c))
+    con_tbl.a ./ (con_tbl.a .+ 2 * (con_tbl.b .+ con_tbl.c))
 end
 
 const sokalsneathidx = eval_sokalsneathindex
 
 # Sokal-Michener Coefficient
-# "Sokal-Michener Coefficient", DONE
+# "Sokal-Michener Coefficient", DONE \frac{a + d}{a + b + c + d}
 function eval_sokalmichenercoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    sokalmichenercoef = (con_tbl.a .+ con_tbl.d) ./ con_tbl.N
+    (con_tbl.a .+ con_tbl.d) ./ con_tbl.N
 end
 
 const sokalmichenercoef = eval_sokalmichenercoef
@@ -754,40 +755,78 @@ const kappa = eval_cohenskappa
 #     end
 # end
 """
-    evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
+    evalassoc(metricType::Type{<:AssociationMetric}, cont_tbl::ContingencyTable)
 
 Evaluate an association metric based on the provided metric type and a contingency table. This function dynamically dispatches the calculation to the appropriate function determined by `metricType`.
+
+# Arguments
+- `metrics::Array{<:AssociationMetric}`: An array of association metric types to evaluate.
+- `data::ContingencyTable`: The contingency table data on which to evaluate the metrics. To create one, use the `ContingencyTable` constructor. 
+
+# Returns
+- A Vector of numerical values where each value represents the association metric score of the node word picked when creating the ContingencyTable with each of the co-occurring words in the window length picked when creating the ContingencyTable. 
 
 # Usage
 
 ```julia-doc
-result = evalassoc(MetricType, data)
+result = evalassoc(MetricType, cont_tbl)
 ```
 
-Replace `MetricType` with the desired association metric type (e.g., `PMI`, `Dice`) and data with your contingency table.
+Replace `MetricType` with the desired association metric type (e.g., `PMI`, `Dice`) and cont_tbl with your contingency table. You can see all supported metrics through `listmetrics()`.
 
 # Examples
 **PMI (Pointwise Mutual Information)**:
 
 ```julia-doc
-result = evalassoc(PMI, data)
+result = evalassoc(PMI, cont_tbl)
 ```
 
 **Dice Coefficient**:
 
 ```julia-doc
-result = evalassoc(Dice, data)
+result = evalassoc(Dice, cont_tbl)
 ```
-
-You can see all supported metrics through `listmetrics()`.
 
 # Further Reading
 
-For detailed mathematical definitions and discussions on each metric, refer to our documentation site.
+For detailed mathematical definitions and discussion on each metric, refer to our documentation site.
 
-# Tips
+    evalassoc(metrics::Array{<:AssociationMetric}, cont_tbl::ContingencyTable)
 
-Ensure your data is a `ContingencyTable` instance object. To create one, use the `ContingencyTable` constructor. 
+Evaluate an array of association metrics on the given contingency table.
+
+# Arguments
+- `metrics::Array{<:AssociationMetric}`: An array of association metric types to evaluate.
+- `data::ContingencyTable`: The contingency table data on which to evaluate the metrics.
+
+# Returns
+- A DataFrame where each column represents an evaluation result for a corresponding metric.
+
+# Usage
+
+```julia-doc
+result = evalassoc([MetricType1, MetricType2, MetricType3, ...], cont_tbl)
+```
+
+Replace `MetricType\$` with the desired association metric types (e.g., `PMI`, `Dice`) and cont_tbl with your contingency table. You can see all supported metrics through `listmetrics()`.
+
+
+# Examples
+**PMI (Pointwise Mutual Information)** and **Dice Coefficient** returned within two columns of the DataFrame `result` below.
+
+```julia-doc
+result = evalassoc([PMI, Dice], cont_tbl)
+
+n×n DataFrame
+ Row │ PMI  Dice  
+     │ String   Float64 
+─────┼─────────────────
+   1 │ 0.2		0.4 		
+   2 | 0.3		0.3 		
+   3 | 0.1 		0.5 		
+   4 | 0.7		0.6		
+```
+
 """
 function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
     func_name = Symbol("eval_", lowercase(string(metricType)))  # Construct function name
@@ -795,78 +834,16 @@ function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable
     return func(data)  # Call the function
 end
 
+function evalassoc(metrics::Array{<:AssociationMetric}, data::ContingencyTable)
+    results_df = DataFrame()
+    for metric in metrics
+        func_name = Symbol("eval_", lowercase(string(metric)))  # Construct function name
+        func = getfield(@__MODULE__, func_name)  # Get the function from the current module
+        result = func(data)  # Call the function and store the result
+        results_df[!, string(metric)] = result  # Add the result to the DataFrame as a column
+    end
+    return results_df
+end
 
 # OverlapCoefficient
-
-# List all available statistical assoiation measures from Pecina's paper
-
-# 1. Joint probability
-# 2. Conditional probability 
-# 3. Reverse conditional probability
-
-# 5. Mutual dependency $(M D)
-# 6. Log frequency biased $M D$
-# 7. Normalized expectation
-# 8. Mutual expectation
-# 9. Salience 
-# 10. Pearson's chi^2 test
-
-# 12. t test
-# 13. z score
-# 14. Poison significance measure 
-
-# 16. Squared log likelihood ratio 
-
-# 23. First Kulczynsky
-
-# 32. Pearson 
-# 33. Baroni-Urbani
-# 34. Braun-Blanquet
-# 35. Simpson 
-# 36. Michael 
-
-# 38. Fager 
-# 39. Unigram subtuples 
-# 40. $U$ cost 
-# 41. $S$ cost 
-# 42. $R$ cost 
-# 43. $T$ combined cost
-
-# 45. Kappa
-# 45. J-measure
-
-# 47. Gini index
-# 48. Confidence
-# 49. Laplace
-# 50. Conviction
-
-# 52. Certainity
-# 53. Added value
-# 54. Collective
-# 55. Klosgen
-
-# DONE or INCLUDED in the package
-
-# 28. Yule's $\omega$ DONE
-# 30. Driver-Kroeber DONE
-# 18. Sokal-Michener DONE
-# 17. Russel-Rao DONE
-# 20. Hamann DONE
-# 4. Pointwise mutual information DONE
-# 15. Log likelihood ratio DONE
-# 22. Jaccard DONE
-# 44. Phi coefficient DONE
-# 51. Piatersky-Shapiro DONE
-# 27. Odds ratio DONE
-# 29. Yule's $Q$ DONE
-# 31. Fifth Sokal-Sneath INCLUDED
-# 11. Fisher's exact test INCLUDED
-# 19. Rogers-Tanimoto DONE
-# 21. Third Sokal-Sneath INCLUDED
-# 24. Second Sokal-Sneath INCLUDED
-# 25. Second Kulczynski INCLUDED
-# 26. Fourth Sokal-Sneath INCLUDED
-# 37. Mountford INCLUDED
-# 46. Gower INCLUDED
-
 
