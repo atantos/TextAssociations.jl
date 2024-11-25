@@ -10,22 +10,22 @@ const pmi = eval_pmi
 
 # log2((a^2 / N) / ((k / N) * (m / N)))
 # Pointwise Mutual Information²     
-function eval_pmi2(data::ContingencyTable)
+function eval_pmi²(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     log2.((con_tbl.a .^ 2 ./ con_tbl.N) .- log2.((con_tbl.k ./ con_tbl.N) .* (con_tbl.m ./ con_tbl.N)))
 end
 
-const pmi² = eval_pmi2
+const pmi² = eval_pmi²
 
 
 # log2((a^3 / N) / ((k / N) * (m / N)))
 # Pointwise Mutual Information³ 
-function eval_pmi3(data::ContingencyTable)
+function eval_pmi³(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     log2.((con_tbl.a .^ 3 ./ con_tbl.N) .- log2.((con_tbl.k ./ con_tbl.N) .* (con_tbl.m ./ con_tbl.N)))
 end
 
-const pmi³ = eval_pmi3
+const pmi³ = eval_pmi³
 
 
 # max(0, log2((a / N) / ((k / N) * (m / N))))
@@ -81,7 +81,7 @@ const minsen = eval_minsensitivity
 
 # a + b  = m, c + d = n, a + c = k, b + d = l
 
-# Dice
+# Dice f Co-occurrence based word association
 function eval_dice(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     (2 .* con_tbl.a) ./ (con_tbl.m + con_tbl.k)
@@ -100,6 +100,7 @@ const logdice = eval_logdice
 
 
 # Relative Risk: \text{Relative Risk} = \frac{\frac{a}{a + b}}{\frac{c}{c + d}} 
+#  https://www.ncbi.nlm.nih.gov/books/NBK430824/figure/article-28324.image.f1/
 function eval_relrisk(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a ./ con_tbl.m) ./ (con_tbl.c ./ con_tbl.n)
@@ -120,6 +121,7 @@ const lrr = eval_logrelrisk
 
 
 # Risk Difference: \frac{a}{a + b} - \frac{c}{c + d}
+# incidence proportion difference 46.6.2 Incidence proportion difference, https://www.r4epi.com/measures-of-association
 function eval_riskdiff(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a ./ con_tbl.m) .- (con_tbl.c ./ con_tbl.n)
@@ -165,7 +167,7 @@ const lor = eval_logoddsratio
 # "Jaccard", a/(a + b + c)
 function eval_jaccardindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    con_tbl.a ./ (con_tbl.a .+ con_tbl.b .+ con_tbl.c)
+    con_tbl.a ./ (con_tbl.m .+ con_tbl.c)
 end
 
 const jaccard = eval_jaccardindex
@@ -175,7 +177,7 @@ const jaccard = eval_jaccardindex
 # "Ochiai", a / sqrt((a + b) * (a + c))
 function eval_ochiaiindex(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    con_tbl.a ./ sqrt.((con_tbl.a .+ con_tbl.b) .* (con_tbl.a .+ con_tbl.c))
+    con_tbl.a ./ sqrt.((con_tbl.m) .* (con_tbl.k))
 end
 
 const ochiai = eval_ochiaiindex
@@ -184,7 +186,7 @@ const ochiai = eval_ochiaiindex
 # "Piatetsky Shapiro", \frac{a}{n} - \frac{(a + b)(a + c)}{n^2}
 function eval_piatetskyshapiro(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    con_tbl.a .- ((con_tbl.k .* con_tbl.m) ./ con_tbl.N)
+    (con_tbl.a ./ con_tbl.N) .- ((con_tbl.k .* con_tbl.m) ./ con_tbl.N²)
 end
 
 const piatetskyshapiro = eval_piatetskyshapiro
@@ -421,339 +423,23 @@ const sokalmichenercoef = eval_sokalmichenercoef
 
 # Gravity G Index
 # "Gravity G Index", (a * d) / (b * c)
-
-
-
-# =============================================================================
-
-# Fisher's Exact Test
-function eval_fisher_exact_test(data::ContingencyTable)
+function eval_lexicalgravity(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    fisher_exact_test = (con_tbl.a * con_tbl.d) / (con_tbl.b * con_tbl.c)
+    # log((f(w1,w2)*n(w1)/f(w1))) + log((f(w1,w2)*n'(w2)/f(w2)))
+    # calculate the n'(w2) and f(w2) for each word in the context window
+
+    f_w1_w2 = con_tbl.a
+    n_w1 = nrow(con_tbl)
+    f_w1 = sum(con_tbl.a)
+    n_w2 = find_prior_words(data.prepared_string, con_tbl.Collocate, con_tbl.windowsize)
+    f_w2 = count_substrings(data.prepared_string, string.(" ", con_tbl.Collocate, " "))
+    log.(f_w1_w2 .* n_w1 / f_w1) .+ log.(f_w1_w2 .* n_w2 ./ f_w2)
+
 end
 
-const fisher = eval_fisher_exact_test
+const lexicalgravity = eval_lexicalgravity
 
-# Chi Square
-function eval_chi_square(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    chi_square = (con_tbl.a * con_tbl.d - con_tbl.b * con_tbl.c)^2 / ((con_tbl.a + con_tbl.b) * (con_tbl.c + con_tbl.d) * (con_tbl.a + con_tbl.c) * (con_tbl.b + con_tbl.d))
-end
 
-const chi_square = eval_chi_square
-const χ² = eval_chi_square
-
-
-# Poisson
-function eval_poisson(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    poisson = (con_tbl.a .- con_tbl.m) .^ 2 ./ con_tbl.m
-end
-
-const poisson = eval_poisson
-
-function eval_jointprob(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const jointprob = eval_jointprob
-
-function eval_conditionalprob(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const conditionalprob = eval_conditionalprob
-
-function eval_revconditionalprob(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const revconditionalprob = eval_revconditionalprob
-
-function eval_mutualdep(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const mutualdep = eval_mutualdep
-
-function eval_logfreqmd(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const logfreqmd = eval_logfreqmd
-
-function eval_normexpectation(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const normexpectation = eval_normexpectation
-
-function eval_mutualexpectation(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const mutualexpectation = eval_mutualexpectation
-
-function eval_salience(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const salience = eval_salience
-
-function eval_pearsonchi2(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const pearsonchi2 = eval_pearsonchi2
-
-function eval_ttest(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const ttest = eval_ttest
-
-function eval_zscore(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const zscore = eval_zscore
-
-function eval_klosgen(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const klosgen = eval_klosgen
-
-function eval_russellrao(data::ContingencyTable) # DONE
-    con_tbl = extract_cached_data(data.con_tbl)
-    con_tbl.a ./ con_tbl.N
-end
-
-const russellrao = eval_russellrao
-
-function eval_kulczynsky1(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const kulczynsky1 = eval_kulczynsky1
-
-function eval_driverkroeber(data::ContingencyTable) # DONE
-    con_tbl = extract_cached_data(data.con_tbl)
-    driverkroeber = con_tbl.a ./ sqrt.((con_tbl.a .+ con_tbl.b) .* (con_tbl.a .+ con_tbl.c))
-end
-
-const driverkroeber = eval_driverkroeber
-
-function eval_pearsoncor(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const pearsoncor = eval_pearsoncor
-
-function eval_baroniurbani(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const baroniurbani = eval_baroniurbani
-
-function eval_braunblanquet(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const braunblanquet = eval_braunblanquet
-
-function eval_simpsonidx(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const simpsonidx = eval_simpsonidx
-
-function eval_michaelidx(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const michaelidx = eval_michaelidx
-
-function eval_fageridx(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const fageridx = eval_fageridx
-
-function eval_unisubtypes(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const unisubtypes = eval_unisubtypes
-
-function eval_ucost(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const ucost = eval_ucost
-
-function eval_rcost(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const rcost = eval_rcost
-
-function eval_scost(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const scost = eval_scost
-
-function eval_tcombcost(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const tcombcost = eval_tcombcost
-
-function eval_jmeasure(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const jmeasure = eval_jmeasure
-
-function eval_giniidx(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const giniidx = eval_giniidx
-
-function eval_confmeasure(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const confmeasure = eval_confmeasure
-
-function eval_laplace(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const laplace = eval_laplace
-
-function eval_convictmeasure(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const convictmeasure = eval_convictmeasure
-
-function eval_certaintymeasure(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const certaintymeasure = eval_certaintymeasure
-
-function eval_addedvaluemeasure(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const addedvaluemeasure = eval_addedvaluemeasure
-
-function eval_collectivestrength(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const collectivestrength = eval_collectivestrength
-
-function eval_cohenskappa(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # implementation
-end
-
-const cohenskappa = eval_cohenskappa
-const kappa = eval_cohenskappa
-
-# Joint Probability: joint_probability
-# Conditional Probability: conditional_probability
-# Reverse Conditional Probability: reverse_conditional_probability
-# Mutual Dependency (MD): mutual_dependency
-# Log Frequency Biased MD: log_freq_biased_md
-# Normalized Expectation: normalized_expectation
-# Mutual Expectation: mutual_expectation
-# Salience: salience_measure
-# Pearson's Chi-Squared Test: pearson_chi2_test
-# T Test: t_test
-# Z Score: z_score
-# Squared Log Likelihood Ratio: squared_log_likelihood_ratio
-# Klosgen: klosgen_measure
-# Russell-Rao: russell_rao
-# Sokal-Michener: sokal_michener
-# First Kulczynsky: first_kulczynsky
-# Yule's Omega (ω): yules_omega
-# Driver-Kroeber: driver_kroeber
-# Pearson (for correlation): pearson_correlation
-# Baroni-Urbani: baroni_urbani
-# Braun-Blanquet: braun_blanquet
-# Simpson: simpson_index
-# Michael: michael_index
-# Fager: fager_index
-# Unigram Subtuples: unigram_subtuples
-# U Cost: u_cost
-# S Cost: s_cost
-# R Cost: r_cost
-# T Combined Cost: t_combined_cost
-# Kappa: kappa
-# J-Measure: j_measure
-# Gini Index: gini_index
-# Confidence: confidence_measure
-# Laplace: laplace_measure
-# Conviction: conviction_measure
-# Certainty: certainty_measure
-# Added Value: added_value_measure
-# Collective Strength: collective_strength
-# ========================================
-
-# check if the following are included in the package
-# Poisson Significance Measure: poisson_significance_measure
-# Hamann: hamann
-
-# Define a general evaluate function for the AssociationMetric type
-
-# metrics = (PMI, PMI2, PMI3, PPMI, LLR, DeltaPi, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIndex, OchiaiIndex, OchiaiCoef, PiatetskyShapiro, YuleQ, YuleY, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, GoodmanKruskalIndex, GowerCoef, CzekanowskiDiceCoef, SorgenfreyIndex, MountfordCoef, SokalSneathIndex, RogersTanimotoCoef, SokalmMchenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest)
-
-# for M in metrics
-#     eval_fn_symbol = Symbol("eval_", lowercase(string(M)))
-#     @eval begin
-#         @inline function evalassoc(::Type{$M}, data::ContingencyTable)
-#             invoke($(eval_fn_symbol), Tuple{ContingencyTable}, data)
-#         end
-#     end
-# end
 """
     evalassoc(metricType::Type{<:AssociationMetric}, cont_tbl::ContingencyTable)
 
@@ -815,11 +501,11 @@ Replace `MetricType\$` with the desired association metric types (e.g., `PMI`, `
 **PMI (Pointwise Mutual Information)** and **Dice Coefficient** returned within two columns of the DataFrame `result` below.
 
 ```julia-doc
-result = evalassoc([PMI, Dice], cont_tbl)
+evalassoc(Metrics([PMI, Dice]), cont_to)
 
-n×n DataFrame
+n×2 DataFrame
  Row │ PMI  Dice  
-     │ String   Float64 
+     │ Float64   Float64 
 ─────┼─────────────────
    1 │ 0.2		0.4 		
    2 | 0.3		0.3 		
@@ -834,9 +520,9 @@ function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable
     return func(data)  # Call the function
 end
 
-function evalassoc(metrics::Array{<:AssociationMetric}, data::ContingencyTable)
+function evalassoc(metrics::Metrics, data::ContingencyTable)
     results_df = DataFrame()
-    for metric in metrics
+    for metric in metrics.metrics
         func_name = Symbol("eval_", lowercase(string(metric)))  # Construct function name
         func = getfield(@__MODULE__, func_name)  # Get the function from the current module
         result = func(data)  # Call the function and store the result
@@ -844,6 +530,9 @@ function evalassoc(metrics::Array{<:AssociationMetric}, data::ContingencyTable)
     end
     return results_df
 end
+
+# Define a const that will result in a DataFrame with all metrics
+const ALL_METRICS = Metrics([PMI, PMI², PMI³, PPMI, LLR, LLR2, LLR², DeltaPi, MinSens, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIdx, OchiaiIdx, PiatetskyShapiro, YuleOmega, YuleQ, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2, HammanSim, HammanSim2, GoodmanKruskalIdx, GowerCoef, GowerCoef2, CzekanowskiDiceCoef, SorgenfreyIdx, SorgenfreyIdx2, MountfordCoef, MountfordCoef2, SokalSneathIdx, SokalMichenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest, CohensKappa])
 
 # OverlapCoefficient
 

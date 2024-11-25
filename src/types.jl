@@ -2,6 +2,11 @@ abstract type AssociationMetric <: SemiMetric end
 
 abstract type AssociationDataFormat end
 
+# For handling more than one metric at a time with evalassoc().
+struct Metrics
+    metrics::Vector{Type{<:AssociationMetric}}
+end
+
 # List of metric names
 metric_names = [:PMI, :PMI², :PMI³, :PPMI, :LLR, :LLR2, :LLR², :DeltaPi, :MinSens, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIdx, :OchiaiIdx, :PiatetskyShapiro, :YuleOmega, :YuleQ, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :RogersTanimotoCoef, :RogersTanimotoCoef2, :HammanSim, :HammanSim2, :GoodmanKruskalIdx, :GowerCoef, :GowerCoef2, :CzekanowskiDiceCoef, :SorgenfreyIdx, :SorgenfreyIdx2, :MountfordCoef, :MountfordCoef2, :SokalSneathIdx, :SokalMichenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest, :CohensKappa]
 
@@ -9,6 +14,7 @@ metric_names = [:PMI, :PMI², :PMI³, :PPMI, :LLR, :LLR2, :LLR², :DeltaPi, :Min
 for name in metric_names
     @eval abstract type $name <: AssociationMetric end
 end
+
 
 
 """
@@ -28,26 +34,76 @@ Calculate the Pointwise Mutual Information (PMI) score based on the following fo
 # struct PMI <: AssociationMetric end
 
 # Caching the text preprocessing for co-occurrence matrix and the countmap() for the cells of the table that will be counting https://discourse.julialang.org/t/best-practice-approach-for-caching-data-in-objects/20419?u=alex_tantos
-mutable struct LazyProcess{T}
-    f::Function
-    cached_result::Union{Nothing,T}
+mutable struct LazyProcess{T,R}
+    f::T
+    cached_result::Union{Nothing,R}
     cached_process::Bool
-    LazyProcess{T}(f) where {T} = new{T}(f, nothing, false)
+    LazyProcess{T}(f) where {T} = new{T,Nothing}(f, nothing, false)
 end
 
-struct ContingencyTable <: AssociationDataFormat
-    con_tbl::LazyProcess{DataFrame}
+"""
+    ContingencyTable <: AssociationDataFormat
+
+A type representing a contingency table for analyzing the context of a target word within a specified window size in a given input string.
+
+# Fields
+- `con_tbl::LazyProcess{T, DataFrame}`: A lazy process that generates the contingency table when accessed.
+- `node::AbstractString`: The target word for which the contingency table is generated.
+- `windowsize::Int`: The window size around the target word to consider for context.
+- `minfreq::Int64`: The minimum frequency threshold for including words in the contingency table.
+
+# Constructors
+- `ContingencyTable(inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int64=5; auto_prep::Bool=true)`
+
+    Creates a new `ContingencyTable` instance.
+
+    - `inputstring::AbstractString`: The input text to be analyzed.
+    - `node::AbstractString`: The target word for which the contingency table will be generated.
+    - `windowsize::Int`: The window size around the target word to consider for context.
+    - `minfreq::Int64`: The minimum frequency threshold for including words in the contingency table (default: 5).
+    - `auto_prep::Bool`: If true, preprocesses the input string before analysis (default: true).
+
+# Example
+```julia-doc
+inputstring = "This is a sample text where the target word appears multiple times. The target word is analyzed for context."
+node = "target"
+windowsize = 5
+minfreq = 2
+
+cont_table = ContingencyTable(inputstring, node, windowsize, minfreq)
+```
+"""
+struct ContingencyTable{T} <: AssociationDataFormat
+    con_tbl::LazyProcess{T,DataFrame}
     node::AbstractString
     windowsize::Int
     minfreq::Int64
 
     function ContingencyTable(inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int64=5; auto_prep::Bool=true)
-        prepared_string = auto_prep ? prepstring(inputstring) : inputstring
-        con_tbl = LazyProcess{DataFrame}(() -> conttbl(prepared_string, node, windowsize, minfreq))
+        # Prepare the input string
+        prepared_string = auto_prep ? prep_string(inputstring) : inputstring
 
-        new(con_tbl, node, windowsize, minfreq)
+        # Define the function that will compute the contingency table lazily
+        f = () -> cont_tbl(prepared_string, node, windowsize, minfreq)
+
+        # Create the LazyProcess
+        con_tbl = LazyProcess(f)
+
+        # Initialize the ContingencyTable
+        new{typeof(f)}(con_tbl, node, windowsize, minfreq)
     end
 end
+
+# function createContingencyTable(inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int64=5; auto_prep::Bool=true, store_prep::Bool=false)
+#     prepared_string = auto_prep ? prepstring(inputstring) : inputstring
+
+#     contingency_table = ContingencyTable(inputstring, node, windowsize, minfreq; auto_prep=auto_prep)
+#     if store_prep
+#         contingency_table.prepared_string = prepared_string
+#     end
+#     return contingency_table
+# end
+
 
 #################################################################################
 #
