@@ -68,13 +68,14 @@ julia> evalassoc(PMI, cont_table)
 ```julia
 julia> show(listmetrics())
 [:PMI,
-:PMI2,
-:PMI3,
+:PMI²,
+:PMI³,
 :PPMI,
 :LLR,
 :LLR2,
 :LLR²,
 :DeltaPi,
+:MinSens,
 :Dice,
 :LogDice,
 :RelRisk,
@@ -84,12 +85,11 @@ julia> show(listmetrics())
 :OddsRatio,
 :LogRatio,
 :LogOddsRatio,
-:JaccardIndex,
-:OchiaiIndex,
-:OchiaiCoef,
+:JaccardIdx,
+:OchiaiIdx,
 :PiatetskyShapiro,
+:YuleOmega,
 :YuleQ,
-:YuleY,
 :PhiCoef,
 :CramersV,
 :TschuprowT,
@@ -98,18 +98,20 @@ julia> show(listmetrics())
 :OverlapCoef,
 :KulczynskiSim,
 :TanimotoCoef,
-:GoodmanKruskalIndex,
-:GowerCoef,
-:CzekanowskiDiceCoef,
-:SorgenfreyIndex,
-:MountfordCoef,
-:SokalSneathIndex,
 :RogersTanimotoCoef,
-:SokalmMchenerCoef,
-:Tscore,
-:Zscore,
-:ChiSquare,
-:FisherExactTest]
+:RogersTanimotoCoef2,
+:HammanSim,
+:HammanSim2,
+:GoodmanKruskalIdx,
+:GowerCoef,
+:GowerCoef2,
+:CzekanowskiDiceCoef,
+:SorgenfreyIdx,
+:SorgenfreyIdx2,
+:MountfordCoef,
+:MountfordCoef2,
+:SokalSneathIdx,
+:SokalMichenerCoef]
 ```
 
 Each association metric offers insights as to the association of a node word of interest to a collocate word that reveals deeper semantic or syntactic patterns.
@@ -160,6 +162,7 @@ Each association metric offers insights as to the association of a node word of 
 | $\text{Mountford's Coefficient}$ | `MountfordCoef` | $`\frac{a}{a + 2b + 2c}`$|
 | $\text{Mountford's Coefficient 2}$ | `MountfordCoef2` | $`\frac{a + d}{a + d + 2 \sqrt{(b + c) \cdot (k + m)}}`$|
 | $\text{Sokal-Sneath Index}$ | `SokalSneathIdx` | $`\frac{a}{a + 2(b + c)}`$|
+| $\text{Sokal-Michener Coefficient}$ | `SokalMichenerCoef` | $`\frac{a +d}{a + b + c + d}`$|
 
 
 
