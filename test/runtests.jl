@@ -1,6 +1,5 @@
-using TextAssociations
 using Test
 
-@testset "TextAssociations.jl" begin
-    # Write your tests here.
-end
+include("test_association_metrics.jl")
+include("test_utils.jl")
+include("test_contingency_table.jl")

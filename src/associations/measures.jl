@@ -520,9 +520,14 @@ function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable
     return func(data)  # Call the function
 end
 
-function evalassoc(metrics::Metrics, data::ContingencyTable)
+function evalassoc(metrics::Vector{DataType}, data::ContingencyTable)
+    # Validate that all elements are subtypes of AssociationMetric
+    if !all(metric -> metric <: AssociationMetric, metrics)
+        throw(ArgumentError("All metrics must be subtypes of AssociationMetric. Found: $metrics"))
+    end
+
     results_df = DataFrame()
-    for metric in metrics.metrics
+    for metric in metrics
         func_name = Symbol("eval_", lowercase(string(metric)))  # Construct function name
         func = getfield(@__MODULE__, func_name)  # Get the function from the current module
         result = func(data)  # Call the function and store the result
@@ -532,7 +537,7 @@ function evalassoc(metrics::Metrics, data::ContingencyTable)
 end
 
 # Define a const that will result in a DataFrame with all metrics
-const ALL_METRICS = Metrics([PMI, PMI², PMI³, PPMI, LLR, LLR2, LLR², DeltaPi, MinSens, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIdx, OchiaiIdx, PiatetskyShapiro, YuleOmega, YuleQ, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2, HammanSim, HammanSim2, GoodmanKruskalIdx, GowerCoef, GowerCoef2, CzekanowskiDiceCoef, SorgenfreyIdx, SorgenfreyIdx2, MountfordCoef, MountfordCoef2, SokalSneathIdx, SokalMichenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest, CohensKappa])
+const ALL_METRICS = [PMI, PMI², PMI³, PPMI, LLR, LLR2, LLR², DeltaPi, MinSens, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIdx, OchiaiIdx, PiatetskyShapiro, YuleOmega, YuleQ, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2, HammanSim, HammanSim2, GoodmanKruskalIdx, GowerCoef, GowerCoef2, CzekanowskiDiceCoef, SorgenfreyIdx, SorgenfreyIdx2, MountfordCoef, MountfordCoef2, SokalSneathIdx, SokalMichenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest, CohensKappa]
 
 # OverlapCoefficient
 

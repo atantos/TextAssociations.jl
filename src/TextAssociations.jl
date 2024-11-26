@@ -12,18 +12,19 @@ using FreqTables
 using Chain
 using TextAnalysis
 
-
 # Exports
 export
     # generic function
     evalassoc,
     listmetrics,
+    extract_cached_data,
 
     # generic types/functions
     AssociationMetric,
     AssociationDataFormat,
     Metrics,
     ContingencyTable,
+    LazyProcess,
 
     # Constants
     ALL_METRICS,

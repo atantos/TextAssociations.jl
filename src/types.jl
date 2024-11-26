@@ -2,11 +2,6 @@ abstract type AssociationMetric <: SemiMetric end
 
 abstract type AssociationDataFormat end
 
-# For handling more than one metric at a time with evalassoc().
-struct Metrics
-    metrics::Vector{Type{<:AssociationMetric}}
-end
-
 # List of metric names
 metric_names = [:PMI, :PMI², :PMI³, :PPMI, :LLR, :LLR2, :LLR², :DeltaPi, :MinSens, :Dice, :LogDice, :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk, :OddsRatio, :LogRatio, :LogOddsRatio, :JaccardIdx, :OchiaiIdx, :PiatetskyShapiro, :YuleOmega, :YuleQ, :PhiCoef, :CramersV, :TschuprowT, :ContCoef, :CosineSim, :OverlapCoef, :KulczynskiSim, :TanimotoCoef, :RogersTanimotoCoef, :RogersTanimotoCoef2, :HammanSim, :HammanSim2, :GoodmanKruskalIdx, :GowerCoef, :GowerCoef2, :CzekanowskiDiceCoef, :SorgenfreyIdx, :SorgenfreyIdx2, :MountfordCoef, :MountfordCoef2, :SokalSneathIdx, :SokalMichenerCoef, :Tscore, :Zscore, :ChiSquare, :FisherExactTest, :CohensKappa]
 
@@ -38,7 +33,11 @@ mutable struct LazyProcess{T,R}
     f::T
     cached_result::Union{Nothing,R}
     cached_process::Bool
-    LazyProcess{T}(f) where {T} = new{T,Nothing}(f, nothing, false)
+    # Default constructor that enforces R = DataFrame
+    LazyProcess(f::T) where {T} = new{T,DataFrame}(f, nothing, false)
+
+    # Constructor with explicit R
+    LazyProcess(f::T, ::Type{R}) where {T,R} = new{T,R}(f, nothing, false)
 end
 
 """
@@ -81,10 +80,10 @@ struct ContingencyTable{T} <: AssociationDataFormat
 
     function ContingencyTable(inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int64=5; auto_prep::Bool=true)
         # Prepare the input string
-        prepared_string = auto_prep ? prep_string(inputstring) : inputstring
+        prepared_string = auto_prep ? prepstring(inputstring) : inputstring
 
         # Define the function that will compute the contingency table lazily
-        f = () -> cont_tbl(prepared_string, node, windowsize, minfreq)
+        f = () -> conttbl(prepared_string, node, windowsize, minfreq)
 
         # Create the LazyProcess
         con_tbl = LazyProcess(f)
@@ -130,7 +129,7 @@ julia> doc = StringDocument("This is a text about an apple. There are many texts
 2.0
 ```
 """
-function extract_cached_data(z::LazyProcess{T}) where {T}
+function extract_cached_data(z::LazyProcess{T,R}) where {T,R}
     z.cached_process || (z.cached_result = z.f(); z.cached_process = true)
-    z.cached_result::T
+    z.cached_result::R
 end
