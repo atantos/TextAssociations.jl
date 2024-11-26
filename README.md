@@ -1,4 +1,4 @@
-![TextAssociations.jl](assets/TextAssociations_logo.png)
+![TextAssociations.jl](https://github.com/atantos/TextAssociations.jl/blob/main/assets/TextAssociations_logo.gif)
 
 # TextAssociations
 
