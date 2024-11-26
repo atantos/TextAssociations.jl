@@ -1,4 +1,4 @@
-<img src="https://github.com/atantos/TextAssociations.jl/blob/main/assets/TextAssociations_logo.gif" alt="TextAssociations.jl" width="200" height="200"/>
+<img src="https://github.com/atantos/TextAssociations.jl/blob/main/assets/TextAssociations_logo.gif" alt="TextAssociations.jl" width="1200" height="400"/>
 
 # TextAssociations
 
