@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/atantos/TextAssociations.jl/raw/main/assets/TextAssociations_logo.png" alt="TextAssociations.jl" width="1100" height="500"/>
+  <img src="https://github.com/atantos/TextAssociations.jl/raw/main/assets/TextAssociations_logo.png" alt="TextAssociations.jl" width="1100" height="400"/>
 </p>
 
 # TextAssociations
