@@ -40,6 +40,15 @@ mutable struct LazyProcess{T,R}
     LazyProcess(f::T, ::Type{R}) where {T,R} = new{T,R}(f, nothing, false)
 end
 
+
+struct LazyInput
+    loader::LazyProcess{AbstractString,String}
+
+    function LazyInput(inputstring::AbstractString)
+        new(LazyProcess(() -> inputstring))
+    end
+end
+
 """
     ContingencyTable <: AssociationDataFormat
 
@@ -77,6 +86,7 @@ struct ContingencyTable{T} <: AssociationDataFormat
     node::AbstractString
     windowsize::Int
     minfreq::Int64
+    input_ref::LazyInput  # Use LazyInput for the raw text of lexical gravity
 
     function ContingencyTable(inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int64=5; auto_prep::Bool=true)
         # Prepare the input string
@@ -87,6 +97,9 @@ struct ContingencyTable{T} <: AssociationDataFormat
 
         # Create the LazyProcess
         con_tbl = LazyProcess(f)
+
+        # Initialize LazyInput for raw string
+        nput_ref = LazyInput(prepared_string)
 
         # Initialize the ContingencyTable
         new{typeof(f)}(con_tbl, node, windowsize, minfreq)

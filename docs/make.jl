@@ -8,6 +8,7 @@ makedocs(;
     authors="atantos <atantos@gmail.com> and contributors",
     sitename="TextAssociations.jl",
     format=Documenter.HTML(
+        prettyurls=false,  # Disable pretty URLs and generate flat files without subdirectories that create problems in the linking
         canonical="https://atantos.github.io/TextAssociations.jl",
         edit_link="main",
         assets=String[],
