@@ -42,12 +42,17 @@ end
 
 
 struct LazyInput
-    loader::LazyProcess{AbstractString,String}
+    loader::LazyProcess{T,TextAnalysis.StringDocument} where {T}
 
-    function LazyInput(inputstring::AbstractString)
-        new(LazyProcess(() -> inputstring))
+    # Constructor for LazyInput
+    function LazyInput(input::TextAnalysis.StringDocument)
+        # Create a LazyProcess with the exact type of the anonymous function
+        lazy_proc = LazyProcess(() -> input, TextAnalysis.StringDocument)
+        return new(lazy_proc)
     end
 end
+
+
 
 """
     ContingencyTable <: AssociationDataFormat
@@ -99,23 +104,12 @@ struct ContingencyTable{T} <: AssociationDataFormat
         con_tbl = LazyProcess(f)
 
         # Initialize LazyInput for raw string
-        nput_ref = LazyInput(prepared_string)
+        input_ref = LazyInput(prepared_string)
 
         # Initialize the ContingencyTable
-        new{typeof(f)}(con_tbl, node, windowsize, minfreq)
+        new{typeof(f)}(con_tbl, node, windowsize, minfreq, input_ref)
     end
 end
-
-# function createContingencyTable(inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int64=5; auto_prep::Bool=true, store_prep::Bool=false)
-#     prepared_string = auto_prep ? prepstring(inputstring) : inputstring
-
-#     contingency_table = ContingencyTable(inputstring, node, windowsize, minfreq; auto_prep=auto_prep)
-#     if store_prep
-#         contingency_table.prepared_string = prepared_string
-#     end
-#     return contingency_table
-# end
-
 
 #################################################################################
 #

@@ -110,7 +110,15 @@ Generate a contingency table for a target word in a given text document, analyzi
     - `b`: Frequency of the context word outside the target window but in the document.
     - `c`: Frequency of other words in the target window.
     - `d`: Frequency of other words outside the target window but in the document.
-    - `m`, `n`, `k`, `l`, `N`, `E₁₁`, `E₁₂`, `E₂₁`, `E₂₂`: Various calculated statistics for further analysis.
+    - `m`: The total frequency of the collocate word in the document `(m = a + b)`.
+    - `n`: The total frequency of all other words in the document `(n = c + d)`.
+    - `k`: The total frequency of words in the window `(k = a + c)`.
+    - `l`: The total frequency of words outside the window `(l = b + d)`.
+    - `N`: The total number of words in the document `(N = m + n)`.
+    - `E₁₁`: The expected frequency of the collocate word in the window under the assumption of independence: `E₁₁ = (m * k) / N`
+    - `E₁₂`: The expected frequency of the collocate word outside the window: `E₁₂ = (m * l) / N`
+    - `E₂₁`: The expected frequency of other words in the window: `E₂₁ = (n * k) / N`
+    - `E₂₂`: The expected frequency of other words outside the window: `E₂₂ = (n * l) / N`
 
 # Description
 The `conttbl` function processes a `StringDocument`, tokenizes the text, and identifies the indices of the target word. It then collects context words within a specified window size around each occurrence of the target word. The function calculates the frequency of these context words and constructs a contingency table. The table includes the frequency of context words inside and outside the target window and computes various statistical measures used for further linguistic analysis.
@@ -308,13 +316,16 @@ Find the unique words that appear `n` words before each match of the given subst
     - The number of unique words in the set.
 
 # Example
-```julia
+```julia-doc
 strdoc = StringDocument("Γρήγορη καφέ αλεπού πηδάει πάνω από τον τεμπέλη σκύλο. Η γρήγορη καφέ αλεπού είναι πολύ γρήγορη.")
 substring = "γρήγορη"
 n = 2
 unique_prior_words, count = find_prior_words(strdoc, substring, n)
 println(unique_prior_words)  # Output: Set(["Η", "καφέ", "από"])
 println(count)  # Output: 3
+```
+
+# Description
 
 This function utilizes regular expressions to find the substring within the text and then identifies the unique words that appear `n` words before each match. It handles Unicode boundaries correctly to ensure valid indexing and processes the text to strip punctuation, whitespace, and normalize case.
 """

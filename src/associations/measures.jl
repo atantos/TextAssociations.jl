@@ -1,9 +1,11 @@
 
 # log2((a / N) / ((k / N) * (m / N)))
+# Pointwise Mutual Information
 function eval_pmi(data::ContingencyTable)
-    con_tbl = TextAssociations.extract_cached_data(data.con_tbl)
-    log2.((con_tbl.a ./ con_tbl.N) .- log2.((con_tbl.k ./ con_tbl.N) .* (con_tbl.m ./ con_tbl.N)))
+    con_tbl = extract_cached_data(data.con_tbl)
+    log2.(con_tbl.a) .+ log2.(con_tbl.N) - log2.(con_tbl.k) - log2.(con_tbl.m)
 end
+
 
 const pmi = eval_pmi
 
@@ -12,7 +14,7 @@ const pmi = eval_pmi
 # Pointwise Mutual Information²     
 function eval_pmi²(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    log2.((con_tbl.a .^ 2 ./ con_tbl.N) .- log2.((con_tbl.k ./ con_tbl.N) .* (con_tbl.m ./ con_tbl.N)))
+    (log2.(con_tbl.a) .+ log2.(con_tbl.N) - log2.(con_tbl.k) - log2.(con_tbl.m)) .^ 2
 end
 
 const pmi² = eval_pmi²
@@ -22,17 +24,23 @@ const pmi² = eval_pmi²
 # Pointwise Mutual Information³ 
 function eval_pmi³(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    log2.((con_tbl.a .^ 3 ./ con_tbl.N) .- log2.((con_tbl.k ./ con_tbl.N) .* (con_tbl.m ./ con_tbl.N)))
+    (log2.(con_tbl.a) .+ log2.(con_tbl.N) - log2.(con_tbl.k) - log2.(con_tbl.m)) .^ 3
 end
 
 const pmi³ = eval_pmi³
 
 
 # max(0, log2((a / N) / ((k / N) * (m / N))))
+# function eval_ppmi(data::ContingencyTable)
+#     con_tbl = extract_cached_data(data.con_tbl)
+#     max.(0, log2.((con_tbl.a ./ con_tbl.N)) .- log2.((con_tbl.k ./ con_tbl.N) .* (con_tbl.m ./ con_tbl.N)))
+# end
+
 function eval_ppmi(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
-    max.(0, log2.((con_tbl.a ./ con_tbl.N)) .- log2.((con_tbl.k ./ con_tbl.N) .* (con_tbl.m ./ con_tbl.N)))
+    max.(0, log2.(con_tbl.a ./ con_tbl.N) .- (log2.(con_tbl.k ./ con_tbl.N) .+ log2.(con_tbl.m ./ con_tbl.N)))
 end
+
 
 const ppmi = eval_ppmi
 
@@ -165,22 +173,22 @@ const lor = eval_logoddsratio
 
 # Jaccard Index: \frac{a}{a + b + c}
 # "Jaccard", a/(a + b + c)
-function eval_jaccardindex(data::ContingencyTable)
+function eval_jaccardidx(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     con_tbl.a ./ (con_tbl.m .+ con_tbl.c)
 end
 
-const jaccard = eval_jaccardindex
+const jaccardidx = eval_jaccardidx
 
 
 # Ochiai Index
 # "Ochiai", a / sqrt((a + b) * (a + c))
-function eval_ochiaiindex(data::ContingencyTable)
+function eval_ochiaiidx(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     con_tbl.a ./ sqrt.((con_tbl.m) .* (con_tbl.k))
 end
 
-const ochiai = eval_ochiaiindex
+const ochiaiidx = eval_ochiaiidx
 
 # Piatetsky Shapiro
 # "Piatetsky Shapiro", \frac{a}{n} - \frac{(a + b)(a + c)}{n^2}
@@ -479,7 +487,20 @@ result = evalassoc(Dice, cont_tbl)
 # Further Reading
 
 For detailed mathematical definitions and discussion on each metric, refer to our documentation site.
+"""
+function evalassoc(metricType::Type{<:AssociationMetric}, input::Union{ContingencyTable,AbstractString}; node::AbstractString="", windowsize::Int=0, minfreq::Int=5)
 
+    # Convert raw input to ContingencyTable if necessary
+    if input isa AbstractString
+        input = ContingencyTable(input, node, windowsize, minfreq)
+    end
+
+    func_name = Symbol("eval_", lowercase(string(metricType)))  # Construct function name
+    func = getfield(@__MODULE__, func_name)  # Get the function from the current module
+    return func(input), input # Call the function
+end
+
+"""
     evalassoc(metrics::Array{<:AssociationMetric}, cont_tbl::ContingencyTable)
 
 Evaluate an array of association metrics on the given contingency table.
@@ -515,41 +536,31 @@ n×2 DataFrame
    3 | 0.1 		0.5 		
    4 | 0.7		0.6		
 ```
-
 """
-function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
-    func_name = Symbol("eval_", lowercase(string(metricType)))  # Construct function name
-    func = getfield(@__MODULE__, func_name)  # Get the function from the current module
-    return func(data)  # Call the function
-end
-
-function evalassoc(metrics::Vector{DataType}, data::ContingencyTable)
+function evalassoc(metrics::Vector{DataType}, input::Union{ContingencyTable,AbstractString};
+    node::AbstractString="", windowsize::Int=0, minfreq::Int=5)
     # Validate that all elements are subtypes of AssociationMetric
     if !all(metric -> metric <: AssociationMetric, metrics)
         throw(ArgumentError("All metrics must be subtypes of AssociationMetric. Found: $metrics"))
+    end
+
+    # Convert raw input to ContingencyTable if necessary
+    if input isa AbstractString
+        input = ContingencyTable(input, node, windowsize, minfreq)
     end
 
     results_df = DataFrame()
     for metric in metrics
         func_name = Symbol("eval_", lowercase(string(metric)))  # Construct function name
         func = getfield(@__MODULE__, func_name)  # Get the function from the current module
-        result = func(data)  # Call the function and store the result
+        result = func(input)  # Call the function and store the result
         results_df[!, string(metric)] = result  # Add the result to the DataFrame as a column
     end
-    return results_df
+    return results_df, input
 end
 
-# A generic wrapper function that preprocesses the raw input if necessary and delegates the computation to a specific eval_* function.
-function eval_metric(metric_function::Function, input::Union{ContingencyTable,AbstractString}, node::AbstractString="", windowsize::Int=0, minfreq::Int=5)
-    if input isa AbstractString
-        # Create ContingencyTable on the fly if input is a raw string
-        input = ContingencyTable(input, node, windowsize, minfreq)
-    end
-
-    # Delegate to the specific metric function
-    return metric_function(input)
-end
-
+# Define a const that will result in a DataFrame with all metrics
+const ALL_METRICS = [PMI, PMI², PMI³, PPMI, LLR, LLR2, LLR², DeltaPi, MinSens, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIdx, OchiaiIdx, PiatetskyShapiro, YuleOmega, YuleQ, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2, HammanSim, HammanSim2, GoodmanKruskalIdx, GowerCoef, GowerCoef2, CzekanowskiDiceCoef, SorgenfreyIdx, SorgenfreyIdx2, MountfordCoef, MountfordCoef2, SokalSneathIdx, SokalMichenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest, CohensKappa]
 
 # templatic way of creating dynamically the wrapper functions that serve as unified API functions
 for metric in ALL_METRICS
@@ -557,20 +568,15 @@ for metric in ALL_METRICS
         eval_func_name = Symbol("eval_", lowercase(string($metric)))
 
         # Define the unified API function
-        $(Symbol("eval_", lowercase(string($metric))))(
+        $(Symbol("eval_", lowercase(string(metric))))(
             input::Union{ContingencyTable,AbstractString},
             node::AbstractString="",
             windowsize::Int=0,
             minfreq::Int=5
-        ) = eval_metric($eval_func_name, input, node, windowsize, minfreq)
+        ) = evalassoc($metric, input, node=node, windowsize=windowsize, minfreq=minfreq)
     end
 end
 
-
-
-
-# Define a const that will result in a DataFrame with all metrics
-const ALL_METRICS = [PMI, PMI², PMI³, PPMI, LLR, LLR2, LLR², DeltaPi, MinSens, Dice, LogDice, RelRisk, LogRelRisk, RiskDiff, AttrRisk, OddsRatio, LogRatio, LogOddsRatio, JaccardIdx, OchiaiIdx, PiatetskyShapiro, YuleOmega, YuleQ, PhiCoef, CramersV, TschuprowT, ContCoef, CosineSim, OverlapCoef, KulczynskiSim, TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2, HammanSim, HammanSim2, GoodmanKruskalIdx, GowerCoef, GowerCoef2, CzekanowskiDiceCoef, SorgenfreyIdx, SorgenfreyIdx2, MountfordCoef, MountfordCoef2, SokalSneathIdx, SokalMichenerCoef, Tscore, Zscore, ChiSquare, FisherExactTest, CohensKappa]
 
 # OverlapCoefficient
 
@@ -578,105 +584,73 @@ const ALL_METRICS = [PMI, PMI², PMI³, PPMI, LLR, LLR2, LLR², DeltaPi, MinSens
 metric_templates = Dict(
     :PMI => (
         description="Compute Pointwise Mutual Information (PMI) for a given contingency table.",
-        formula="$$\\text{PMI}(a, b) = \\log_2\\left(\\frac{P(a, b)}{P(a)P(b)}\\right)$$",
+        formula="\\text{PMI}(a, b) = \\log_2\\left(\\frac{P(a, b)}{P(a)P(b)}\\right)",
         usage="eval_pmi(cont_tbl)"
     ),
     :PPMI => (
         description="Compute Positive Pointwise Mutual Information (PPMI) for a given contingency table.",
-        formula="$$\\text{PPMI}(a, b) = \\max(0, \\text{PMI}(a, b))$$",
+        formula="\\text{PPMI}(a, b) = \\max(0, \\text{PMI}(a, b))",
         usage="eval_ppmi(cont_tbl)"
     ),
     :Dice => (
         description="Compute the Dice Coefficient for a given contingency table.",
-        formula="$$\\text{Dice} = \\frac{2a}{m + k}$$",
+        formula="\\text{Dice} = \\frac{2a}{m + k}",
         usage="eval_dice(cont_tbl)"
     ),
     :LogDice => (
-        description="Compute the Log Dice for a given contingency table.",
-        formula="$$\\text{Log Dice} = 14 + \\log_2\\left(\\frac{2a}{m + k}\\right)$$",
+        description="Compute Log Dice for a given contingency table.",
+        formula="\\text{LogDice} = 14 + \\log_2\\left(\\frac{2a}{m + k}\\right)",
         usage="eval_logdice(cont_tbl)"
     ),
     :RelRisk => (
-        description="Compute the Relative Risk for a given contingency table.",
-        formula="$$\\text{Relative Risk} = \\frac{P(a | b)}{P(a | \\neg b)}$$",
+        description="Compute the Relative Risk (RR) for a given contingency table.",
+        formula="\\text{RR} = \\frac{\\frac{a}{m}}{\\frac{c}{n}}",
         usage="eval_relrisk(cont_tbl)"
     ),
     :LogRelRisk => (
         description="Compute the Log Relative Risk for a given contingency table.",
-        formula="$$\\text{Log Relative Risk} = \\log\\left(\\text{Relative Risk}\\right)$$",
+        formula="\\log(\\text{RR}) = \\log\\left(\\frac{a}{m}\\right) - \\log\\left(\\frac{c}{n}\\right)",
         usage="eval_logrelrisk(cont_tbl)"
     ),
     :RiskDiff => (
         description="Compute the Risk Difference for a given contingency table.",
-        formula="$$\\text{Risk Difference} = P(a | b) - P(a | \\neg b)$$",
+        formula="\\text{Risk Difference} = \\frac{a}{m} - \\frac{c}{n}",
         usage="eval_riskdiff(cont_tbl)"
     ),
     :AttrRisk => (
         description="Compute the Attributable Risk for a given contingency table.",
-        formula="$$\\text{Attributable Risk} = P(a | b) - P(a | \\neg b)$$",
+        formula="\\text{Attributable Risk} = \\frac{a}{m} - \\frac{c}{n}",
         usage="eval_attrrisk(cont_tbl)"
     ),
     :OddsRatio => (
         description="Compute the Odds Ratio for a given contingency table.",
-        formula="$$\\text{Odds Ratio} = \\frac{P(a | b) / P(\\neg a | b)}{P(a | \\neg b) / P(\\neg a | \\neg b)}$$",
+        formula="\\text{OR} = \\frac{a \\cdot d}{b \\cdot c}",
         usage="eval_oddsratio(cont_tbl)"
     ),
     :LogOddsRatio => (
         description="Compute the Log Odds Ratio for a given contingency table.",
-        formula="$$\\text{Log Odds Ratio} = \\log(\\text{Odds Ratio})$$",
+        formula="\\log(\\text{OR}) = \\log\\left(\\frac{a \\cdot d}{b \\cdot c}\\right)",
         usage="eval_logoddsratio(cont_tbl)"
     ),
     :JaccardIdx => (
         description="Compute the Jaccard Index for a given contingency table.",
-        formula="$$\\text{Jaccard Index} = \\frac{a}{a + b + c}$$",
+        formula="\\text{Jaccard Index} = \\frac{a}{a + b + c}",
         usage="eval_jaccardindex(cont_tbl)"
     ),
     :OchiaiIdx => (
         description="Compute the Ochiai Index for a given contingency table.",
-        formula="$$\\text{Ochiai Index} = \\frac{a}{\\sqrt{(a + b)(a + c)}}$$",
+        formula="\\text{Ochiai Index} = \\frac{a}{\\sqrt{(a + b)(a + c)}}",
         usage="eval_ochiaiindex(cont_tbl)"
-    ),
-    :PhiCoef => (
-        description="Compute the Phi Coefficient for a given contingency table.",
-        formula="$$\\text{Phi Coefficient} = \\frac{a \\cdot d - b \\cdot c}{\\sqrt{(a + b)(a + c)(b + d)(c + d)}}$$",
-        usage="eval_phicoef(cont_tbl)"
-    ),
-    :CramersV => (
-        description="Compute Cramér's V for a given contingency table.",
-        formula="$$\\text{Cramér's V} = \\sqrt{\\frac{\\chi^2}{N \\cdot \\min(k - 1, l - 1)}}$$",
-        usage="eval_cramersv(cont_tbl)"
-    ),
-    :CosineSim => (
-        description="Compute the Cosine Similarity for a given contingency table.",
-        formula="$$\\text{Cosine Similarity} = \\frac{a}{\\sqrt{(a + b)(a + c)}}$$",
-        usage="eval_cosinesim(cont_tbl)"
-    ),
-    :OverlapCoef => (
-        description="Compute the Overlap Coefficient for a given contingency table.",
-        formula="$$\\text{Overlap Coefficient} = \\frac{a}{\\min(a + b, a + c)}$$",
-        usage="eval_overlapcoef(cont_tbl)"
-    ),
-    :KulczynskiSim => (
-        description="Compute the Kulczynski Similarity for a given contingency table.",
-        formula="$$\\text{Kulczynski Similarity} = \\frac{a}{(a + b + a + c) / 2}$$",
-        usage="eval_kulczynskisim(cont_tbl)"
-    ),
-    :TanimotoCoef => (
-        description="Compute the Tanimoto Coefficient for a given contingency table.",
-        formula="$$\\text{Tanimoto Coefficient} = \\frac{a}{a + b + c}$$",
-        usage="eval_tanimotocoef(cont_tbl)"
-    ),
-    :HamannSim => (
-        description="Compute the Hamann Similarity for a given contingency table.",
-        formula="$$\\text{Hamann Similarity} = \\frac{a + d - b - c}{N}$$",
-        usage="eval_hamannsim(cont_tbl)"
     )
-    # Add remaining metrics here...
+    # Add more metrics as needed...
 )
+
 
 # function for generating the docstrings
 function generate_docstring(metric::Symbol)
-    template = metric_templates[metric]
+    # Extract short name from qualified name (e.g., TextAssociations.PMI => PMI)
+    metric_symbol = metric isa Symbol ? metric : Symbol(split(string(metric), ".")[end])
+    template = metric_templates[metric_symbol]
     """
     $(template.description)
 
@@ -687,7 +661,7 @@ function generate_docstring(metric::Symbol)
     - `Array`: An array of $(string(metric)) scores.
 
     # Formula
-    $(template.formula)
+    ``$(template.formula)``
 
     # Usage
     ```julia
@@ -700,7 +674,7 @@ end
 for metric in keys(metric_templates)
     @eval begin
         # Attach the generated docstring
-        @doc generate_docstring($metric) $(Symbol("eval_", lowercase(string(metric))))
+        @doc generate_docstring(Symbol(split(string($metric), ".")[end])) $(Symbol("eval_", lowercase(string(metric))))
     end
 end
 

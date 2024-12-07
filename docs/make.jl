@@ -11,7 +11,7 @@ makedocs(;
         prettyurls=false,  # Disable pretty URLs and generate flat files without subdirectories that create problems in the linking
         canonical="https://atantos.github.io/TextAssociations.jl",
         edit_link="main",
-        assets=String[],
+        assets=String[]
     ),
     pages=[
         "Intro" => "index.md",
