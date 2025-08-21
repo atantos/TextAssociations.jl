@@ -1,7 +1,7 @@
 name = "TextAssociations"
 uuid = "7b6babba-2ab1-4176-83fb-e096766ccca2"
 authors = ["atantos <atantos@gmail.com> and contributors"]
-version = "1.0.0-DEV"
+version = "1.0.2"
 
 [deps]
 Chain = "8be319e6-bccf-4806-a6f7-6fae938471bc"
