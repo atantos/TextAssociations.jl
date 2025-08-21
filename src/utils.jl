@@ -129,6 +129,7 @@ using TextAnalysis, DataFrames, Chain
 
 doc = StringDocument("This is a sample text document for testing the contingency table function. This function will analyze the text and provide useful statistics.")
 conttbl(doc, "text", 5, 3)
+```
 
 # Notes
 
@@ -367,6 +368,26 @@ end
 
 
 #  create a function that within a window size that the user will set, will count the type frequency of the words that are in the window of the node word. It will separate the type frequencies of the words that precede and come after the node word.
+
+
+"""
+    log_safe(x::Real) -> Real
+
+Computes the logarithm of `x`, ensuring numerical stability by replacing
+zero or negative values with a small positive value (`eps()`).
+
+# Arguments
+- `x::Real`: The input value for the logarithm.
+
+# Returns
+- `Real`: The logarithm of `x` if `x > 0`, otherwise the logarithm of `eps()`.
+
+# Examples
+```julia
+log_safe(0.1)    # Returns log(0.1)
+log_safe(0)      # Returns log(eps())
+"""
+log_safe(x::Real) = log(max(x, eps()))
 
 """
     listmetrics() -> Vector{Symbol}
