@@ -1,3 +1,7 @@
+# =====================================
+# File: src/TextAssociations.jl
+# Main module file
+# =====================================
 module TextAssociations
 
 using Distances: Distances, SemiMetric, Metric, evaluate, result_type
@@ -12,91 +16,61 @@ using FreqTables
 using Chain
 using TextAnalysis
 
+# Include source files in logical order
+include("types.jl")
+include("utils/text_processing.jl")
+include("utils/statistical.jl")
+include("utils/text_analysis.jl")
+include("core/contingency_table.jl")
+include("metrics/base.jl")
+include("metrics/information_theoretic.jl")
+include("metrics/statistical.jl")
+include("metrics/similarity.jl")
+include("metrics/epidemiological.jl")
+include("metrics/lexical_gravity.jl")
+include("api.jl")
+
 # Exports
 export
-    # generic function
+    # Core types
+    AssociationMetric,
+    AssociationDataFormat,
+    ContingencyTable,
+    LazyProcess,
+    LazyInput,
+
+    # Main API functions
     evalassoc,
     listmetrics,
     extract_cached_data,
+    extract_document,
 
-    # generic types/functions
-    AssociationMetric,
-    AssociationDataFormat,
-    Metrics,
-    ContingencyTable,
-    LazyProcess,
-
-    # Constants
-    ALL_METRICS,
-
-    # Metric Types
-    PMI,
-    PMI²,
-    PMI³,
-    PPMI,
-    LLR,
-    LLR2,
-    LLR²,
-    DeltaPi,
-    MinSens,
-    Dice,
-    LogDice,
-    RelRisk,
-    LogRelRisk,
-    RiskDiff,
-    AttrRisk,
-    OddsRatio,
-    LogRatio,
-    LogOddsRatio,
-    JaccardIdx,
-    OchiaiIdx,
-    PiatetskyShapiro,
-    YuleOmega,
-    YuleQ,
-    PhiCoef,
-    CramersV,
-    TschuprowT,
-    ContCoef,
-    CosineSim,
-    OverlapCoef,
-    KulczynskiSim,
-    TanimotoCoef,
-    RogersTanimotoCoef,
-    RogersTanimotoCoef2,
-    HammanSim,
-    HammanSim2,
-    GoodmanKruskalIdx,
-    GowerCoef,
-    GowerCoef2,
-    CzekanowskiDiceCoef,
-    SorgenfreyIdx,
-    SorgenfreyIdx2,
-    MountfordCoef,
-    MountfordCoef2,
-    SokalSneathIdx,
-    SokalMichenerCoef,
-    Tscore,
-    Zscore,
-    ChiSquare,
-    FisherExactTest,
-    CohensKappa,
-
-    # Utility Functions
-    tostringvector,
+    # Utility functions
     prepstring,
     createvocab,
-    conttbl
+    conttbl,
 
-
-include("types.jl")
-include("utils.jl")
-include("associations/measures.jl")
-
-function Base.show(io::IO, con_tbl::ContingencyTable)
-    println(io, "ContingencyTable instance with:")
-    println(io, "* Node word: $(con_tbl.node)")
-    println(io, "* Window size: $(con_tbl.windowsize)")
-    println(io, "* Minimum collocation frequency: $(con_tbl.minfreq)")
-end
+    # All metric types
+    PMI, PMI², PMI³, PPMI,
+    LLR, LLR²,
+    DeltaPi, MinSens,
+    Dice, LogDice,
+    RelRisk, LogRelRisk, RiskDiff, AttrRisk,
+    OddsRatio, LogOddsRatio,
+    JaccardIdx, OchiaiIdx,
+    PiatetskyShapiro,
+    YuleOmega, YuleQ,
+    PhiCoef, CramersV, TschuprowT, ContCoef,
+    CosineSim, OverlapCoef, KulczynskiSim,
+    TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2,
+    HammanSim, HammanSim2,
+    GoodmanKruskalIdx,
+    GowerCoef, GowerCoef2,
+    CzekanowskiDiceCoef,
+    SorgenfreyIdx, SorgenfreyIdx2,
+    MountfordCoef, MountfordCoef2,
+    SokalSneathIdx, SokalMichenerCoef,
+    LexicalGravity,
+    ChiSquare, Tscore, Zscore
 
 end
