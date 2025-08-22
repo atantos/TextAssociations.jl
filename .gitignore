@@ -3,3 +3,6 @@
 /docs/build/
 /.vscode/
 /.CondaPkg/.DS_Store
+.DS_Store
+**/.DS_Store
+.CondaPkg/
