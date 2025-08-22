@@ -7,6 +7,11 @@ using TextAnalysis
 using DataFrames
 using ProgressMeter
 using Distributed
+using CSV
+using JSON
+using Glob  # If you're using glob function
+using Statistics  # For mean, median
+using XLSX  # If using Excel export
 
 """
     Corpus <: AssociationDataFormat
@@ -531,24 +536,22 @@ end
 """
     evalassoc(metric::Type{<:AssociationMetric}, cct::CorpusContingencyTable)
 
-Evaluate a metric on a corpus contingency table.
+Evaluate a metric on a corpus contingency table by wrapping the corpus-level
+lazy aggregated table into a `ContingencyTable` without materializing it.
 """
-function evalassoc(metric::Type{<:AssociationMetric}, cct::CorpusContingencyTable)
-    # Use aggregated table
-    agg_table = extract_cached_data(cct.aggregated_table)
-
-    # Create a temporary ContingencyTable-like structure
+function evalassoc(::Type{T}, cct::CorpusContingencyTable) where {T<:AssociationMetric}
+    # Keep the aggregation lazy: pass the existing LazyProcess straight through.
     temp_ct = ContingencyTable(
-        LazyProcess(() -> agg_table),
+        cct.aggregated_table,            # LazyProcess{…,DataFrame}
         cct.node,
         cct.windowsize,
         cct.minfreq,
-        LazyInput(StringDocument(""))  # Dummy for compatibility
+        LazyInput(StringDocument(""))    # dummy input; fine for corpus-level metrics
     )
 
-    # Evaluate metric
-    return evalassoc(metric, temp_ct)
+    return evalassoc(T, temp_ct)
 end
+
 
 # =====================================
 # Example Usage

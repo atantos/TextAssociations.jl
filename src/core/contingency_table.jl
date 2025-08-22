@@ -21,30 +21,48 @@ struct ContingencyTable{T} <: AssociationDataFormat
     minfreq::Int64
     input_ref::LazyInput
 
+    # Build from raw text (existing constructor)
     function ContingencyTable(inputstring::AbstractString,
         node::AbstractString,
         windowsize::Int,
         minfreq::Int64=5;
         auto_prep::Bool=true)
-
-        # Validate inputs
         windowsize > 0 || throw(ArgumentError("Window size must be positive"))
         minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
         !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
 
-        # Prepare the input string
         prepared_string = auto_prep ? prepstring(inputstring) : StringDocument(inputstring)
-
-        # Create LazyInput to store reference to processed document
         input_ref = LazyInput(prepared_string)
 
-        # Define lazy computation for contingency table
         f = () -> conttbl(prepared_string, node, windowsize, minfreq)
-        con_tbl = LazyProcess(f)
+        con_tbl = LazyProcess(f)  # R defaults to DataFrame via LazyProcess ctor
 
-        new{typeof(f)}(con_tbl, node, windowsize, minfreq, input_ref)
+        return new{typeof(f)}(con_tbl, node, windowsize, minfreq, input_ref)
+    end
+
+    # NEW: Build from an existing LazyProcess that yields a DataFrame (keeps laziness)
+    function ContingencyTable(con_tbl::LazyProcess{T,DataFrame},
+        node::AbstractString,
+        windowsize::Int,
+        minfreq::Int64,
+        input_ref::LazyInput) where {T}
+        windowsize > 0 || throw(ArgumentError("Window size must be positive"))
+        minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
+        !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
+
+        return new{T}(con_tbl, node, windowsize, minfreq, input_ref)
     end
 end
+
+
+# NEW: convenience outer constructor from a *plain* DataFrame
+ContingencyTable(df::DataFrame,
+    node::AbstractString,
+    windowsize::Int,
+    minfreq::Int64;
+    input_ref::LazyInput=LazyInput(StringDocument(""))) =
+    ContingencyTable(LazyProcess(() -> df, DataFrame), node, windowsize, minfreq, input_ref)
+
 
 """
     conttbl(input_doc::StringDocument, target_word::AbstractString, 
