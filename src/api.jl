@@ -21,16 +21,25 @@ ct = ContingencyTable("text", "word", 5, 2)
 scores = evalassoc(PMI, ct)
 ```
 """
-function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
-    func_name = Symbol("eval_", lowercase(string(metricType)))
+# function evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
+#     func_name = Symbol("eval_", lowercase(string(metricType)))
 
-    if !isdefined(@__MODULE__, func_name)
-        throw(ArgumentError("Unknown metric type: $metricType"))
+#     if !isdefined(@__MODULE__, func_name)
+#         throw(ArgumentError("Unknown metric type: $metricType"))
+#     end
+
+#     func = getfield(@__MODULE__, func_name)
+#     return func(data)
+# end
+function evalassoc(::Type{T}, ct::ContingencyTable) where {T<:AssociationMetric}
+    fname = Symbol("eval_", lowercase(String(nameof(T))))
+    if !isdefined(@__MODULE__, fname)
+        throw(ArgumentError("Unknown metric type: $(T). Expected a function `$fname`."))
     end
-
-    func = getfield(@__MODULE__, func_name)
-    return func(data)
+    func = getfield(@__MODULE__, fname)
+    return func(ct)
 end
+
 
 """
     evalassoc(metricType::Type{<:AssociationMetric}, 
@@ -41,14 +50,23 @@ end
 
 Convenience method to compute metrics directly from text.
 """
-function evalassoc(metricType::Type{<:AssociationMetric},
+# function evalassoc(metricType::Type{<:AssociationMetric},
+#     inputstring::AbstractString,
+#     node::AbstractString,
+#     windowsize::Int,
+#     minfreq::Int=5)
+#     cont_table = ContingencyTable(inputstring, node, windowsize, minfreq)
+#     return evalassoc(metricType, cont_table)
+# end
+function evalassoc(::Type{T},
     inputstring::AbstractString,
     node::AbstractString,
     windowsize::Int,
-    minfreq::Int=5)
-    cont_table = ContingencyTable(inputstring, node, windowsize, minfreq)
-    return evalassoc(metricType, cont_table)
+    minfreq::Int=5) where {T<:AssociationMetric}
+    ct = ContingencyTable(inputstring, node, windowsize, minfreq)
+    return evalassoc(T, ct)
 end
+
 
 """
     evalassoc(metrics::Vector{DataType}, data::ContingencyTable)
@@ -58,26 +76,40 @@ Evaluate multiple metrics on a contingency table.
 # Returns
 DataFrame with one column per metric.
 """
-function evalassoc(metrics::Vector{DataType}, data::ContingencyTable)
-    # Validate metrics
-    if !all(m -> m <: AssociationMetric, metrics)
-        invalid = filter(m -> !(m <: AssociationMetric), metrics)
-        throw(ArgumentError("Invalid metric types: $invalid"))
-    end
+# function evalassoc(metrics::Vector{DataType}, data::ContingencyTable)
+#     # Validate metrics
+#     if !all(m -> m <: AssociationMetric, metrics)
+#         invalid = filter(m -> !(m <: AssociationMetric), metrics)
+#         throw(ArgumentError("Invalid metric types: $invalid"))
+#     end
 
+#     results = DataFrame()
+#     for metric in metrics
+#         func_name = Symbol("eval_", lowercase(string(metric)))
+
+#         if !isdefined(@__MODULE__, func_name)
+#             @warn "Skipping unknown metric: $metric"
+#             continue
+#         end
+
+#         func = getfield(@__MODULE__, func_name)
+#         results[!, string(metric)] = func(data)
+#     end
+
+#     return results
+# end
+function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+    ct::ContingencyTable)
     results = DataFrame()
-    for metric in metrics
-        func_name = Symbol("eval_", lowercase(string(metric)))
-
-        if !isdefined(@__MODULE__, func_name)
-            @warn "Skipping unknown metric: $metric"
+    for T in metrics
+        fname = Symbol("eval_", lowercase(String(nameof(T))))
+        if !isdefined(@__MODULE__, fname)
+            @warn "Skipping unknown metric" metric = T expected = fname
             continue
         end
-
-        func = getfield(@__MODULE__, func_name)
-        results[!, string(metric)] = func(data)
+        func = getfield(@__MODULE__, fname)
+        results[!, String(nameof(T))] = func(ct)
     end
-
     return results
 end
 
@@ -90,6 +122,36 @@ end
 
 Convenience method to compute multiple metrics directly from text.
 """
+# function evalassoc(metrics::Vector{DataType},
+#     inputstring::AbstractString,
+#     node::AbstractString,
+#     windowsize::Int,
+#     minfreq::Int=5)
+#     cont_table = ContingencyTable(inputstring, node, windowsize, minfreq)
+#     return evalassoc(metrics, cont_table)
+# end
+# Multiple metrics on an existing table
+function evalassoc(metrics::Vector{DataType}, data::ContingencyTable)
+    # Validate metrics
+    if !all(m -> m <: AssociationMetric, metrics)
+        invalid = filter(m -> !(m <: AssociationMetric), metrics)
+        throw(ArgumentError("Invalid metric types: $invalid"))
+    end
+
+    results = DataFrame()
+    for T in metrics
+        fname = Symbol("eval_", lowercase(String(nameof(T))))
+        if !isdefined(@__MODULE__, fname)
+            @warn "Skipping unknown metric" metric = T expected = fname
+            continue
+        end
+        func = getfield(@__MODULE__, fname)
+        results[!, String(nameof(T))] = func(data)
+    end
+    return results
+end
+
+# Convenience: multiple metrics from raw text
 function evalassoc(metrics::Vector{DataType},
     inputstring::AbstractString,
     node::AbstractString,
@@ -97,4 +159,13 @@ function evalassoc(metrics::Vector{DataType},
     minfreq::Int=5)
     cont_table = ContingencyTable(inputstring, node, windowsize, minfreq)
     return evalassoc(metrics, cont_table)
+end
+
+function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}}, data::ContingencyTable)
+    return evalassoc(Vector{DataType}(metrics), data)
+end
+
+function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+    inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int=5)
+    return evalassoc(Vector{DataType}(metrics), inputstring, node, windowsize, minfreq)
 end
