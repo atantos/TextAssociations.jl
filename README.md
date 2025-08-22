@@ -2,175 +2,377 @@
   <img src="https://github.com/atantos/TextAssociations.jl/raw/main/assets/TextAssociations_logo.png" alt="TextAssociations.jl" width="1100" height="400"/>
 </p>
 
-# TextAssociations
+# TextAssociations.jl
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://atantos.github.io/TextAssociations.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://atantos.github.io/TextAssociations.jl/dev/)
 [![Build Status](https://github.com/atantos/TextAssociations.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/atantos/TextAssociations.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-# Introduction
+## 🎯 Introduction
 
-`TextAssociations.jl` is a `Julia` package designed for text analysis, focusing on the calculation of association metrics between words of interest -usually called node words- and their collocates within a prespecified window of a few words found in textual data. This package is planned to offer a comprehensive suite of tools for analyzing the strength and nature of a large set of association measures, facilitating deeper insights into text structure, syntagmatic relations, and word combination patterns.
+`TextAssociations.jl` is a comprehensive Julia package for word association analysis and corpus linguistics, offering over 50 association metrics to quantify relationships between words in texts and corpora. The package is now comparable to professional corpus analysis tools like:
+- **AntConc** (but more programmable)
+- **SketchEngine** (but open source)
+- **WordSmith Tools** (but with more metrics)
+- **Corpus Workbench** (but easier to use)
 
-Word-word association measures still play an important role in various aspects of natural language processing (NLP) and computational linguistics, even in the era of word2vec and transformer-based models. There are several reasons why associatio measures are still relevant, nowadays. Word-word association measures:
+With added advantages of:
+- Being fully programmable and extensible
+- Integration with Julia's ecosystem
+- Support for custom metrics
+- Ability to process streaming data
+- Modern parallel computing capabilities
 
-- are often more interpretable and transparent than the dense, high-dimensional vectors produced by neural models. They provide clear insights into why words are considered related based on observable statistics.
-- can be used alongside neural embeddings to enhance performance. For example, they can help refine or interpret the relationships captured by word vectors.
-- may serve as benchmarks to evaluate the performance of more complex models. They provide a baseline against which the improvements offered by word2vec or transformers can be quantified.
-- may still provide useful information when neural models fail to generalize due to insufficient training examples.
+This makes TextAssociations.jl a powerful tool for computational linguistics, digital humanities, and any field requiring sophisticated text analysis!
 
-## Core Features
+### Why Word Association Metrics Still Matter
 
-**Association Metrics**: Compute a large set of association metrics based on the corpus/text analysis literature, such as Pointwise Mutual Information (PMI), Dice Coefficient, Jaccard Index, and many others, to quantify the association strength between words. For more on the list of the supported association metrics, see the relevant section [below](#supported-metrics).
+Even in the era of transformer models and word embeddings, association metrics remain valuable because they:
+- 📊 **Are interpretable**: Provide transparent, statistical insights into word relationships
+- 🔄 **Complement neural models**: Can be used alongside embeddings to enhance performance and also enhance RAG pipelines.
+- 📏 **Serve as benchmarks**: Provide baselines for evaluating complex models
+- 💾 **Work with limited data**: Perform well even with small corpora
 
-**Contingency Table Support**: Utilize the `ContingencyTable` structure to efficiently organize and analyze word co-occurrence data.
+## ✨ Core Features
 
-**Flexible Data Input**: Support for diverse data formats, includeing raw texts, `StringDocument`s or filepaths to text files. Moreover, data import from pre-processed `CorpusDocument`s is planned.
+### 📈 **50+ Association Metrics**
+Comprehensive suite including PMI, Log-likelihood, Dice, Jaccard, Lexical Gravity and many more specialized measures from corpus linguistics, information theory and even some association metrics inspired from epidemiology.
 
-**Extensibility**: Designed with extensibility in mind, allowing for the integration of additional metrics and data formats.
+### 📚 **Corpus-Level Analysis**
+Process entire document collections with built-in support for:
+- Large-scale corpus processing
+- Temporal analysis (track changes over time)
+- Subcorpus comparison with statistical tests
+- Keyword extraction (TF-IDF and other methods)
 
-## Getting Started
+### 🚀 **Performance Optimized**
+- Lazy evaluation for memory efficiency
+- Parallel processing support
+- Streaming for massive corpora
+- Caching system for repeated analyses
 
-To begin using `TextAssociations.jl`, install the package through Julia's package manager and import it into your project:
+### 🔧 **Flexible and Extensible**
+- Multiple input formats (text files, CSV, JSON, DataFrames)
+- Easy to add custom metrics
+- Comprehensive API for programmatic access
 
-```julia
-julia> using Pkg
-julia> Pkg.add("https://github.com/atantos/TextAssociations.jl")
-
-julia> using TextAssociations
-```
-
-## Basic Usage
-
-At the heart of `TextAssociations.jl` is the `evalassoc()` function, which evaluates association metrics based on the provided metric type and data encapsulated in a `ContingencyTable`. The result is a vector of the node words' collocates and their association score on the selected metric. Here's a simple example to calculate the `PMI` between a node word and its collocates:
-
-### Step 1: Create a ContingencyTable
-
-First step is to create a `ContingencyTable` instance that prepares the textual data and returns the contingency tables of the node word with all its collocates found within a window size that co-occur to a minimum frequency with the node word. You need to specify the node word, the window size and minimum frequency that will be considered, while creating the contingency table.
-
-```julia
-julia> text_data = "Your text data here..."
-julia> node_word = "example"
-julia> window_size = 5
-julia> min_frequency = 3
-julia> cont_table = ContingencyTable(text_data, node_word, window_size, min_frequency)
-```
-
-### Step 2: Evaluate association scores
-
-The second step is to use the `evalassoc()` function that takes an association metric as its first argument and the `ContingencyTable` instance created in the previous step as its second argument.
+## 📦 Installation
 
 ```julia
-julia> evalassoc(PMI, cont_table)
+using Pkg
+Pkg.add("https://github.com/atantos/TextAssociations.jl")
 ```
 
-### Supported Metrics
+## 🚀 Quick Start
 
-`TextAssociations.jl` supports a wide range of metrics for analyzing word co-occurrence associations based on the relevant literature. To see all available metrics, use the `listmetrics()` function:
+### Basic Usage
 
 ```julia
-julia> show(listmetrics())
-[:PMI,
-:PMI²,
-:PMI³,
-:PPMI,
-:LLR,
-:LLR2,
-:LLR²,
-:DeltaPi,
-:MinSens,
-:Dice,
-:LogDice,
-:RelRisk,
-:LogRelRisk,
-:RiskDiff,
-:AttrRisk,
-:OddsRatio,
-:LogRatio,
-:LogOddsRatio,
-:JaccardIdx,
-:OchiaiIdx,
-:PiatetskyShapiro,
-:YuleOmega,
-:YuleQ,
-:PhiCoef,
-:CramersV,
-:TschuprowT,
-:ContCoef,
-:CosineSim,
-:OverlapCoef,
-:KulczynskiSim,
-:TanimotoCoef,
-:RogersTanimotoCoef,
-:RogersTanimotoCoef2,
-:HammanSim,
-:HammanSim2,
-:GoodmanKruskalIdx,
-:GowerCoef,
-:GowerCoef2,
-:CzekanowskiDiceCoef,
-:SorgenfreyIdx,
-:SorgenfreyIdx2,
-:MountfordCoef,
-:MountfordCoef2,
-:SokalSneathIdx,
-:SokalMichenerCoef]
+using TextAssociations
+
+# Simple analysis with a single text
+text = "The cat sat on the mat. The cat played with the ball."
+ct = ContingencyTable(text, "cat", windowsize=3, minfreq=1)
+
+# Calculate PMI scores
+pmi_scores = evalassoc(PMI, ct)
+
+# Multiple metrics at once
+results = evalassoc([PMI, LogDice, LLR], ct)
 ```
 
-Each association metric offers insights as to the association of a node word of interest to a collocate word that reveals deeper semantic or syntactic patterns.
+### Corpus Analysis
 
-| Association Metric                            | Metric Type           | Math formula                                                                                                                             |
-| --------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| $\text{Pearson's}  \chi  \text{Squared Test}$ | `ChiSquare`           | $`\sum_{i, j}\frac{\left(f_{i j}-\hat{f}_{i j}\right)^2}{\hat{f}_{i j}}`$                                                                |
-| $\text{Pointwise Mutual Information (PMI)}$   | `PMI`                 | $`\log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right)`$                                                                                  |
-| $\text{Squared PMI}$                          | `PMI²`                | $`\left( \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right) \right)^2`$                                                                 |
-| $\text{Cubed PMI}$                            | `PMI³`                | $`\left( \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right) \right)^3`$                                                                 |
-| $\text{Positive PMI}$                         | `PPMI`                | $`\max\left(0, \log \left( \frac{P(x, y)}{P(x) \cdot P(y)} \right)\right)`$                                                              |
-| $\text{Log Likelihood Ratio}$                 | `LLR`                 | $`2 \sum_{i,j} \left( O_{ij} \ln \left( \frac{O_{ij}}{E_{ij}} \right) \right)`$                                                          |
-| $\text{Log Likelihood Ratio 2}$               | `LLR2`                | $`2 \sum_{i,j} \left( O_{ij} \ln \left( \frac{O_{ij}}{E_{ij}} \right) \right) + 2 \left( \sum_{i,j} O_{ij} - \sum_{i,j} E_{ij} \right)`$ |
-| $\text{Squared LLR}$                          | `LLR²`                | $`\sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}`$                                                                                        |
-| $\Delta \pi$                                  | `DeltaPi`             | $`\frac{a}{a + b} - \frac{c}{c + d}`$                                                                                                    |
-| $\text{Minimum Sensitivity}$                  | `MinSens`             | $`\min\left(\frac{a}{a + b}, \frac{d}{c + d}\right)`$                                                                                    |
-| $\text{Dice}$                                 | `Dice`                | $`\frac{2a}{2a + b + c}`$                                                                                                                |
-| $\text{Log Dice}$                             | `LogDice`             | $`14 + \log_2\left(\frac{2a}{2a + b + c}\right)`$                                                                                        |
-| $\text{Relative Risk}$                        | `RelRisk`             | $`\frac{\frac{a}{a + b}}{\frac{c}{c + d}}`$                                                                                              |
-| $\text{Log Relative Risk}$                    | `LogRelRisk`          | $`\log\left(\frac{\frac{a}{a + b}}{\frac{c}{c + d}}\right)`$                                                                             |
-| $\text{Risk Difference}$                      | `RiskDiff`            | $`\frac{a}{a + b} - \frac{c}{c + d}`$                                                                                                    |
-| $\text{Attributable Risk}$                    | `AttrRisk`            | $`\frac{a}{a + b} - \frac{c}{c + d}`$                                                                                                    |
-| $\text{Odds Ratio}$                           | `OddsRation`          | $`\frac{a \cdot d}{b \cdot c}`$                                                                                                          |
-| $\text{Log Odds Ratio}$                       | `LogOddsRatio`        | $`\log\left(\frac{a \cdot d}{b \cdot c}\right)`$                                                                                         |
-| $\text{Jaccard Index}$                        | `JaccardIdx`          | $`\frac{a}{a + b + c}`$                                                                                                                  |
-| $\text{Ochiai Index}$                         | `OchiaiIdx`           | $`\frac{a}{\sqrt{(a + b)(a + c)}}`$                                                                                                      |
-| $\text{Piatetsky-Shapiro}$                    | `PiatetskyShapiro`    | $`\frac{a}{n} - \frac{(a + b)(a + c)}{n^2}`$                                                                                             |
-| $\text{Yule's Omega}$                         | `YuleOmega`           | $`\frac{\sqrt{a \cdot d} - \sqrt{b \cdot c}}{\sqrt{a \cdot d} + \sqrt{b \cdot c}}`$                                                      |
-| $\text{Yule's Q}$                             | `YuleQ`               | $`\frac{a \cdot d - b \cdot c}{a \cdot d + b \cdot c}`$                                                                                  |
-| $\phi$                                        | `PhiCoef`             | $`\frac{a \cdot d - b \cdot c}{\sqrt{(a + b)(c + d)(a + c)(b + d)}}`$                                                                    |
-| $\text{Cramer's V}$                           | `CramersV`            | $`\sqrt{\frac{\phi^2}{\min(1, 1)}} = \sqrt{\phi^2} = \|\phi\|`$                                                                          |
-| $\text{Tschuprow's T}$                        | `TschuprowT`          | $`\sqrt{\frac{\chi^2}{n \cdot \sqrt{(k - 1)(r - 1)}}}`$                                                                                  |
-| $\text{Contigency Coefficient}$               | `ContCoef`            | $`\sqrt{\frac{\chi^2}{\chi^2 + n}}`$                                                                                                     |
-| $\text{Cosine Similarity}$                    | `CosineSim`           | $`\frac{a}{\sqrt{(a + b)(a + c)}}`$                                                                                                      |
-| $\text{Overlap Coefficient}$                  | `OverlapCoef`         | $`\frac{a}{\min(a + b, a + c)}`$                                                                                                         |
-| $\text{Kulczynski Similarity}$                | `KulczynskiSim`       | $`\frac{a}{a + b} + \frac{a}{a + c}`$                                                                                                    |
-| $\text{Tanimoto Coefficient}$                 | `TanimotoCoef`        | $`\frac{a}{a + b + c}`$                                                                                                                  |
-| $\text{Rogers-Tanimoto Coefficient}$          | `RogersTanimotoCoef`  | $`\frac{a}{a + 2(b + c)}`$                                                                                                               |
-| $\text{Rogers-Tanimoto Coefficient 2}$        | `RogersTanimotoCoef2` | $`\frac{a + d}{a + 2(b + c) + d}`$                                                                                                       |
-| $\text{Hamman Similarity}$                    | `HammanSim`           | $`\frac{a + d - b - c}{N}`$                                                                                                              |
-| $\text{Hamman Similarity 2}$                  | `HammanSim2`          | $`\frac{a - d}{a + b + c - d}`$                                                                                                          |
-| $\text{Goodman-Kruskal Index } \gamma$        | `GoodmanKruskalIdx`   | $`\frac{a - d}{a + d}`$                                                                                                                  |
-| $\text{Gower's Coefficient}$                  | `GowerCoef`           | $`\frac{a}{a + b + c}`$                                                                                                                  |
-| $\text{Gower's Coefficient 2}$                | `GowerCoef2`          | $`\frac{a + d}{a + d + 2(b + c)}`$                                                                                                       |
-| $\text{Czekanowski Dice Coefficient}$         | `CzekanowskiDiceCoef` | $`\frac{2a}{2a + b + c}`$                                                                                                                |
-| $\text{Sorgenfrey Index}$                     | `SorgenfreyIdx`       | $`\frac{2a - b - c}{2a + b + c}`$                                                                                                        |
-| $\text{Sorgenfrey Index 2}$                   | `SorgenfreyIdx2`      | $`\frac{a + d}{2(a + d) + b + c}`$                                                                                                       |
-| $\text{Mountford's Coefficient}$              | `MountfordCoef`       | $`\frac{a}{a + 2b + 2c}`$                                                                                                                |
-| $\text{Mountford's Coefficient 2}$            | `MountfordCoef2`      | $`\frac{a + d}{a + d + 2 \sqrt{(b + c) \cdot (k + m)}}`$                                                                                 |
-| $\text{Sokal-Sneath Index}$                   | `SokalSneathIdx`      | $`\frac{a}{a + 2(b + c)}`$                                                                                                               |
-| $\text{Sokal-Michener Coefficient}$           | `SokalMichenerCoef`   | $`\frac{a +d}{a + b + c + d}`$                                                                                                           |
+```julia
+# Load a corpus from a directory
+corpus = load_corpus("path/to/texts/", preprocess=true)
 
-### Further Exploration
+# Analyze word associations across the entire corpus
+results = analyze_corpus(corpus, "innovation", PMI, windowsize=5, minfreq=10)
 
-If you are interested in diving into the maths of these metrics or in exploring advanced usage scenarios, visit the package [documentation](https://atantos.github.io/TextAssociations.jl/dev/).
+# Analyze multiple words with multiple metrics
+nodes = ["technology", "innovation", "research"]
+metrics = [PMI, LogDice, LLR, ChiSquare]
+analysis = analyze_multiple_nodes(corpus, nodes, metrics, top_n=100)
 
-## Aims & scope
+# Export results
+export_results(analysis, "results/", format=:csv)
+```
 
-`TextAssociations.jl` aims to be a robust and user-friendly tool for humanities researchers, such as (corpus) linguists, philologists, historians or literary scholars and language data analysts in general, and anyone interested in word co-occurrence analysis.
+## 📊 Supported Metrics
+
+TextAssociations.jl supports 50+ metrics organized by category:
+
+### Information-Theoretic Metrics
+- **PMI** (Pointwise Mutual Information): $\log \frac{P(x,y)}{P(x)P(y)}$
+- **PMI²**, **PMI³**: Squared and cubed variants
+- **PPMI**: Positive PMI (negative values set to 0)
+- **LLR**: Log-likelihood ratio
+- **LexicalGravity**: Asymmetric association measure
+
+### Statistical Metrics
+- **ChiSquare**: Pearson's χ² test
+- **Tscore**, **Zscore**: Statistical significance tests
+- **PhiCoef**: Phi coefficient (φ)
+- **CramersV**: Cramér's V
+- **YuleQ**, **YuleOmega**: Yule's measures
+
+### Similarity Coefficients
+- **Dice**: $\frac{2a}{2a + b + c}$
+- **LogDice**: Logarithmic Dice (more stable)
+- **JaccardIdx**: Jaccard similarity
+- **CosineSim**: Cosine similarity
+- **OverlapCoef**: Overlap coefficient
+
+### Epidemiological Metrics
+- **RelRisk**, **LogRelRisk**: Relative risk measures
+- **OddsRatio**, **LogOddsRatio**: Odds ratios
+- **RiskDiff**: Risk difference
+- **AttrRisk**: Attributable risk
+
+### Complete Metric List
+
+<details>
+<summary>Click to see all 50+ metrics with formulas</summary>
+
+| Metric | Type | Formula |
+|--------|------|---------|
+| PMI | `PMI` | $\log \frac{P(x,y)}{P(x)P(y)}$ |
+| PMI² | `PMI²` | $(\log \frac{P(x,y)}{P(x)P(y)})^2$ |
+| PMI³ | `PMI³` | $(\log \frac{P(x,y)}{P(x)P(y)})^3$ |
+| PPMI | `PPMI` | $\max(0, \log \frac{P(x,y)}{P(x)P(y)})$ |
+| LLR | `LLR` | $2 \sum_{i,j} O_{ij} \ln \frac{O_{ij}}{E_{ij}}$ |
+| LLR² | `LLR²` | $\sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$ |
+| Dice | `Dice` | $\frac{2a}{2a + b + c}$ |
+| LogDice | `LogDice` | $14 + \log_2(\frac{2a}{2a + b + c})$ |
+| Jaccard | `JaccardIdx` | $\frac{a}{a + b + c}$ |
+| Cosine | `CosineSim` | $\frac{a}{\sqrt{(a + b)(a + c)}}$ |
+| Overlap | `OverlapCoef` | $\frac{a}{\min(a + b, a + c)}$ |
+| Relative Risk | `RelRisk` | $\frac{a/(a+b)}{c/(c+d)}$ |
+| Odds Ratio | `OddsRatio` | $\frac{ad}{bc}$ |
+| Chi-square | `ChiSquare` | $\sum_{i,j}\frac{(f_{ij}-\hat{f}_{ij})^2}{\hat{f}_{ij}}$ |
+| Phi | `PhiCoef` | $\frac{ad - bc}{\sqrt{(a+b)(c+d)(a+c)(b+d)}}$ |
+| Cramér's V | `CramersV` | $\sqrt{\frac{\chi^2}{n \cdot \min(r-1, c-1)}}$ |
+| *...and 35+ more* | | |
+
+</details>
+
+## 🎯 Advanced Features
+
+### Temporal Analysis
+Track how word associations change over time:
+```julia
+temporal_analysis = temporal_corpus_analysis(
+    corpus, ["pandemic", "vaccine"], :year, PMI, time_bins=5
+)
+```
+
+### Subcorpus Comparison
+Compare associations across document groups with statistical tests:
+```julia
+comparison = compare_subcorpora(
+    corpus, :category, "innovation", PMI
+)
+# Access statistical tests and effect sizes
+tests = comparison.statistical_tests
+```
+
+### Collocation Networks
+Build and export word association networks:
+```julia
+network = build_collocation_network(
+    corpus, ["climate", "change"], 
+    metric=PMI, depth=2, min_score=3.0
+)
+export_network_to_gephi(network, "nodes.csv", "edges.csv")
+```
+
+### Keyword Extraction
+```julia
+keywords = extract_keywords(corpus, method=:tfidf, num_keywords=50)
+```
+
+### Concordance (KWIC)
+```julia
+concordance = generate_concordance(corpus, "innovation", context_size=50)
+for line in concordance.lines
+    println("...$(line.LeftContext) [$(line.Node)] $(line.RightContext)...")
+end
+```
+
+## ⚡ Performance Features
+
+### Parallel Processing
+```julia
+# Use multiple cores
+using Distributed
+addprocs(4)
+
+analysis = analyze_multiple_nodes(
+    corpus, nodes, metrics, parallel=true
+)
+```
+
+### Streaming for Large Corpora
+```julia
+# Process files without loading everything into memory
+results = stream_corpus_analysis(
+    "texts/*.txt", "word", PMI, chunk_size=1000
+)
+```
+
+### Caching
+```julia
+cache = CachedCorpusAnalysis("cache/")
+result = cached_analyze(cache, corpus, "word", PMI)
+```
+
+### Batch Processing
+```julia
+# Process hundreds of node words efficiently
+batch_process_corpus(
+    corpus, "nodelist.txt", "output/",
+    batch_size=100
+)
+```
+
+## 🔬 Use Cases
+
+TextAssociations.jl is ideal for:
+
+- **Corpus Linguistics**: Collocation analysis, lexical patterns, semantic prosody
+- **Digital Humanities**: Literary analysis, historical text mining, stylometry
+- **NLP Research**: Feature extraction, baseline models, evaluation metrics
+- **Social Media Analysis**: Trend detection, sentiment associations, hashtag networks
+- **Information Retrieval**: Query expansion, document similarity, term weighting
+
+## 📖 Documentation
+
+- [Getting Started Guide](https://atantos.github.io/TextAssociations.jl/dev/manual/getting_started)
+- [API Reference](https://atantos.github.io/TextAssociations.jl/dev/api/reference)
+- [Metric Formulas](https://atantos.github.io/TextAssociations.jl/dev/metrics)
+- [Examples](https://atantos.github.io/TextAssociations.jl/dev/examples)
+
+## 💻 Example Workflows
+
+### Research Paper Analysis
+```julia
+# Load abstracts from CSV
+corpus = load_corpus("papers.csv", 
+    text_column=:abstract,
+    metadata_columns=[:year, :journal])
+
+# Extract domain-specific keywords
+keywords = extract_keywords(corpus, method=:tfidf, num_keywords=100)
+
+# Analyze key terms over time
+temporal = temporal_corpus_analysis(
+    corpus, keywords[1:10], :year, PMI
+)
+
+# Compare across journals
+comparison = compare_subcorpora(corpus, :journal, "methodology", LogDice)
+```
+
+### Literary Text Analysis
+```julia
+# Load novels
+corpus = load_corpus("novels/", preprocess=true)
+
+# Character co-occurrence network
+characters = ["Elizabeth", "Darcy", "Jane", "Bingley"]
+network = build_collocation_network(
+    corpus, characters, windowsize=20
+)
+
+# Export for visualization
+export_network_to_gephi(network, "characters.csv", "relations.csv")
+```
+
+## 🤝 Contributing
+
+We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for details on:
+- Adding new metrics
+- Improving performance  
+- Extending functionality    
+- Reporting issues
+
+### Development Setup
+```julia
+# Clone repository
+git clone https://github.com/atantos/TextAssociations.jl
+cd TextAssociations.jl
+
+# Activate environment
+julia --project=.
+
+# Run tests
+using Pkg; Pkg.test()
+```
+
+## 🙏 Acknowledgments
+
+TextAssociations.jl builds on established methods from computational linguistics and is inspired by:
+- **AntConc** (Anthony, 2022)
+- **SketchEngine** (Kilgarriff et al., 2014)
+- **WordSmith Tools** (Scott, 2020)
+
+While offering the performance and flexibility of the Julia ecosystem.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] GPU acceleration for large-scale processing
+- [ ] Additional keyword extraction methods (TextRank, RAKE)
+- [ ] Integration with word embeddings
+- [ ] Web-based visualization interface
+- [ ] Support for more file formats (XML, CONLL)
+- [ ] Multi-language support
+
+## ❓ FAQ
+
+<details>
+<summary><b>How does this compare to other tools?</b></summary>
+
+| Feature | TextAssociations.jl | AntConc | SketchEngine | WordSmith |
+|---------|-------------------|---------|--------------|-----------|
+| Open Source | ✅ | ✅ | ❌ | ❌ |
+| Metrics | 50+ | ~10 | ~20 | ~15 |
+| Corpus Size | Unlimited* | Limited | Large | Medium |
+| Parallel Processing | ✅ | ❌ | ✅ | ❌ |
+| API Access | ✅ | ❌ | ✅ | ❌ |
+| Programmable | ✅ | ❌ | Limited | ❌ |
+
+*With streaming and memory-mapped files
+
+</details>
+
+<details>
+<summary><b>What file formats are supported?</b></summary>
+
+- Plain text files (.txt)
+- CSV files with text columns
+- JSON files
+- Julia DataFrames
+- Directory of text files
+- Compressed archives (.gz)
+
+</details>
+
+<details>
+<summary><b>Can it handle non-English text?</b></summary>
+
+Yes! TextAssociations.jl works with any Unicode text. The preprocessing steps (lowercasing, punctuation removal) are Unicode-aware.
+
+</details>
+
+---
+
+**📬 Contact**: For questions and support, please open an issue on [GitHub](https://github.com/atantos/TextAssociations.jl/issues).
+
+**🌟 Star us on GitHub**: If you find this package useful, please consider giving it a star!
