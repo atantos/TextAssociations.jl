@@ -2,4 +2,4 @@
 /docs/Manifest.toml
 /docs/build/
 /.vscode/
-/.CondaPkg/
+/.CondaPkg/.DS_Store
