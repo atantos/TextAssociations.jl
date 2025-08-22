@@ -15,6 +15,14 @@ using DataFrames
 using FreqTables
 using Chain
 using TextAnalysis
+using CSV
+using JSON
+using ProgressMeter
+using Distributed
+using HypothesisTests
+using SQLite
+using Dates
+using Random
 
 # Include source files in logical order
 include("types.jl")
@@ -23,6 +31,7 @@ include("utils/statistical.jl")
 include("utils/text_analysis.jl")
 include("core/contingency_table.jl")
 include("core/corpus_analysis.jl")
+include("core/advanced_corpus.jl")
 include("metrics/base.jl")
 include("metrics/information_theoretic.jl")
 include("metrics/statistical.jl")
@@ -43,6 +52,11 @@ export
     Corpus,
     CorpusContingencyTable,
     MultiNodeAnalysis,
+    # Advanced features
+    TemporalCorpusAnalysis,
+    SubcorpusComparison,
+    CollocationNetwork,
+    Concordance,
 
     # Main API functions
     evalassoc,
@@ -54,33 +68,37 @@ export
     analyze_corpus, analyze_multiple_nodes,
     corpus_statistics, export_results,
     batch_process_corpus, stream_corpus_analysis,
+    # Advanced features
+    temporal_corpus_analysis, compare_subcorpora,
+    extract_keywords, build_collocation_network,
+    export_network_to_gephi, generate_concordance
 
-    # Utility functions
-    prepstring,
-    createvocab,
-    conttbl,
+# Utility functions
+prepstring,
+createvocab,
+conttbl,
 
-    # All metric types
-    PMI, PMI², PMI³, PPMI,
-    LLR, LLR²,
-    DeltaPi, MinSens,
-    Dice, LogDice,
-    RelRisk, LogRelRisk, RiskDiff, AttrRisk,
-    OddsRatio, LogOddsRatio,
-    JaccardIdx, OchiaiIdx,
-    PiatetskyShapiro,
-    YuleOmega, YuleQ,
-    PhiCoef, CramersV, TschuprowT, ContCoef,
-    CosineSim, OverlapCoef, KulczynskiSim,
-    TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2,
-    HammanSim, HammanSim2,
-    GoodmanKruskalIdx,
-    GowerCoef, GowerCoef2,
-    CzekanowskiDiceCoef,
-    SorgenfreyIdx, SorgenfreyIdx2,
-    MountfordCoef, MountfordCoef2,
-    SokalSneathIdx, SokalMichenerCoef,
-    LexicalGravity,
-    ChiSquare, Tscore, Zscore
+# All metric types
+PMI, PMI², PMI³, PPMI,
+LLR, LLR²,
+DeltaPi, MinSens,
+Dice, LogDice,
+RelRisk, LogRelRisk, RiskDiff, AttrRisk,
+OddsRatio, LogOddsRatio,
+JaccardIdx, OchiaiIdx,
+PiatetskyShapiro,
+YuleOmega, YuleQ,
+PhiCoef, CramersV, TschuprowT, ContCoef,
+CosineSim, OverlapCoef, KulczynskiSim,
+TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2,
+HammanSim, HammanSim2,
+GoodmanKruskalIdx,
+GowerCoef, GowerCoef2,
+CzekanowskiDiceCoef,
+SorgenfreyIdx, SorgenfreyIdx2,
+MountfordCoef, MountfordCoef2,
+SokalSneathIdx, SokalMichenerCoef,
+LexicalGravity,
+ChiSquare, Tscore, Zscore
 
 end
