@@ -22,6 +22,7 @@ include("utils/text_processing.jl")
 include("utils/statistical.jl")
 include("utils/text_analysis.jl")
 include("core/contingency_table.jl")
+include("core/corpus_analysis.jl")
 include("metrics/base.jl")
 include("metrics/information_theoretic.jl")
 include("metrics/statistical.jl")
@@ -38,12 +39,21 @@ export
     ContingencyTable,
     LazyProcess,
     LazyInput,
+    # Corpus-related types
+    Corpus,
+    CorpusContingencyTable,
+    MultiNodeAnalysis,
 
     # Main API functions
     evalassoc,
     listmetrics,
     extract_cached_data,
     extract_document,
+    # corpus-related API functions
+    load_corpus, load_corpus_from_dataframe,
+    analyze_corpus, analyze_multiple_nodes,
+    corpus_statistics, export_results,
+    batch_process_corpus, stream_corpus_analysis,
 
     # Utility functions
     prepstring,
