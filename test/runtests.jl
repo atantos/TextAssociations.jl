@@ -3,12 +3,13 @@
 # Main test file
 # =====================================
 
-using Test
-using TextAssociations
+using CSV
 using DataFrames
 using Random
-using CSV
 using Statistics
+using Test
+using TextAssociations
+using TextAnalysis
 
 # Set random seed for reproducibility
 Random.seed!(42)
@@ -130,7 +131,7 @@ Random.seed!(42)
             TextAnalysis.StringDocument("The dog sat on the floor. The dog was tired."),
             TextAnalysis.StringDocument("The bird flew over the tree. The bird sang.")
         ]
-        corpus = Corpus(docs)
+        corpus = TextAssociations.Corpus(docs)
 
         @testset "Corpus Loading" begin
             # Test corpus creation
