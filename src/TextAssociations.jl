@@ -5,39 +5,16 @@
 module TextAssociations
 
 using Distances: Distances, SemiMetric, Metric, evaluate, result_type
-using Memoize
-using StatsBase
-using WordTokenizers
-using DataStructures
-using SparseArrays
-using LinearAlgebra
 using DataFrames
-using FreqTables
-using Chain
+using DataStructures: OrderedDict
 using TextAnalysis
-using CSV
-using JSON
-using ProgressMeter
-using Distributed
-using HypothesisTests
-using SQLite
-using Dates
-using Random
+using SparseArrays: SparseMatrixCSC
 
 # Include source files in logical order
 include("types.jl")
-include("utils/text_processing.jl")
-include("utils/statistical.jl")
-include("utils/text_analysis.jl")
-include("core/contingency_table.jl")
-include("core/corpus_analysis.jl")
-include("core/advanced_corpus.jl")
-include("metrics/base.jl")
-include("metrics/information_theoretic.jl")
-include("metrics/statistical.jl")
-include("metrics/similarity.jl")
-include("metrics/epidemiological.jl")
-include("metrics/lexical_gravity.jl")
+include("utils/utils.jl")
+include("core/core.jl")
+include("metrics/metrics.jl")
 include("api.jl")
 
 # Exports
