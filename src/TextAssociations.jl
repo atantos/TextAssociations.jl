@@ -71,34 +71,34 @@ export
     # Advanced features
     temporal_corpus_analysis, compare_subcorpora,
     extract_keywords, build_collocation_network,
-    export_network_to_gephi, generate_concordance
+    export_network_to_gephi, generate_concordance,
 
-# Utility functions
-prepstring,
-createvocab,
-conttbl,
+    # Utility functions
+    prepstring,
+    createvocab,
+    conttbl,
 
-# All metric types
-PMI, PMI², PMI³, PPMI,
-LLR, LLR²,
-DeltaPi, MinSens,
-Dice, LogDice,
-RelRisk, LogRelRisk, RiskDiff, AttrRisk,
-OddsRatio, LogOddsRatio,
-JaccardIdx, OchiaiIdx,
-PiatetskyShapiro,
-YuleOmega, YuleQ,
-PhiCoef, CramersV, TschuprowT, ContCoef,
-CosineSim, OverlapCoef, KulczynskiSim,
-TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2,
-HammanSim, HammanSim2,
-GoodmanKruskalIdx,
-GowerCoef, GowerCoef2,
-CzekanowskiDiceCoef,
-SorgenfreyIdx, SorgenfreyIdx2,
-MountfordCoef, MountfordCoef2,
-SokalSneathIdx, SokalMichenerCoef,
-LexicalGravity,
-ChiSquare, Tscore, Zscore
+    # All metric types
+    PMI, PMI², PMI³, PPMI,
+    LLR, LLR²,
+    DeltaPi, MinSens,
+    Dice, LogDice,
+    RelRisk, LogRelRisk, RiskDiff, AttrRisk,
+    OddsRatio, LogOddsRatio,
+    JaccardIdx, OchiaiIdx,
+    PiatetskyShapiro,
+    YuleOmega, YuleQ,
+    PhiCoef, CramersV, TschuprowT, ContCoef,
+    CosineSim, OverlapCoef, KulczynskiSim,
+    TanimotoCoef, RogersTanimotoCoef, RogersTanimotoCoef2,
+    HammanSim, HammanSim2,
+    GoodmanKruskalIdx,
+    GowerCoef, GowerCoef2,
+    CzekanowskiDiceCoef,
+    SorgenfreyIdx, SorgenfreyIdx2,
+    MountfordCoef, MountfordCoef2,
+    SokalSneathIdx, SokalMichenerCoef,
+    LexicalGravity,
+    ChiSquare, Tscore, Zscore
 
 end
