@@ -3,15 +3,14 @@
 # Corpus-level analysis functionality
 # =====================================
 
-using TextAnalysis
-using DataFrames
-using ProgressMeter
-using Distributed
 using CSV
+using DataFrames
+using Distributed: @distributed
+using Glob: glob
 using JSON
-using Glob  # If you're using glob function
-using Statistics  # For mean, median
-using XLSX  # If using Excel export
+using Statistics: mean, median
+using TextAnalysis
+using XLSX
 
 """
     Corpus <: AssociationDataFormat
