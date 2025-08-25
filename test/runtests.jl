@@ -151,9 +151,9 @@ Random.seed!(42)
             results = analyze_corpus(corpus, "the", PMI, windowsize=3, minfreq=1)
 
             @test isa(results, DataFrame)
-            @test :Collocate in names(results)
-            @test :Score in names(results)
-            @test :Frequency in names(results)
+            @test "Collocate" in names(results)
+            @test "Score" in names(results)
+            @test "Frequency" in names(results)
             @test nrow(results) > 0
         end
 
@@ -174,8 +174,8 @@ Random.seed!(42)
                 if !isempty(analysis.results[node])
                     df = analysis.results[node]
                     @test isa(df, DataFrame)
-                    @test :Collocate in names(df)
-                    @test :Frequency in names(df)
+                    @test "Collocate" in names(df)
+                    @test "Frequency" in names(df)
                     @test "PMI" in names(df)
                     @test "Dice" in names(df)
                 end
