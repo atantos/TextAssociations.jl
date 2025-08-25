@@ -3,12 +3,13 @@
 # Main test file
 # =====================================
 
-using Test
-using TextAssociations
+using CSV
 using DataFrames
 using Random
-using CSV
 using Statistics
+using Test
+using TextAssociations
+using TextAnalysis
 
 # Set random seed for reproducibility
 Random.seed!(42)
@@ -130,7 +131,7 @@ Random.seed!(42)
             TextAnalysis.StringDocument("The dog sat on the floor. The dog was tired."),
             TextAnalysis.StringDocument("The bird flew over the tree. The bird sang.")
         ]
-        corpus = Corpus(docs)
+        corpus = TextAssociations.Corpus(docs)
 
         @testset "Corpus Loading" begin
             # Test corpus creation
@@ -150,9 +151,9 @@ Random.seed!(42)
             results = analyze_corpus(corpus, "the", PMI, windowsize=3, minfreq=1)
 
             @test isa(results, DataFrame)
-            @test :Collocate in names(results)
-            @test :Score in names(results)
-            @test :Frequency in names(results)
+            @test "Collocate" in names(results)
+            @test "Score" in names(results)
+            @test "Frequency" in names(results)
             @test nrow(results) > 0
         end
 
@@ -173,8 +174,8 @@ Random.seed!(42)
                 if !isempty(analysis.results[node])
                     df = analysis.results[node]
                     @test isa(df, DataFrame)
-                    @test :Collocate in names(df)
-                    @test :Frequency in names(df)
+                    @test "Collocate" in names(df)
+                    @test "Frequency" in names(df)
                     @test "PMI" in names(df)
                     @test "Dice" in names(df)
                 end

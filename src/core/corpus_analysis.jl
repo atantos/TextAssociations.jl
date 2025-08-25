@@ -19,12 +19,12 @@ using XLSX  # If using Excel export
 Represents a collection of documents for corpus-level analysis.
 """
 struct Corpus <: AssociationDataFormat
-    documents::Vector{StringDocument}
+    documents::Vector{StringDocument{String}}
     metadata::Dict{String,Any}
     vocabulary::OrderedDict{String,Int}
     doc_term_matrix::Union{Nothing,SparseMatrixCSC}
 
-    function Corpus(docs::Vector{StringDocument};
+    function Corpus(docs::Vector{StringDocument{String}};
         build_dtm::Bool=false,
         metadata::Dict{String,Any}=Dict{String,Any}())
 
@@ -341,8 +341,8 @@ function analyze_corpus(corpus::Corpus,
 end
 
 """
-    analyze_multiple_nodes(corpus::Corpus, 
-                          nodes::Vector{String}, 
+    analyze_multiple_nodes(corpus::Corpus,
+                          nodes::Vector{String},
                           metrics::Vector{DataType};
                           windowsize::Int=5,
                           minfreq::Int=5,
@@ -603,7 +603,7 @@ end
 # =====================================
 
 """
-    batch_process_corpus(corpus::Corpus, 
+    batch_process_corpus(corpus::Corpus,
                         node_file::AbstractString,
                         output_dir::AbstractString;
                         metrics::Vector{DataType}=[PMI, LogDice],
