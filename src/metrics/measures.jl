@@ -1,3 +1,7 @@
+# =====================================
+# File: src/metrics/measures.jl
+# Additional metrics (PMI, LLR, etc.)
+# =====================================
 
 # log2((a / N) / ((k / N) * (m / N)))
 # Pointwise Mutual Information
@@ -11,7 +15,7 @@ const pmi = eval_pmi
 
 
 # log2((a^2 / N) / ((k / N) * (m / N)))
-# Pointwise Mutual Information²     
+# Pointwise Mutual Information²
 function eval_pmi²(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
@@ -22,7 +26,7 @@ const pmi² = eval_pmi²
 
 
 # log2((a^3 / N) / ((k / N) * (m / N)))
-# Pointwise Mutual Information³ 
+# Pointwise Mutual Information³
 function eval_pmi³(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
@@ -145,7 +149,7 @@ end
 const logdice = eval_logdice
 
 
-# Relative Risk: \text{Relative Risk} = \frac{\frac{a}{a + b}}{\frac{c}{c + d}} 
+# Relative Risk: \text{Relative Risk} = \frac{\frac{a}{a + b}}{\frac{c}{c + d}}
 #  https://www.ncbi.nlm.nih.gov/books/NBK430824/figure/article-28324.image.f1/
 function eval_relrisk(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
@@ -433,7 +437,7 @@ function eval_kulczynskisim(data::ContingencyTable)
     # Extract relevant variables
     a, m, k = con_tbl.a, con_tbl.m, con_tbl.k
 
-    # Compute Kulczynski Similarity 
+    # Compute Kulczynski Similarity
     a ./ ((m .+ k) ./ 2)
 end
 
@@ -843,7 +847,7 @@ const goodmankruskalidx = eval_goodmankruskalidx
 
 
 # Gower's Coefficient (traditional) \frac{a}{a + b + c}
-# "Gower's Coefficient", 
+# "Gower's Coefficient",
 function eval_gowercoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     con_tbl.a ./ (con_tbl.a .+ con_tbl.b .+ con_tbl.c)
@@ -889,7 +893,7 @@ end
 const sorgenfreyidx2 = eval_sorgenfreyidx2
 
 # Mountford's Coefficient (traditional) \frac{a}{a + 2b + 2c}
-# "Mountford's Coefficient", 
+# "Mountford's Coefficient",
 function eval_mountfordcoef(data::ContingencyTable)
     con_tbl = extract_cached_data(data.con_tbl)
     # \frac{a}{a + 2b + 2c}
@@ -955,10 +959,10 @@ Evaluate an association metric based on the provided metric type and a contingen
 
 # Arguments
 - `metrics::Array{<:AssociationMetric}`: An array of association metric types to evaluate.
-- `data::ContingencyTable`: The contingency table data on which to evaluate the metrics. To create one, use the `ContingencyTable` constructor. 
+- `data::ContingencyTable`: The contingency table data on which to evaluate the metrics. To create one, use the `ContingencyTable` constructor.
 
 # Returns
-- A Vector of numerical values where each value represents the association metric score of the node word picked when creating the ContingencyTable with each of the co-occurring words in the window length picked when creating the ContingencyTable. 
+- A Vector of numerical values where each value represents the association metric score of the node word picked when creating the ContingencyTable with each of the co-occurring words in the window length picked when creating the ContingencyTable.
 
 # Usage
 
@@ -1025,13 +1029,13 @@ Replace `MetricType\$` with the desired association metric types (e.g., `PMI`, `
 evalassoc(Metrics([PMI, Dice]), cont_to)
 
 n×2 DataFrame
- Row │ PMI  Dice  
-     │ Float64   Float64 
+ Row │ PMI  Dice
+     │ Float64   Float64
 ─────┼─────────────────
-   1 │ 0.2		0.4 		
-   2 | 0.3		0.3 		
-   3 | 0.1 		0.5 		
-   4 | 0.7		0.6		
+   1 │ 0.2      0.4
+   2 | 0.3      0.3
+   3 | 0.1      0.5
+   4 | 0.7      0.6
 ```
 """
 function evalassoc(metrics::Vector{DataType}, input::Union{ContingencyTable,AbstractString};
@@ -1174,4 +1178,3 @@ for metric in keys(metric_templates)
         @doc generate_docstring(Symbol(split(string($metric), ".")[end])) $(Symbol("eval_", lowercase(string(metric))))
     end
 end
-
