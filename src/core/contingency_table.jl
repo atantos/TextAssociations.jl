@@ -2,6 +2,9 @@
 # File: src/core/contingency_table.jl
 # ContingencyTable implementation
 # =====================================
+
+using FreqTables: freqtable
+
 """
     ContingencyTable <: AssociationDataFormat
 
@@ -65,7 +68,7 @@ ContingencyTable(df::DataFrame,
 
 
 """
-    conttbl(input_doc::StringDocument, target_word::AbstractString, 
+    conttbl(input_doc::StringDocument, target_word::AbstractString,
             windowsize::Int64=5, minfreq::Int64=3) -> DataFrame
 
 Compute the contingency table for a target word in a document.

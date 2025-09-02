@@ -3,10 +3,8 @@
 # Advanced corpus analysis features
 # =====================================
 
-using StatsBase
-using Dates
-using Random
-using HypothesisTests
+using StatsBase: countmap
+# using Dates  # TODO: where do we parse dates??; TODO: do we test temporalcorpusanalysis
 
 """
     TemporalCorpusAnalysis
@@ -78,6 +76,7 @@ function temporal_corpus_analysis(corpus::Corpus,
         bin_labels = ["Period_$i" for i in 1:time_bins]
     else
         # Handle date/string time values
+        # TODO: should we be parsing datetimes here?
         sorted_times = sort(unique(time_values))
         n_unique = length(sorted_times)
         bins_per_time = max(1, n_unique ÷ time_bins)
@@ -134,6 +133,7 @@ function temporal_corpus_analysis(corpus::Corpus,
     )
 end
 
+# TODO: make sure these are tested!  Where does coef and lm and cor come from?
 """
     compute_association_trends(results_by_period, nodes, metric) -> DataFrame
 
@@ -617,8 +617,8 @@ function build_collocation_network(corpus::Corpus,
 end
 
 """
-    export_network_to_gephi(network::CollocationNetwork, 
-                           nodes_file::String, 
+    export_network_to_gephi(network::CollocationNetwork,
+                           nodes_file::String,
                            edges_file::String)
 
 Export network for visualization in Gephi or similar tools.

@@ -1,0 +1,6 @@
+include("base.jl")
+include("information_theoretic.jl")
+include("statistical.jl")
+include("similarity.jl")
+include("epidemiological.jl")
+include("lexical_gravity.jl")
