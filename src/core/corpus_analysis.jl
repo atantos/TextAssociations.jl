@@ -125,7 +125,7 @@ function load_corpus(path::AbstractString;
         # Load from directory of text files
         files = filter(f -> endswith(f, ".txt"), readdir(path, join=true))
         @showprogress desc = "Loading files..." for file in files
-            content = read(file, String)
+            content = read_text_smart(file)
             doc = preprocess ? prepstring(content) : StringDocument(content)
 
             # Check document length

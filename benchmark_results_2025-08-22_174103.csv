@@ -1,0 +1,7 @@
+Metric,Time_μs,Memory_KB
+CosineSim,0.8,0.67
+Dice,0.83,0.62
+JaccardIdx,0.84,0.69
+PMI,1.45,0.7
+LLR,2.12,1.63
+ChiSquare,7.6,2.98

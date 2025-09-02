@@ -26,6 +26,7 @@ using Random
 
 # Include source files in logical order
 include("types.jl")
+include("utils/io.jl")
 include("utils/text_processing.jl")
 include("utils/statistical.jl")
 include("utils/text_analysis.jl")
