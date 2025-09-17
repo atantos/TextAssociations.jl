@@ -9,6 +9,8 @@ using DataFrames
 using DataStructures: OrderedDict
 using TextAnalysis
 using SparseArrays: SparseMatrixCSC
+using Chain
+using ProgressMeter
 
 # Include source files in logical order
 include("types.jl")

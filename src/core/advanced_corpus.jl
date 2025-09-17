@@ -679,8 +679,8 @@ function generate_concordance(corpus::Corpus,
     total_occurrences = 0
 
     for (doc_idx, doc) in enumerate(corpus.documents)
-        text = text(doc)
-        tokens = TextAnalysis.tokenize(language(doc), text)
+        doc_text = text(doc)
+        tokens = TextAnalysis.tokenize(language(doc), doc_text)
 
         # Find occurrences
         positions = findall(==(node), tokens)
