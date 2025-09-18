@@ -117,7 +117,7 @@ function load_corpus(path::AbstractString;
     min_doc_length::Int=10,
     max_doc_length::Union{Nothing,Int}=nothing)
 
-    documents = StringDocument[]
+    documents = StringDocument{String}[]
     metadata = Dict{String,Any}()
 
     if isdir(path)
@@ -298,7 +298,7 @@ function aggregate_contingency_tables(tables::Vector{ContingencyTable}, minfreq:
 end
 
 # =====================================
-# Corpus Analysis Functions
+# Corpus Analysis Functions - UPDATED
 # =====================================
 
 """
@@ -306,6 +306,7 @@ end
                   windowsize::Int=5, minfreq::Int=5) -> DataFrame
 
 Analyze a single node word across the entire corpus.
+Returns DataFrame with Node, Collocate, Score, Frequency, and DocFrequency columns.
 """
 function analyze_corpus(corpus::Corpus,
     node::AbstractString,
@@ -322,8 +323,9 @@ function analyze_corpus(corpus::Corpus,
     # Get aggregated table for collocates
     agg_table = extract_cached_data(cct.aggregated_table)
 
-    # Combine results
+    # Combine results - NOW INCLUDING NODE
     result = DataFrame(
+        Node=fill(node, nrow(agg_table)),  # Add node column
         Collocate=agg_table.Collocate,
         Score=scores,
         Frequency=agg_table.a,
@@ -348,6 +350,7 @@ end
                           parallel::Bool=false) -> MultiNodeAnalysis
 
 Analyze multiple node words with multiple metrics across a corpus.
+Each result DataFrame now includes the Node column.
 """
 function analyze_multiple_nodes(corpus::Corpus,
     nodes::Vector{String},
@@ -378,8 +381,9 @@ function analyze_multiple_nodes(corpus::Corpus,
             agg_table = extract_cached_data(cct.aggregated_table)
 
             if !isempty(agg_table)
-                # Combine with collocate info
+                # Combine with collocate info - INCLUDING NODE
                 result = DataFrame(
+                    Node=fill(node, nrow(agg_table)),  # Add node column
                     Collocate=agg_table.Collocate,
                     Frequency=agg_table.a
                 )
@@ -421,8 +425,9 @@ function analyze_multiple_nodes(corpus::Corpus,
                     metric_results[!, string(metric)] = scores
                 end
 
-                # Combine results
+                # Combine results - INCLUDING NODE
                 result = DataFrame(
+                    Node=fill(node, nrow(agg_table)),  # Add node column
                     Collocate=agg_table.Collocate,
                     Frequency=agg_table.a
                 )
@@ -482,22 +487,33 @@ function corpus_statistics(corpus::Corpus)
 end
 
 # =====================================
-# Export Functions
+# Export Functions - UPDATED
 # =====================================
 
 """
     export_results(analysis::MultiNodeAnalysis, path::AbstractString; format::Symbol=:csv)
 
-Export analysis results to file.
+Export analysis results to file. Results now include Node column.
 """
 function export_results(analysis::MultiNodeAnalysis, path::AbstractString; format::Symbol=:csv)
     if format == :csv
-        # Export each node's results to a separate CSV
+        # Option 1: Export each node's results to separate files
         for (node, results) in analysis.results
             if !isempty(results)
                 filename = joinpath(path, "$(node)_results.csv")
                 CSV.write(filename, results)
             end
+        end
+
+        # Option 2: Also create a combined file with all results
+        all_results = DataFrame()
+        for (node, results) in analysis.results
+            if !isempty(results)
+                all_results = vcat(all_results, results, cols=:union)
+            end
+        end
+        if !isempty(all_results)
+            CSV.write(joinpath(path, "all_results_combined.csv"), all_results)
         end
 
         # Export summary
@@ -553,7 +569,7 @@ end
 
 
 # =====================================
-# Example Usage
+# Example Usage - UPDATED
 # =====================================
 
 function demonstrate_corpus_analysis()
@@ -564,10 +580,11 @@ function demonstrate_corpus_analysis()
     stats = corpus_statistics(corpus)
     println("Corpus contains $(stats[:num_documents]) documents with $(stats[:total_tokens]) tokens")
 
-    # Example 2: Analyze single node word
+    # Example 2: Analyze single node word - NOW WITH NODE COLUMN
     results = analyze_corpus(corpus, "important", PMI, windowsize=5, minfreq=10)
     println("Top collocates for 'important':")
     println(first(results, 10))
+    # Output now shows: Node | Collocate | Score | Frequency | DocFrequency
 
     # Example 3: Analyze multiple nodes with multiple metrics
     nodes = ["important", "significant", "critical", "essential"]
@@ -578,10 +595,23 @@ function demonstrate_corpus_analysis()
         windowsize=5, minfreq=10, top_n=50
     )
 
-    # Export results
+    # Each result DataFrame now includes the Node column
+    # Export results - the exported files will include the Node column
     export_results(multi_analysis, "results/", format=:csv)
 
-    # Example 4: Load from CSV with metadata
+    # Example 4: Combine results from multiple nodes into single DataFrame
+    all_results = DataFrame()
+    for (node, df) in multi_analysis.results
+        if !isempty(df)
+            all_results = vcat(all_results, df, cols=:union)
+        end
+    end
+
+    # Now you can filter, sort, and analyze across all nodes
+    println("All results combined:")
+    println(first(sort(all_results, :PMI, rev=true), 20))
+
+    # Example 5: Load from CSV with metadata
     df = DataFrame(
         text=["Document 1 text...", "Document 2 text..."],
         author=["Author A", "Author B"],
@@ -598,7 +628,7 @@ function demonstrate_corpus_analysis()
 end
 
 # =====================================
-# Batch Processing Functions
+# Batch Processing Functions - UPDATED
 # =====================================
 
 """
@@ -610,7 +640,7 @@ end
                         minfreq::Int=5,
                         batch_size::Int=100)
 
-Process a large list of node words in batches.
+Process a large list of node words in batches. Results include Node column.
 """
 function batch_process_corpus(corpus::Corpus,
     node_file::AbstractString,
@@ -634,6 +664,7 @@ function batch_process_corpus(corpus::Corpus,
     # Process in batches
     mkpath(output_dir)
     batch_num = 1
+    all_batch_results = DataFrame()  # To collect all results
 
     for batch_start in 1:batch_size:length(nodes)
         batch_end = min(batch_start + batch_size - 1, length(nodes))
@@ -652,7 +683,19 @@ function batch_process_corpus(corpus::Corpus,
         mkpath(batch_dir)
         export_results(analysis, batch_dir, format=:csv)
 
+        # Collect all results
+        for (node, df) in analysis.results
+            if !isempty(df)
+                all_batch_results = vcat(all_batch_results, df, cols=:union)
+            end
+        end
+
         batch_num += 1
+    end
+
+    # Save combined results
+    if !isempty(all_batch_results)
+        CSV.write(joinpath(output_dir, "all_batches_combined.csv"), all_batch_results)
     end
 
     println("Batch processing complete. Results saved to $output_dir")

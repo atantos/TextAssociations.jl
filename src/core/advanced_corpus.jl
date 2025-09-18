@@ -4,7 +4,10 @@
 # =====================================
 
 using StatsBase: countmap
-# using Dates  # TODO: where do we parse dates??; TODO: do we test temporalcorpusanalysis
+using Statistics: mean, median, std, var, cor
+using ProgressMeter: @showprogress
+using SparseArrays: sparse
+using Dates
 
 """
     TemporalCorpusAnalysis
@@ -17,6 +20,25 @@ struct TemporalCorpusAnalysis
     trend_analysis::DataFrame
     corpus_ref::Corpus
 end
+
+# Helper: robust date parsing for common formats; returns `nothing` if it fails
+parse_time_value(x) = x isa Date ? x :
+                      x isa DateTime ? Date(x) :
+                      (
+    try
+        Date(String(x))
+    catch
+        try
+            Date(String(x), dateformat"yyyy-mm-dd")
+        catch
+            try
+                Date(String(x), dateformat"dd/mm/yyyy")
+            catch
+                nothing
+            end
+        end
+    end
+)
 
 """
     SubcorpusComparison
@@ -69,22 +91,59 @@ function temporal_corpus_analysis(corpus::Corpus,
         throw(ArgumentError("No documents have the specified time field: $time_field"))
     end
 
-    # Create time bins
-    if eltype(time_values) <: Number
-        min_time, max_time = extrema(time_values)
-        bin_edges = range(min_time, max_time, length=time_bins + 1)
-        bin_labels = ["Period_$i" for i in 1:time_bins]
-    else
-        # Handle date/string time values
-        # TODO: should we be parsing datetimes here?
-        sorted_times = sort(unique(time_values))
-        n_unique = length(sorted_times)
-        bins_per_time = max(1, n_unique ÷ time_bins)
-        bin_labels = String[]
 
-        for i in 1:bins_per_time:n_unique
-            end_idx = min(i + bins_per_time - 1, n_unique)
-            push!(bin_labels, "$(sorted_times[i])_to_$(sorted_times[end_idx])")
+    # Create time bins
+    parsed_dates = nothing
+    is_numeric = eltype(time_values) <: Number
+    if !is_numeric
+        # try to parse dates; keep nothing for unparsable
+        parsed = [parse_time_value(tv) for tv in time_values]
+        if all(!isnothing.(parsed))
+            parsed_dates = Date.(parsed)
+        end
+    end
+
+    if is_numeric
+        min_time, max_time = extrema(time_values)
+        bin_edges = collect(range(min_time, max_time, length=time_bins + 1))
+        bin_labels = ["Period_$i" for i in 1:time_bins]
+        # Create value labels directly without nested functions
+        value_labels = String[]
+        for x in time_values
+            bin_idx = findfirst(i -> bin_edges[i] <= x < bin_edges[i+1], 1:time_bins)
+            push!(value_labels, bin_labels[bin_idx])
+        end
+    elseif parsed_dates !== nothing
+        # date binning by equal-width between min/max date
+        min_time, max_time = extrema(parsed_dates)
+        # avoid zero range
+        if min_time == max_time
+            bin_labels = ["$(min_time)"]
+            value_labels = [bin_labels[1] for _ in parsed_dates]
+        else
+            dayspan = Dates.value(max_time - min_time)
+            edges = [min_time + Dates.Day(round(Int, i * dayspan / time_bins)) for i in 0:time_bins]
+            bin_edges = edges
+            bin_labels = ["$(edges[i])_to_$(edges[i+1])" for i in 1:length(edges)-1]
+            # Create value labels directly
+            value_labels = String[]
+            for x in parsed_dates
+                bin_idx = findfirst(i -> bin_edges[i] <= x < bin_edges[i+1], 1:time_bins)
+                push!(value_labels, bin_labels[bin_idx])
+            end
+        end
+    else
+        # categorical labels: group sorted unique values into approximately `time_bins` chunks
+        sorted_times = sort(unique(string.(time_values)))
+        n_unique = length(sorted_times)
+        if n_unique <= time_bins
+            bin_labels = sorted_times
+            value_labels = string.(time_values)
+        else
+            step = ceil(Int, n_unique / time_bins)
+            bin_labels = String[]
+            # map each category directly to itself (fine-grained) for now
+            value_labels = string.(time_values)
         end
     end
 
@@ -96,16 +155,8 @@ function temporal_corpus_analysis(corpus::Corpus,
         period_docs = StringDocument[]
 
         for (i, idx) in enumerate(doc_indices)
-            if eltype(time_values) <: Number
-                if period_idx < length(bin_edges) &&
-                   bin_edges[period_idx] <= time_values[i] < bin_edges[period_idx+1]
-                    push!(period_docs, corpus.documents[idx])
-                end
-            else
-                # Handle categorical time periods
-                if time_values[i] == period_label
-                    push!(period_docs, corpus.documents[idx])
-                end
+            if value_labels[i] == bin_labels[period_idx]
+                push!(period_docs, corpus.documents[idx])
             end
         end
 
@@ -133,7 +184,6 @@ function temporal_corpus_analysis(corpus::Corpus,
     )
 end
 
-# TODO: make sure these are tested!  Where does coef and lm and cor come from?
 """
     compute_association_trends(results_by_period, nodes, metric) -> DataFrame
 
@@ -173,8 +223,16 @@ function compute_association_trends(results_by_period::Dict{String,MultiNodeAnal
 
             if length(scores_over_time) > 1
                 # Calculate trend statistics
-                correlation = cor(1:length(scores_over_time), scores_over_time)
-                slope = coef(lm(1:length(scores_over_time), scores_over_time))[2]
+                xs = collect(1:length(scores_over_time))
+                correlation = cor(xs, scores_over_time)
+
+                # Simple linear regression without GLM
+                # Calculate slope using least squares formula
+                mean_x = mean(xs)
+                mean_y = mean(scores_over_time)
+                numerator = sum((xs .- mean_x) .* (scores_over_time .- mean_y))
+                denominator = sum((xs .- mean_x) .^ 2)
+                slope = denominator > 0 ? numerator / denominator : 0.0
 
                 push!(trend_data, (
                     Node=node,
@@ -300,19 +358,18 @@ function perform_statistical_tests(results::Dict{String,DataFrame},
             # Two-sample test
             vals = collect(values(scores_by_group))
             # Use Mann-Whitney U test for non-parametric comparison
-            p_value = pvalue(MannWhitneyUTest(vals[1:1], vals[2:2]))
+            # Note: With single values, this is not meaningful, but included for completeness
+            p_value = NaN  # Cannot perform statistical test with single values per group
 
             push!(test_results, (
                 Collocate=collocate,
                 Test="MannWhitneyU",
                 PValue=p_value,
-                Significant=p_value < 0.05
+                Significant=false
             ))
         elseif length(scores_by_group) > 2
             # Multiple group test (Kruskal-Wallis)
-            group_scores = [scores_by_group[g] for g in groups if haskey(scores_by_group, g)]
-            # Note: Would need proper Kruskal-Wallis implementation
-            # Using simplified approach here
+            # Note: Would need proper implementation with multiple observations per group
             push!(test_results, (
                 Collocate=collocate,
                 Test="KruskalWallis",
@@ -475,6 +532,28 @@ function extract_tfidf_keywords(corpus::Corpus,
 end
 
 """
+    extract_textrank_keywords(corpus, num_keywords) -> DataFrame
+
+Extract keywords using TextRank algorithm (placeholder).
+"""
+function extract_textrank_keywords(corpus::Corpus, num_keywords::Int)
+    # Placeholder implementation
+    @warn "TextRank keyword extraction not yet implemented"
+    return DataFrame()
+end
+
+"""
+    extract_rake_keywords(corpus, num_keywords) -> DataFrame
+
+Extract keywords using RAKE algorithm (placeholder).
+"""
+function extract_rake_keywords(corpus::Corpus, num_keywords::Int)
+    # Placeholder implementation
+    @warn "RAKE keyword extraction not yet implemented"
+    return DataFrame()
+end
+
+"""
     build_document_term_matrix(documents, vocabulary) -> SparseMatrixCSC
 
 Build a document-term matrix from documents.
@@ -560,33 +639,65 @@ function build_collocation_network(corpus::Corpus,
                 # Filter by minimum score
                 filtered = filter(row -> row.Score >= min_score, results)
 
-                # Take top N neighbors
-                top_neighbors = first(filtered, min(max_neighbors, nrow(filtered)))
+                if !isempty(filtered)
+                    # Take top N neighbors
+                    top_neighbors = first(filtered, min(max_neighbors, nrow(filtered)))
 
-                for row in eachrow(top_neighbors)
-                    collocate = string(row.Collocate)
+                    for row in eachrow(top_neighbors)
+                        collocate = string(row.Collocate)
 
-                    # Add edge
-                    push!(edges, (
-                        Source=node,
-                        Target=collocate,
-                        Weight=row.Score,
-                        Metric=string(metric)
-                    ))
+                        # Add edge
+                        push!(edges, (
+                            Source=node,
+                            Target=collocate,
+                            Weight=row.Score,
+                            Metric=string(metric)
+                        ))
 
-                    # Add to next layer if not seen
-                    if !(collocate in nodes)
-                        push!(next_layer, collocate)
-                        push!(nodes, collocate)
+                        # Add to next layer if not seen
+                        if !(collocate in nodes)
+                            push!(next_layer, collocate)
+                            push!(nodes, collocate)
+                        end
                     end
-                end
 
-                # Calculate node metrics
+                    # Calculate node metrics
+                    if nrow(top_neighbors) > 0
+                        push!(node_metrics_data, (
+                            Node=node,
+                            Degree=nrow(top_neighbors),
+                            AvgScore=mean(top_neighbors.Score),
+                            MaxScore=maximum(top_neighbors.Score),
+                            Layer=layer - 1
+                        ))
+                    else
+                        # Handle case with no neighbors
+                        push!(node_metrics_data, (
+                            Node=node,
+                            Degree=0,
+                            AvgScore=NaN,
+                            MaxScore=NaN,
+                            Layer=layer - 1
+                        ))
+                    end
+                else
+                    # No results pass the min_score filter
+                    push!(node_metrics_data, (
+                        Node=node,
+                        Degree=0,
+                        AvgScore=NaN,
+                        MaxScore=NaN,
+                        Layer=layer - 1
+                    ))
+                end
+            else
+                # No results at all for this node
+                @info "No collocations found for node: $node"
                 push!(node_metrics_data, (
                     Node=node,
-                    Degree=length(top_neighbors.Collocate),
-                    AvgScore=mean(top_neighbors.Score),
-                    MaxScore=maximum(top_neighbors.Score),
+                    Degree=0,
+                    AvgScore=NaN,
+                    MaxScore=NaN,
                     Layer=layer - 1
                 ))
             end
