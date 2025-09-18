@@ -5,25 +5,45 @@
 
 using StringEncodings
 
-function read_text_smart(path::AbstractString)::String
+function read_text_smart(path::AbstractString; normalize_form::Symbol=:NFC)::String
     bytes = read(path)
     n = length(bytes)
-    # UTF-8 BOM
+
+    # 1) BOM-based fast paths
     if n ≥ 3 && bytes[1] == 0xEF && bytes[2] == 0xBB && bytes[3] == 0xBF
-        return String(bytes[4:end])
-        # UTF-16 LE BOM
+        s = String(bytes[4:end])  # UTF-8 with BOM
+        return Base.Unicode.normalize(s, normalize_form)
     elseif n ≥ 2 && bytes[1] == 0xFF && bytes[2] == 0xFE
-        return StringEncodings.decode(bytes, "UTF-16LE")
-        # UTF-16 BE BOM
+        s = StringEncodings.decode(bytes, "UTF-16LE")
+        return Base.Unicode.normalize(s, normalize_form)
     elseif n ≥ 2 && bytes[1] == 0xFE && bytes[2] == 0xFF
-        return StringEncodings.decode(bytes, "UTF-16BE")
-    else
-        # Try UTF-8 first
+        s = StringEncodings.decode(bytes, "UTF-16BE")
+        return Base.Unicode.normalize(s, normalize_form)
+    end
+
+    # 2) Try UTF-8 (no BOM)
+    try
+        s = String(bytes)
+        return Base.Unicode.normalize(s, normalize_form)
+    catch
+        # fallthrough
+    end
+
+    # 3) Try Windows-1253 then ISO-8859-7
+    for enc in ("windows-1253", "ISO-8859-7")
         try
-            return String(bytes)
+            s = StringEncodings.decode(bytes, enc)
+            # Heuristic: if we decoded into mostly replacement chars, keep trying
+            # (optional) Or check that Greek letters are present:
+            # if occursin(r"\p{Greek}", s)
+            return Base.Unicode.normalize(s, normalize_form)
+            # end
         catch
-            # Fallback to Windows-1253 (Greek)
-            return StringEncodings.decode(bytes, "windows-1253")
+            # try next encoding
         end
     end
+
+    # 4) Last resort: lossy UTF-8 with replacement
+    s = String(take!(TranscodingStreams.NoopStream(IOBuffer(bytes))))
+    return Base.Unicode.normalize(s, normalize_form)
 end

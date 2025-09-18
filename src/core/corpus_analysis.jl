@@ -11,6 +11,7 @@ using JSON
 using Statistics: mean, median
 using TextAnalysis
 using XLSX
+using Printf: @sprintf
 
 """
     Corpus <: AssociationDataFormat
@@ -125,7 +126,9 @@ function load_corpus(path::AbstractString;
         files = filter(f -> endswith(f, ".txt"), readdir(path, join=true))
         @showprogress desc = "Loading files..." for file in files
             content = read_text_smart(file)
+            # println(content)
             doc = preprocess ? prepstring(content) : StringDocument(content)
+            # println(doc.text)
 
             # Check document length
             doc_tokens = tokens(doc)
@@ -458,33 +461,256 @@ function analyze_multiple_nodes(corpus::Corpus,
 end
 
 """
-    corpus_statistics(corpus::Corpus) -> Dict
+    corpus_statistics(corpus::Corpus; 
+                     include_token_distribution::Bool=true) -> Dict
 
-Get basic statistics about the corpus.
+Get comprehensive statistics about the corpus.
 """
-function corpus_statistics(corpus::Corpus)
+function corpus_statistics(corpus::Corpus;
+    include_token_distribution::Bool=true)
     total_tokens = 0
-    unique_tokens = Set{String}()
+    unique_tokens_set = Set{String}()
     doc_lengths = Int[]
+    token_frequencies = Dict{String,Int}()
 
     for doc in corpus.documents
         doc_tokens = tokens(doc)
         total_tokens += length(doc_tokens)
-        union!(unique_tokens, doc_tokens)
+        union!(unique_tokens_set, doc_tokens)
         push!(doc_lengths, length(doc_tokens))
+
+        # Count token frequencies
+        for token in doc_tokens
+            token_frequencies[token] = get(token_frequencies, token, 0) + 1
+        end
     end
 
-    return Dict(
+    # Calculate type-token ratio (lexical diversity)
+    type_token_ratio = length(unique_tokens_set) / total_tokens
+
+    # Calculate hapax legomena (words appearing only once)
+    hapax_count = count(freq -> freq == 1, values(token_frequencies))
+
+    # Calculate vocabulary coverage
+    sorted_freqs = sort(collect(values(token_frequencies)), rev=true)
+    cumsum_freqs = cumsum(sorted_freqs)
+
+    # Find how many words cover 25%, 50%, 75%, and 100% of corpus
+    twenty_five_percent_coverage = findfirst(x -> x >= total_tokens * 0.25, cumsum_freqs)
+    fifty_percent_coverage = findfirst(x -> x >= total_tokens * 0.5, cumsum_freqs)
+    seventy_five_percent_coverage = findfirst(x -> x >= total_tokens * 0.75, cumsum_freqs)
+    ninety_percent_coverage = findfirst(x -> x >= total_tokens * 0.9, cumsum_freqs)
+    ninety_five_percent_coverage = findfirst(x -> x >= total_tokens * 0.95, cumsum_freqs)
+    ninety_nine_percent_coverage = findfirst(x -> x >= total_tokens * 0.99, cumsum_freqs)
+    # 100% coverage is simply the vocabulary size
+
+    stats = Dict{Symbol,Any}(
+        # Document statistics
         :num_documents => length(corpus.documents),
-        :total_tokens => total_tokens,
-        :unique_tokens => length(unique_tokens),
         :avg_doc_length => mean(doc_lengths),
         :median_doc_length => median(doc_lengths),
         :min_doc_length => minimum(doc_lengths),
         :max_doc_length => maximum(doc_lengths),
-        :vocabulary_size => length(corpus.vocabulary)
+        :std_doc_length => std(doc_lengths),
+
+        # Token statistics
+        :total_tokens => total_tokens,
+        :vocabulary_size => length(corpus.vocabulary),  # Unique types
+        :unique_tokens => length(unique_tokens_set),    # Should be same as vocabulary_size
+
+        # Lexical diversity metrics
+        :type_token_ratio => type_token_ratio,
+        :standardized_ttr => type_token_ratio * sqrt(total_tokens),  # Standardized TTR
+        :hapax_legomena => hapax_count,
+        :hapax_ratio => hapax_count / length(unique_tokens_set),
+
+        # Vocabulary coverage (quartiles and key percentiles)
+        :words_for_25_percent_coverage => twenty_five_percent_coverage,
+        :words_for_50_percent_coverage => fifty_percent_coverage,
+        :words_for_75_percent_coverage => seventy_five_percent_coverage,
+        :words_for_90_percent_coverage => ninety_percent_coverage,
+        :words_for_95_percent_coverage => ninety_five_percent_coverage,
+        :words_for_99_percent_coverage => ninety_nine_percent_coverage,
+        :words_for_100_percent_coverage => length(unique_tokens_set),
+
+        # Coverage ratios (proportion of vocabulary needed)
+        :coverage_ratio_25 => twenty_five_percent_coverage / length(unique_tokens_set),
+        :coverage_ratio_50 => fifty_percent_coverage / length(unique_tokens_set),
+        :coverage_ratio_75 => seventy_five_percent_coverage / length(unique_tokens_set),
+        :coverage_ratio_90 => ninety_percent_coverage / length(unique_tokens_set),
+        :coverage_ratio_95 => ninety_five_percent_coverage / length(unique_tokens_set),
+        :coverage_ratio_99 => ninety_nine_percent_coverage / length(unique_tokens_set)
     )
+
+    # Add token distribution statistics if requested
+    if include_token_distribution
+        freq_values = collect(values(token_frequencies))
+        stats[:mean_token_frequency] = mean(freq_values)
+        stats[:median_token_frequency] = median(freq_values)
+        stats[:max_token_frequency] = maximum(freq_values)
+        stats[:min_token_frequency] = minimum(freq_values)
+
+        # Zipf's law coefficient (rough estimate)
+        # log(rank) vs log(frequency) should be linear
+        top_n = min(1000, length(freq_values))
+        top_freqs = sorted_freqs[1:top_n]
+        ranks = 1:top_n
+        if top_n > 10
+            log_ranks = log.(ranks)
+            log_freqs = log.(top_freqs)
+            # Simple linear regression for Zipf coefficient
+            mean_x = mean(log_ranks)
+            mean_y = mean(log_freqs)
+            zipf_slope = sum((log_ranks .- mean_x) .* (log_freqs .- mean_y)) /
+                         sum((log_ranks .- mean_x) .^ 2)
+            stats[:zipf_coefficient] = abs(zipf_slope)  # Should be close to -1 for natural language
+        end
+    end
+
+    return stats
 end
+
+# Alternative: Separate function for detailed token analysis
+"""
+    token_distribution_analysis(corpus::Corpus) -> DataFrame
+
+Analyze the distribution of tokens in the corpus.
+"""
+function token_distribution_analysis(corpus::Corpus)
+    token_frequencies = Dict{String,Int}()
+    doc_frequencies = Dict{String,Int}()  # How many docs each token appears in
+
+    for doc in corpus.documents
+        doc_tokens = tokens(doc)
+        doc_unique = unique(doc_tokens)
+
+        # Count total frequencies
+        for token in doc_tokens
+            token_frequencies[token] = get(token_frequencies, token, 0) + 1
+        end
+
+        # Count document frequencies
+        for token in doc_unique
+            doc_frequencies[token] = get(doc_frequencies, token, 0) + 1
+        end
+    end
+
+    # Create DataFrame with token statistics
+    word_tokens = collect(keys(token_frequencies))
+    df = DataFrame(
+        Token=word_tokens,
+        Frequency=[token_frequencies[t] for t in word_tokens],
+        DocFrequency=[doc_frequencies[t] for t in word_tokens],
+        DocFrequencyRatio=[doc_frequencies[t] / length(corpus.documents) for t in word_tokens]
+    )
+
+    # Calculate TF-IDF scores
+    n_docs = length(corpus.documents)
+    df.IDF = log.(n_docs ./ df.DocFrequency)
+    df.TFIDF = df.Frequency .* df.IDF
+
+    # Sort by frequency
+    sort!(df, :Frequency, rev=true)
+
+    return df
+end
+
+"""
+    vocabulary_coverage_curve(corpus::Corpus; 
+                             percentiles=0.01:0.01:1.0) -> DataFrame
+
+Calculate vocabulary coverage curve showing how many words are needed 
+to cover various percentages of the corpus. Uses the corpus vocabulary
+for consistent calculations.
+"""
+function vocabulary_coverage_curve(corpus::Corpus;
+    percentiles=0.01:0.01:1.0)
+    # Build token frequencies using corpus vocabulary as reference
+    token_frequencies = Dict{String,Int}()
+
+    # Initialize with all vocabulary words at 0 frequency
+    for word in keys(corpus.vocabulary)
+        token_frequencies[word] = 0
+    end
+
+    # Count actual frequencies
+    total_tokens = 0
+    for doc in corpus.documents
+        doc_tokens = tokens(doc)
+        total_tokens += length(doc_tokens)
+        for token in doc_tokens
+            if haskey(token_frequencies, token)
+                token_frequencies[token] += 1
+            end
+            # Note: tokens not in corpus.vocabulary are ignored
+            # This ensures consistency with the corpus vocabulary
+        end
+    end
+
+    # Sort by frequency (descending)
+    sorted_pairs = sort(collect(token_frequencies), by=x -> x[2], rev=true)
+    sorted_freqs = [p[2] for p in sorted_pairs]
+    cumsum_freqs = cumsum(sorted_freqs)
+
+    # Use the corpus vocabulary size
+    vocab_size = length(corpus.vocabulary)
+
+    # Calculate coverage for each percentile
+    coverage_data = []
+    for p in percentiles
+        target = total_tokens * p
+        n_words = findfirst(x -> x >= target, cumsum_freqs)
+        if n_words === nothing
+            n_words = vocab_size
+        end
+
+        push!(coverage_data, (
+            Percentile=p * 100,
+            WordsNeeded=n_words,
+            ProportionOfVocab=n_words / vocab_size,
+            CumulativeTokens=n_words > 0 && n_words <= length(cumsum_freqs) ?
+                             cumsum_freqs[n_words] : total_tokens
+        ))
+    end
+
+    return DataFrame(coverage_data)
+end
+
+"""
+    print_coverage_summary(stats::Dict)
+
+Pretty print the vocabulary coverage statistics.
+"""
+function print_coverage_summary(stats::Dict)
+    println("\n=== Vocabulary Coverage Summary ===")
+    println("Total tokens: ", stats[:total_tokens])
+    println("Vocabulary size: ", stats[:vocabulary_size])
+    println("\nCoverage Statistics:")
+    println("─"^50)
+
+    percentages = [25, 50, 75, 90, 95, 99, 100]
+    for pct in percentages
+        if pct == 100
+            words = stats[:words_for_100_percent_coverage]
+            ratio = 1.0
+        else
+            key = Symbol("words_for_$(pct)_percent_coverage")
+            words = stats[key]
+            ratio_key = Symbol("coverage_ratio_$(pct)")
+            ratio = stats[ratio_key]
+        end
+
+        println(@sprintf("%3d%% of corpus: %7d words (%6.2f%% of vocabulary)",
+            pct, words, ratio * 100))
+    end
+
+    println("\nLexical Diversity:")
+    println("─"^50)
+    println(@sprintf("Type-Token Ratio: %.4f", stats[:type_token_ratio]))
+    println(@sprintf("Hapax Legomena: %d (%.2f%% of vocabulary)",
+        stats[:hapax_legomena], stats[:hapax_ratio] * 100))
+end
+
 
 # =====================================
 # Export Functions - UPDATED
@@ -721,7 +947,8 @@ function stream_corpus_analysis(file_pattern::AbstractString,
     chunk_size::Int=1000)
 
     files = glob(file_pattern)
-    aggregated_data = Dict{Symbol,Vector{Int}}()
+    # aggregated_data = Dict{Symbol,Vector{Int}}()
+    aggregated_data = Dict{String,Vector{Int}}()
 
     @showprogress desc = "Streaming files..." for file_chunk in Iterators.partition(files, chunk_size)
         # Process chunk
@@ -739,15 +966,25 @@ function stream_corpus_analysis(file_pattern::AbstractString,
         chunk_table = extract_cached_data(cct.aggregated_table)
 
         # Aggregate with previous chunks
+        # for row in eachrow(chunk_table)
+        #     collocate = row.Collocate
+        #     if !haskey(aggregated_data, collocate)
+        #         aggregated_data[collocate] = zeros(Int, 4)
+        #     end
+        #     aggregated_data[collocate][1] += row.a
+        #     aggregated_data[collocate][2] += row.b
+        #     aggregated_data[collocate][3] += row.c
+        #     aggregated_data[collocate][4] += row.d
+        # end
         for row in eachrow(chunk_table)
-            collocate = row.Collocate
-            if !haskey(aggregated_data, collocate)
-                aggregated_data[collocate] = zeros(Int, 4)
+            coll = String(row.Collocate)
+            v = get!(aggregated_data, coll, zeros(Int, 4))
+            @inbounds begin
+                v[1] += row.a
+                v[2] += row.b
+                v[3] += row.c
+                v[4] += row.d
             end
-            aggregated_data[collocate][1] += row.a
-            aggregated_data[collocate][2] += row.b
-            aggregated_data[collocate][3] += row.c
-            aggregated_data[collocate][4] += row.d
         end
 
         # Clear memory
@@ -757,6 +994,39 @@ function stream_corpus_analysis(file_pattern::AbstractString,
 
     # Build final DataFrame and evaluate metric
     # ... (similar to aggregate_contingency_tables)
+    # --- Build final DataFrame from aggregated_data and evaluate metric ---
+    # Convert Dict{String, Vector{Int}} => DataFrame with A,B,C,D and Score
+    collocates = collect(keys(aggregated_data))
+    A = Vector{Int}(undef, length(collocates))
+    B = similar(A)
+    C = similar(A)
+    D = similar(A)
 
-    return aggregated_data
+    for (i, w) in enumerate(collocates)
+        v = aggregated_data[w]
+        @inbounds begin
+            A[i] = v[1]
+            B[i] = v[2]
+            C[i] = v[3]
+            D[i] = v[4]
+        end
+    end
+
+    df = DataFrame(
+        Collocate=collocates,
+        A=A, B=B, C=C, D=D
+    )
+
+    # Evaluate the metric per aggregated contingency table
+    df.Score = Vector{Float64}(undef, nrow(df))
+    m = metric()  # instantiate your metric type
+
+    for i in 1:nrow(df)
+        ct = ContingencyTable(df.A[i], df.B[i], df.C[i], df.D[i])
+        df.Score[i] = evaluate(m, ct)  # or whatever your API uses (e.g., score(m, ct))
+    end
+
+    sort!(df, :Score, rev=true)
+
+    return df
 end

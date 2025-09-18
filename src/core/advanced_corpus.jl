@@ -621,93 +621,53 @@ function build_collocation_network(corpus::Corpus,
     minfreq::Int=5)
 
     nodes = Set{String}(seed_words)
-    edges = []
-    node_metrics_data = []
+    edges = NamedTuple{(:Source, :Target, :Weight, :Metric),Tuple{String,String,Float64,String}}[]
+    node_metrics_data = NamedTuple{(:Node, :Degree, :AvgScore, :MaxScore, :Layer),
+        Tuple{String,Int,Float64,Float64,Int}}[]
 
-    # BFS to build network
     current_layer = Set(seed_words)
 
     for layer in 1:depth
         next_layer = Set{String}()
 
         @showprogress desc = "Building layer $layer..." for node in current_layer
-            # Get collocates
-            results = analyze_corpus(corpus, node, metric,
-                windowsize=windowsize, minfreq=minfreq)
+            results = analyze_corpus(corpus, node, metric; windowsize=windowsize, minfreq=minfreq)
 
-            if !isempty(results)
-                # Filter by minimum score
-                filtered = filter(row -> row.Score >= min_score, results)
-
-                if !isempty(filtered)
-                    # Take top N neighbors
-                    top_neighbors = first(filtered, min(max_neighbors, nrow(filtered)))
+            if results isa DataFrame && nrow(results) > 0
+                # keep only rows above threshold
+                filtered = view(results, results.Score .>= min_score, :)
+                if nrow(filtered) > 0
+                    k = min(max_neighbors, nrow(filtered))
+                    top_neighbors = first(filtered, k)  # DataFrames.first(df, k)
 
                     for row in eachrow(top_neighbors)
-                        collocate = string(row.Collocate)
-
-                        # Add edge
-                        push!(edges, (
-                            Source=node,
+                        collocate = String(row.Collocate)
+                        push!(edges, (Source=node,
                             Target=collocate,
-                            Weight=row.Score,
-                            Metric=string(metric)
-                        ))
-
-                        # Add to next layer if not seen
+                            Weight=Float64(row.Score),
+                            Metric=string(metric)))
                         if !(collocate in nodes)
                             push!(next_layer, collocate)
                             push!(nodes, collocate)
                         end
                     end
 
-                    # Calculate node metrics
-                    if nrow(top_neighbors) > 0
-                        push!(node_metrics_data, (
-                            Node=node,
-                            Degree=nrow(top_neighbors),
-                            AvgScore=mean(top_neighbors.Score),
-                            MaxScore=maximum(top_neighbors.Score),
-                            Layer=layer - 1
-                        ))
-                    else
-                        # Handle case with no neighbors
-                        push!(node_metrics_data, (
-                            Node=node,
-                            Degree=0,
-                            AvgScore=NaN,
-                            MaxScore=NaN,
-                            Layer=layer - 1
-                        ))
-                    end
+                    push!(node_metrics_data, (Node=node,
+                        Degree=nrow(top_neighbors),
+                        AvgScore=mean(top_neighbors.Score),
+                        MaxScore=maximum(top_neighbors.Score),
+                        Layer=layer - 1))
                 else
-                    # No results pass the min_score filter
-                    push!(node_metrics_data, (
-                        Node=node,
-                        Degree=0,
-                        AvgScore=NaN,
-                        MaxScore=NaN,
-                        Layer=layer - 1
-                    ))
+                    push!(node_metrics_data, (Node=node, Degree=0, AvgScore=NaN, MaxScore=NaN, Layer=layer - 1))
                 end
             else
-                # No results at all for this node
                 @info "No collocations found for node: $node"
-                push!(node_metrics_data, (
-                    Node=node,
-                    Degree=0,
-                    AvgScore=NaN,
-                    MaxScore=NaN,
-                    Layer=layer - 1
-                ))
+                push!(node_metrics_data, (Node=node, Degree=0, AvgScore=NaN, MaxScore=NaN, Layer=layer - 1))
             end
         end
 
         current_layer = next_layer
-
-        if isempty(current_layer)
-            break
-        end
+        isempty(current_layer) && break
     end
 
     parameters = Dict(
@@ -716,16 +676,17 @@ function build_collocation_network(corpus::Corpus,
         :min_score => min_score,
         :max_neighbors => max_neighbors,
         :windowsize => windowsize,
-        :minfreq => minfreq
+        :minfreq => minfreq,
     )
 
     return CollocationNetwork(
-        collect(nodes),
-        DataFrame(edges),
-        DataFrame(node_metrics_data),
+        collect(nodes),          # Vector{String}
+        DataFrame(edges),        # edges table
+        DataFrame(node_metrics_data),  # per-node metrics
         parameters
     )
 end
+
 
 """
     export_network_to_gephi(network::CollocationNetwork,

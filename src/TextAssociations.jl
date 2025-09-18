@@ -55,7 +55,9 @@ export
     # corpus-related API functions
     load_corpus, load_corpus_from_dataframe,
     analyze_corpus, analyze_multiple_nodes,
-    corpus_statistics, export_results,
+    corpus_statistics, vocabulary_coverage_curve,
+    print_coverage_summary, token_distribution_analysis,
+    export_results,
     batch_process_corpus, stream_corpus_analysis,
     # Advanced features
     temporal_corpus_analysis, compare_subcorpora,
