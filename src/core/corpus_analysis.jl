@@ -193,11 +193,11 @@ function load_corpus(path::AbstractString;
 end
 
 """
-    load_corpus_from_dataframe(df::DataFrame; kwargs...) -> Corpus
+    load_corpus_df(df::DataFrame; kwargs...) -> Corpus
 
 Load corpus directly from a DataFrame.
 """
-function load_corpus_from_dataframe(df::DataFrame;
+function load_corpus_df(df::DataFrame;
     text_column::Symbol=:text,
     metadata_columns::Vector{Symbol}=Symbol[],
     preprocess::Bool=true)
@@ -572,11 +572,11 @@ end
 
 # Alternative: Separate function for detailed token analysis
 """
-    token_distribution_analysis(corpus::Corpus) -> DataFrame
+    token_distribution(corpus::Corpus) -> DataFrame
 
 Analyze the distribution of tokens in the corpus.
 """
-function token_distribution_analysis(corpus::Corpus)
+function token_distribution(corpus::Corpus)
     token_frequencies = Dict{String,Int}()
     doc_frequencies = Dict{String,Int}()  # How many docs each token appears in
 
@@ -616,14 +616,14 @@ function token_distribution_analysis(corpus::Corpus)
 end
 
 """
-    vocabulary_coverage_curve(corpus::Corpus; 
+    vocab_coverage(corpus::Corpus; 
                              percentiles=0.01:0.01:1.0) -> DataFrame
 
 Calculate vocabulary coverage curve showing how many words are needed 
 to cover various percentages of the corpus. Uses the corpus vocabulary
 for consistent calculations.
 """
-function vocabulary_coverage_curve(corpus::Corpus;
+function vocab_coverage(corpus::Corpus;
     percentiles=0.01:0.01:1.0)
     # Build token frequencies using corpus vocabulary as reference
     token_frequencies = Dict{String,Int}()
@@ -677,11 +677,11 @@ function vocabulary_coverage_curve(corpus::Corpus;
 end
 
 """
-    print_coverage_summary(stats::Dict)
+    coverage_summary(stats::Dict)
 
 Pretty print the vocabulary coverage statistics.
 """
-function print_coverage_summary(stats::Dict)
+function coverage_summary(stats::Dict)
     println("\n=== Vocabulary Coverage Summary ===")
     println("Total tokens: ", stats[:total_tokens])
     println("Vocabulary size: ", stats[:vocabulary_size])
@@ -844,7 +844,7 @@ function demonstrate_corpus_analysis()
         year=[2020, 2021]
     )
 
-    corpus_from_df = load_corpus_from_dataframe(
+    corpus_from_df = load_corpus_df(
         df,
         text_column=:text,
         metadata_columns=[:author, :year]

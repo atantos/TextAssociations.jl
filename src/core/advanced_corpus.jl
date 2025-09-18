@@ -735,14 +735,14 @@ struct Concordance
 end
 
 """
-    generate_concordance(corpus::Corpus,
+    concord(corpus::Corpus,
                         node::String;
                         context_size::Int=50,
                         max_lines::Int=1000) -> Concordance
 
 Generate KWIC concordance for a node word.
 """
-function generate_concordance(corpus::Corpus,
+function concord(corpus::Corpus,
     node::String;
     context_size::Int=50,
     max_lines::Int=1000)
@@ -852,7 +852,7 @@ function demonstrate_advanced_features()
     export_network_to_gephi(network, "nodes.csv", "edges.csv")
 
     # 5. Concordance
-    concordance = generate_concordance(corpus, "innovation", context_size=30)
+    concordance = concord(corpus, "innovation", context_size=30)
     println("\nConcordance lines:")
     println(first(concordance.lines, 5))
 

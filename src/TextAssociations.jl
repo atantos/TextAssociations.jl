@@ -53,16 +53,16 @@ export
     extract_cached_data,
     extract_document,
     # corpus-related API functions
-    load_corpus, load_corpus_from_dataframe,
+    load_corpus, load_corpus_df,
     analyze_corpus, analyze_multiple_nodes,
-    corpus_statistics, vocabulary_coverage_curve,
-    print_coverage_summary, token_distribution_analysis,
+    corpus_statistics, vocab_coverage,
+    coverage_summary, token_distribution,
     export_results,
     batch_process_corpus, stream_corpus_analysis,
     # Advanced features
     temporal_corpus_analysis, compare_subcorpora,
     extract_keywords, build_collocation_network,
-    export_network_to_gephi, generate_concordance,
+    export_network_to_gephi, concord,
 
     # Utility functions
     prepstring,

@@ -11,12 +11,14 @@
 ## 🎯 Introduction
 
 `TextAssociations.jl` is a comprehensive Julia package for word association analysis and corpus linguistics, offering over 50 association metrics to quantify relationships between words in texts and corpora. The package is now comparable to professional corpus analysis tools like:
+
 - **AntConc** (but more programmable)
 - **SketchEngine** (but open source)
 - **WordSmith Tools** (but with more metrics)
 - **Corpus Workbench** (but easier to use)
 
 With added advantages of:
+
 - Being fully programmable and extensible
 - Integration with Julia's ecosystem
 - Support for custom metrics
@@ -28,6 +30,7 @@ This makes TextAssociations.jl a powerful tool for computational linguistics, di
 ### Why Word Association Metrics Still Matter
 
 Even in the era of transformer models and word embeddings, association metrics remain valuable because they:
+
 - 📊 **Are interpretable**: Provide transparent, statistical insights into word relationships
 - 🔄 **Complement neural models**: Can be used alongside embeddings to enhance performance and also enhance RAG pipelines.
 - 📏 **Serve as benchmarks**: Provide baselines for evaluating complex models
@@ -36,22 +39,27 @@ Even in the era of transformer models and word embeddings, association metrics r
 ## ✨ Core Features
 
 ### 📈 **50+ Association Metrics**
+
 Comprehensive suite including PMI, Log-likelihood, Dice, Jaccard, Lexical Gravity and many more specialized measures from corpus linguistics, information theory and even some association metrics inspired from epidemiology.
 
 ### 📚 **Corpus-Level Analysis**
+
 Process entire document collections with built-in support for:
+
 - Large-scale corpus processing
 - Temporal analysis (track changes over time)
 - Subcorpus comparison with statistical tests
 - Keyword extraction (TF-IDF and other methods)
 
 ### 🚀 **Performance Optimized**
+
 - Lazy evaluation for memory efficiency
 - Parallel processing support
 - Streaming for massive corpora
 - Caching system for repeated analyses
 
 ### 🔧 **Flexible and Extensible**
+
 - Multiple input formats (text files, CSV, JSON, DataFrames)
 - Easy to add custom metrics
 - Comprehensive API for programmatic access
@@ -104,6 +112,7 @@ export_results(analysis, "results/", format=:csv)
 TextAssociations.jl supports 50+ metrics organized by category:
 
 ### Information-Theoretic Metrics
+
 - **PMI** (Pointwise Mutual Information): $\log \frac{P(x,y)}{P(x)P(y)}$
 - **PMI²**, **PMI³**: Squared and cubed variants
 - **PPMI**: Positive PMI (negative values set to 0)
@@ -111,6 +120,7 @@ TextAssociations.jl supports 50+ metrics organized by category:
 - **LexicalGravity**: Asymmetric association measure
 
 ### Statistical Metrics
+
 - **ChiSquare**: Pearson's χ² test
 - **Tscore**, **Zscore**: Statistical significance tests
 - **PhiCoef**: Phi coefficient (φ)
@@ -118,6 +128,7 @@ TextAssociations.jl supports 50+ metrics organized by category:
 - **YuleQ**, **YuleOmega**: Yule's measures
 
 ### Similarity Coefficients
+
 - **Dice**: $\frac{2a}{2a + b + c}$
 - **LogDice**: Logarithmic Dice (more stable)
 - **JaccardIdx**: Jaccard similarity
@@ -125,6 +136,7 @@ TextAssociations.jl supports 50+ metrics organized by category:
 - **OverlapCoef**: Overlap coefficient
 
 ### Epidemiological Metrics
+
 - **RelRisk**, **LogRelRisk**: Relative risk measures
 - **OddsRatio**, **LogOddsRatio**: Odds ratios
 - **RiskDiff**: Risk difference
@@ -135,32 +147,34 @@ TextAssociations.jl supports 50+ metrics organized by category:
 <details>
 <summary>Click to see all 50+ metrics with formulas</summary>
 
-| Metric | Type | Formula |
-|--------|------|---------|
-| PMI | `PMI` | $\log \frac{P(x,y)}{P(x)P(y)}$ |
-| PMI² | `PMI²` | $(\log \frac{P(x,y)}{P(x)P(y)})^2$ |
-| PMI³ | `PMI³` | $(\log \frac{P(x,y)}{P(x)P(y)})^3$ |
-| PPMI | `PPMI` | $\max(0, \log \frac{P(x,y)}{P(x)P(y)})$ |
-| LLR | `LLR` | $2 \sum_{i,j} O_{ij} \ln \frac{O_{ij}}{E_{ij}}$ |
-| LLR² | `LLR²` | $\sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$ |
-| Dice | `Dice` | $\frac{2a}{2a + b + c}$ |
-| LogDice | `LogDice` | $14 + \log_2(\frac{2a}{2a + b + c})$ |
-| Jaccard | `JaccardIdx` | $\frac{a}{a + b + c}$ |
-| Cosine | `CosineSim` | $\frac{a}{\sqrt{(a + b)(a + c)}}$ |
-| Overlap | `OverlapCoef` | $\frac{a}{\min(a + b, a + c)}$ |
-| Relative Risk | `RelRisk` | $\frac{a/(a+b)}{c/(c+d)}$ |
-| Odds Ratio | `OddsRatio` | $\frac{ad}{bc}$ |
-| Chi-square | `ChiSquare` | $\sum_{i,j}\frac{(f_{ij}-\hat{f}_{ij})^2}{\hat{f}_{ij}}$ |
-| Phi | `PhiCoef` | $\frac{ad - bc}{\sqrt{(a+b)(c+d)(a+c)(b+d)}}$ |
-| Cramér's V | `CramersV` | $\sqrt{\frac{\chi^2}{n \cdot \min(r-1, c-1)}}$ |
-| *...and 35+ more* | | |
+| Metric            | Type          | Formula                                                  |
+| ----------------- | ------------- | -------------------------------------------------------- |
+| PMI               | `PMI`         | $\log \frac{P(x,y)}{P(x)P(y)}$                           |
+| PMI²              | `PMI²`        | $(\log \frac{P(x,y)}{P(x)P(y)})^2$                       |
+| PMI³              | `PMI³`        | $(\log \frac{P(x,y)}{P(x)P(y)})^3$                       |
+| PPMI              | `PPMI`        | $\max(0, \log \frac{P(x,y)}{P(x)P(y)})$                  |
+| LLR               | `LLR`         | $2 \sum_{i,j} O_{ij} \ln \frac{O_{ij}}{E_{ij}}$          |
+| LLR²              | `LLR²`        | $\sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$          |
+| Dice              | `Dice`        | $\frac{2a}{2a + b + c}$                                  |
+| LogDice           | `LogDice`     | $14 + \log_2(\frac{2a}{2a + b + c})$                     |
+| Jaccard           | `JaccardIdx`  | $\frac{a}{a + b + c}$                                    |
+| Cosine            | `CosineSim`   | $\frac{a}{\sqrt{(a + b)(a + c)}}$                        |
+| Overlap           | `OverlapCoef` | $\frac{a}{\min(a + b, a + c)}$                           |
+| Relative Risk     | `RelRisk`     | $\frac{a/(a+b)}{c/(c+d)}$                                |
+| Odds Ratio        | `OddsRatio`   | $\frac{ad}{bc}$                                          |
+| Chi-square        | `ChiSquare`   | $\sum_{i,j}\frac{(f_{ij}-\hat{f}_{ij})^2}{\hat{f}_{ij}}$ |
+| Phi               | `PhiCoef`     | $\frac{ad - bc}{\sqrt{(a+b)(c+d)(a+c)(b+d)}}$            |
+| Cramér's V        | `CramersV`    | $\sqrt{\frac{\chi^2}{n \cdot \min(r-1, c-1)}}$           |
+| _...and 35+ more_ |               |                                                          |
 
 </details>
 
 ## 🎯 Advanced Features
 
 ### Temporal Analysis
+
 Track how word associations change over time:
+
 ```julia
 temporal_analysis = temporal_corpus_analysis(
     corpus, ["pandemic", "vaccine"], :year, PMI, time_bins=5
@@ -168,7 +182,9 @@ temporal_analysis = temporal_corpus_analysis(
 ```
 
 ### Subcorpus Comparison
+
 Compare associations across document groups with statistical tests:
+
 ```julia
 comparison = compare_subcorpora(
     corpus, :category, "innovation", PMI
@@ -178,23 +194,27 @@ tests = comparison.statistical_tests
 ```
 
 ### Collocation Networks
+
 Build and export word association networks:
+
 ```julia
 network = build_collocation_network(
-    corpus, ["climate", "change"], 
+    corpus, ["climate", "change"],
     metric=PMI, depth=2, min_score=3.0
 )
 export_network_to_gephi(network, "nodes.csv", "edges.csv")
 ```
 
 ### Keyword Extraction
+
 ```julia
 keywords = extract_keywords(corpus, method=:tfidf, num_keywords=50)
 ```
 
 ### Concordance (KWIC)
+
 ```julia
-concordance = generate_concordance(corpus, "innovation", context_size=50)
+concordance = concord(corpus, "innovation", context_size=50)
 for line in concordance.lines
     println("...$(line.LeftContext) [$(line.Node)] $(line.RightContext)...")
 end
@@ -203,6 +223,7 @@ end
 ## ⚡ Performance Features
 
 ### Parallel Processing
+
 ```julia
 # Use multiple cores
 using Distributed
@@ -214,6 +235,7 @@ analysis = analyze_multiple_nodes(
 ```
 
 ### Streaming for Large Corpora
+
 ```julia
 # Process files without loading everything into memory
 results = stream_corpus_analysis(
@@ -222,12 +244,14 @@ results = stream_corpus_analysis(
 ```
 
 ### Caching
+
 ```julia
 cache = CachedCorpusAnalysis("cache/")
 result = cached_analyze(cache, corpus, "word", PMI)
 ```
 
 ### Batch Processing
+
 ```julia
 # Process hundreds of node words efficiently
 batch_process_corpus(
@@ -256,9 +280,10 @@ TextAssociations.jl is ideal for:
 ## 💻 Example Workflows
 
 ### Research Paper Analysis
+
 ```julia
 # Load abstracts from CSV
-corpus = load_corpus("papers.csv", 
+corpus = load_corpus("papers.csv",
     text_column=:abstract,
     metadata_columns=[:year, :journal])
 
@@ -275,6 +300,7 @@ comparison = compare_subcorpora(corpus, :journal, "methodology", LogDice)
 ```
 
 ### Literary Text Analysis
+
 ```julia
 # Load novels
 corpus = load_corpus("novels/", preprocess=true)
@@ -292,12 +318,14 @@ export_network_to_gephi(network, "characters.csv", "relations.csv")
 ## 🤝 Contributing
 
 We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for details on:
+
 - Adding new metrics
-- Improving performance  
-- Extending functionality    
+- Improving performance
+- Extending functionality
 - Reporting issues
 
 ### Development Setup
+
 ```julia
 # Clone repository
 git clone https://github.com/atantos/TextAssociations.jl
@@ -313,6 +341,7 @@ using Pkg; Pkg.test()
 ## 🙏 Acknowledgments
 
 TextAssociations.jl builds on established methods from computational linguistics and is inspired by:
+
 - **AntConc** (Anthony, 2022)
 - **SketchEngine** (Kilgarriff et al., 2014)
 - **WordSmith Tools** (Scott, 2020)
@@ -339,16 +368,16 @@ MIT License - see [LICENSE](LICENSE) file for details.
 <details>
 <summary><b>How does this compare to other tools?</b></summary>
 
-| Feature | TextAssociations.jl | AntConc | SketchEngine | WordSmith |
-|---------|-------------------|---------|--------------|-----------|
-| Open Source | ✅ | ✅ | ❌ | ❌ |
-| Metrics | 50+ | ~10 | ~20 | ~15 |
-| Corpus Size | Unlimited* | Limited | Large | Medium |
-| Parallel Processing | ✅ | ❌ | ✅ | ❌ |
-| API Access | ✅ | ❌ | ✅ | ❌ |
-| Programmable | ✅ | ❌ | Limited | ❌ |
+| Feature             | TextAssociations.jl | AntConc | SketchEngine | WordSmith |
+| ------------------- | ------------------- | ------- | ------------ | --------- |
+| Open Source         | ✅                  | ✅      | ❌           | ❌        |
+| Metrics             | 50+                 | ~10     | ~20          | ~15       |
+| Corpus Size         | Unlimited\*         | Limited | Large        | Medium    |
+| Parallel Processing | ✅                  | ❌      | ✅           | ❌        |
+| API Access          | ✅                  | ❌      | ✅           | ❌        |
+| Programmable        | ✅                  | ❌      | Limited      | ❌        |
 
-*With streaming and memory-mapped files
+\*With streaming and memory-mapped files
 
 </details>
 

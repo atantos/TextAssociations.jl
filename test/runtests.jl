@@ -261,7 +261,7 @@ Random.seed!(42)
                 year=[2020, 2021, 2022]
             )
 
-            corpus_from_df = load_corpus_from_dataframe(
+            corpus_from_df = load_corpus_df(
                 df,
                 text_column=:text,
                 metadata_columns=[:author, :year]
@@ -427,7 +427,7 @@ Random.seed!(42)
         end
 
         @testset "Concordance Generation" begin
-            concordance = generate_concordance(
+            concordance = concord(
                 corpus,
                 "innovation",
                 context_size=10,
