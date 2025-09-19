@@ -1,75 +1,259 @@
 # =====================================
 # File: src/metrics/lexical_gravity.jl
-# Lexical Gravity and related metrics
+# Lexical Gravity - Daudaravičius & Marcinkevičienė (2004)
 # =====================================
 
 """
-    eval_lexicalgravity(data::ContingencyTable)
+    eval_lexicalgravity(data::AssociationDataFormat; 
+                       formula::Symbol=:original)
 
-Compute the Lexical Gravity measure for word associations.
+Compute Lexical Gravity measure based on Daudaravičius & Marcinkevičienė (2004).
 
-Lexical Gravity captures the asymmetric nature of word associations by
-considering both forward and backward context windows.
+# Arguments
+- `data`: AssociationDataFormat with co-occurrence data
+- `formula`: Which formula to use:
+  - `:original` - The main formula from the paper: G→(w1,w2) = log(f→×n+/f1) + log(f←×n-/f2)
+  - `:simplified` - Simplified version: G = log₂((f²×span)/(f1×f2))
+  - `:pmi_weighted` - PMI-style weighting: G = f(w1,w2) × log((f×N)/(f1×f2))
 
-# Formula
-G(w1, w2) = log(f(w1,w2) * n(w1) / f(w1)) + log(f(w1,w2) * n'(w2) / f(w2))
+# Original Formula from Paper
+G→(w1,w2) = log(f→(w1,w2)/f(w1) × n+(w1)) + log(f←(w1,w2)/f(w2) × n-(w2))
 
 Where:
-- f(w1,w2) = co-occurrence frequency
-- n(w1) = number of unique words in w1's context
-- f(w1) = total frequency of w1
-- n'(w2) = number of unique words that precede w2
-- f(w2) = total frequency of w2
+- f→(w1,w2) = frequency of w2 following w1 within window
+- f←(w1,w2) = frequency of w1 preceding w2 within window  
+- n+(w1) = number of different word types that follow w1
+- n-(w2) = number of different word types that precede w2
+- f(w1), f(w2) = total frequencies of words
 """
-function eval_lexicalgravity(data::ContingencyTable)
-    # Extract contingency table
+function eval_lexicalgravity(data::AssociationDataFormat; formula::Symbol=:original)
+
     con_tbl = extract_cached_data(data.con_tbl)
     isempty(con_tbl) && return Float64[]
 
-    # Extract the original document
+    if formula == :original
+        return _gravity_original_formula(data, con_tbl)
+    elseif formula == :simplified
+        return _gravity_simplified_formula(data, con_tbl)
+    elseif formula == :pmi_weighted
+        return _gravity_pmi_weighted(data, con_tbl)
+    else
+        throw(ArgumentError("Unknown formula: $formula. Use :original, :simplified, or :pmi_weighted"))
+    end
+end
+
+"""
+The original Daudaravičius & Marcinkevičienė formula.
+This is the main contribution of their paper.
+"""
+function _gravity_original_formula(data::AssociationDataFormat, con_tbl::DataFrame)
+    # Get document and tokens
     input_doc = extract_document(data.input_ref)
+    tokens = TextAnalysis.tokenize(language(input_doc), text(input_doc))
 
-    # Get collocate words as strings
-    collocates = string.(con_tbl.Collocate)
+    # Find all positions of the node word
+    node_positions = findall(==(data.node), tokens)
+    f_node = length(node_positions)
 
-    # Initialize result array
-    n_collocates = length(collocates)
-    gravity_scores = zeros(Float64, n_collocates)
+    # Calculate n+(node): unique word types that appear AFTER the node
+    words_after_node = Set{String}()
+    for pos in node_positions
+        for i in (pos+1):min(pos + data.windowsize, length(tokens))
+            push!(words_after_node, tokens[i])
+        end
+    end
+    n_plus_node = length(words_after_node)
 
-    # Compute for each collocate
-    for (i, collocate) in enumerate(collocates)
-        # f(w1,w2): co-occurrence frequency from contingency table
-        f_w1_w2 = con_tbl.a[i]
+    # Initialize results
+    gravity_scores = zeros(Float64, nrow(con_tbl))
 
-        # Skip if no co-occurrence
-        if f_w1_w2 == 0
-            gravity_scores[i] = -Inf
-            continue
+    for (i, row) in enumerate(eachrow(con_tbl))
+        collocate = string(row.Collocate)
+
+        # Find positions of collocate
+        collocate_positions = findall(==(collocate), tokens)
+        f_collocate = length(collocate_positions)
+
+        # Calculate n-(collocate): unique word types that appear BEFORE the collocate
+        words_before_collocate = Set{String}()
+        for pos in collocate_positions
+            for i in max(pos - data.windowsize, 1):(pos-1)
+                push!(words_before_collocate, tokens[i])
+            end
+        end
+        n_minus_collocate = length(words_before_collocate)
+
+        # Count directional co-occurrences
+        f_forward = 0   # node→collocate (collocate follows node)
+        f_backward = 0  # node←collocate (node precedes collocate)
+
+        # Count node→collocate
+        for node_pos in node_positions
+            right_start = node_pos + 1
+            right_end = min(node_pos + data.windowsize, length(tokens))
+            if right_end >= right_start
+                for pos in right_start:right_end
+                    if tokens[pos] == collocate
+                        f_forward += 1
+                    end
+                end
+            end
         end
 
-        # n(w1): number of unique collocates of the node word
-        n_w1 = nrow(con_tbl)
+        # Count node←collocate (node appears before collocate)
+        for coll_pos in collocate_positions
+            left_start = max(coll_pos - data.windowsize, 1)
+            left_end = coll_pos - 1
+            if left_end >= left_start
+                for pos in left_start:left_end
+                    if tokens[pos] == data.node
+                        f_backward += 1
+                    end
+                end
+            end
+        end
 
-        # f(w1): total frequency of the node word in contexts
-        f_w1 = sum(con_tbl.a)
-
-        # n'(w2): number of unique words that appear before collocate
-        prior_words = find_prior_words(input_doc, collocate, data.windowsize)
-        n_w2 = length(prior_words)
-
-        # f(w2): total frequency of the collocate word
-        f_w2 = count_word_frequency(input_doc, collocate)
-
-        # Avoid division by zero
-        if f_w1 == 0 || f_w2 == 0 || n_w2 == 0
-            gravity_scores[i] = -Inf
-        else
-            # Compute lexical gravity
-            term1 = log(f_w1_w2 * n_w1 / f_w1)
-            term2 = log(f_w1_w2 * n_w2 / f_w2)
+        # Calculate gravity using the original formula
+        if f_forward > 0 && f_backward > 0 && f_node > 0 && f_collocate > 0
+            # G→(w1,w2) = log(f→×n+/f1) + log(f←×n-/f2)
+            term1 = log_safe(f_forward * n_plus_node / f_node)
+            term2 = log_safe(f_backward * n_minus_collocate / f_collocate)
             gravity_scores[i] = term1 + term2
+        else
+            gravity_scores[i] = -Inf
         end
     end
 
     return gravity_scores
 end
+
+"""
+Simplified gravity formula often used in implementations.
+G = log₂((f(w1,w2)² × span) / (f(w1) × f(w2)))
+"""
+function _gravity_simplified_formula(data::AssociationDataFormat, con_tbl::DataFrame)
+    input_doc = extract_document(data.input_ref)
+    tokens = TextAnalysis.tokenize(language(input_doc), text(input_doc))
+
+    f_node = count(==(data.node), tokens)
+    span_size = data.windowsize * 2
+
+    gravity_scores = zeros(Float64, nrow(con_tbl))
+
+    for (i, row) in enumerate(eachrow(con_tbl))
+        collocate = string(row.Collocate)
+        f_cooc = row.a  # co-occurrence frequency from contingency table
+        f_collocate = count(==(collocate), tokens)
+
+        if f_cooc > 0 && f_node > 0 && f_collocate > 0
+            # Simplified: emphasizes co-occurrence frequency squared
+            gravity_scores[i] = 2 * log2_safe(f_cooc) + log2_safe(span_size) -
+                                log2_safe(f_node) - log2_safe(f_collocate)
+        else
+            gravity_scores[i] = -Inf
+        end
+    end
+
+    return gravity_scores
+end
+
+"""
+PMI-weighted gravity (alternative formulation).
+G = f(w1,w2) × PMI(w1,w2)
+"""
+function _gravity_pmi_weighted(data::AssociationDataFormat, con_tbl::DataFrame)
+    input_doc = extract_document(data.input_ref)
+    tokens = TextAnalysis.tokenize(language(input_doc), text(input_doc))
+
+    N = length(tokens)
+    f_node = count(==(data.node), tokens)
+
+    gravity_scores = zeros(Float64, nrow(con_tbl))
+
+    for (i, row) in enumerate(eachrow(con_tbl))
+        collocate = string(row.Collocate)
+        f_cooc = row.a
+        f_collocate = count(==(collocate), tokens)
+
+        if f_cooc > 0 && f_node > 0 && f_collocate > 0
+            # PMI component
+            pmi = log_safe((f_cooc * N) / (f_node * f_collocate))
+            # Weight by frequency
+            gravity_scores[i] = f_cooc * pmi
+        else
+            gravity_scores[i] = -Inf
+        end
+    end
+
+    return gravity_scores
+end
+
+"""
+    lexical_gravity_analysis(data::AssociationDataFormat)
+
+Comprehensive analysis using all gravity formulas for comparison.
+Returns results from all three formulas plus directional analysis.
+"""
+function lexical_gravity_analysis(data::AssociationDataFormat)
+    results = Dict{Symbol,Any}()
+
+    # Calculate all three formulas
+    results[:gravity_original] = eval_lexicalgravity(data, formula=:original)
+    results[:gravity_simplified] = eval_lexicalgravity(data, formula=:simplified)
+    results[:gravity_pmi_weighted] = eval_lexicalgravity(data, formula=:pmi_weighted)
+
+    # Add directional analysis for the original formula
+    results[:directional] = _gravity_directional_analysis(data)
+
+    return (; results...)
+end
+
+"""
+Analyze directional preferences (left vs right) for collocations.
+"""
+function _gravity_directional_analysis(data::AssociationDataFormat)
+    con_tbl = extract_cached_data(data.con_tbl)
+    isempty(con_tbl) && return (left=Float64[], right=Float64[], asymmetry=Float64[])
+
+    input_doc = extract_document(data.input_ref)
+    tokens = TextAnalysis.tokenize(language(input_doc), text(input_doc))
+
+    node_positions = findall(==(data.node), tokens)
+
+    n = nrow(con_tbl)
+    left_scores = zeros(Float64, n)
+    right_scores = zeros(Float64, n)
+    asymmetry = zeros(Float64, n)
+
+    for (i, row) in enumerate(eachrow(con_tbl))
+        collocate = string(row.Collocate)
+
+        left_count = 0
+        right_count = 0
+
+        for pos in node_positions
+            # Count left occurrences
+            left_window = max(1, pos - data.windowsize):(pos-1)
+            left_count += count(==(collocate), tokens[left_window])
+
+            # Count right occurrences  
+            right_window = (pos+1):min(length(tokens), pos + data.windowsize)
+            right_count += count(==(collocate), tokens[right_window])
+        end
+
+        total = left_count + right_count
+        if total > 0
+            left_scores[i] = left_count / total
+            right_scores[i] = right_count / total
+            # Asymmetry: positive = right preference, negative = left preference
+            asymmetry[i] = (right_count - left_count) / total
+        else
+            left_scores[i] = right_scores[i] = asymmetry[i] = 0.0
+        end
+    end
+
+    return (left=left_scores, right=right_scores, asymmetry=asymmetry)
+end
+
+# Convenience alias
+const lexicalgravity = eval_lexicalgravity

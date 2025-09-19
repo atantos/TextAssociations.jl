@@ -5,10 +5,10 @@
 
 # log2((a / N) / ((k / N) * (m / N)))
 # Pointwise Mutual Information
-function eval_pmi(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
-    log_safe(a) .- log_safe(N) .- (log_safe(k) .+ log_safe(m) .- log_safe(N))
+function eval_pmi(data::AssociationDataFormat)
+    @extract_values data a N k m
+    # PMI = log( (a/N) / ((k/N)*(m/N)) ) = log(a) - log(N) - (log(k) + log(m) - log(N))
+    log_safe.(a) .- log_safe.(N) .- (log_safe.(k) .+ log_safe.(m) .- log_safe.(N))
 end
 
 const pmi = eval_pmi
@@ -16,9 +16,8 @@ const pmi = eval_pmi
 
 # log2((a^2 / N) / ((k / N) * (m / N)))
 # Pointwise Mutual Information²
-function eval_pmi²(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
+function eval_pmi²(data::AssociationDataFormat)
+    @extract_values data a N k m
     2 .* log_safe.(a) .- log_safe.(N) .- (log_safe.(k) .+ log_safe.(m) .- log_safe.(N))
 end
 
@@ -27,17 +26,15 @@ const pmi² = eval_pmi²
 
 # log2((a^3 / N) / ((k / N) * (m / N)))
 # Pointwise Mutual Information³
-function eval_pmi³(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
+function eval_pmi³(data::AssociationDataFormat)
+    @extract_values data a N k m
     3 .* log_safe.(a) .- log_safe.(N) .- (log_safe.(k) .+ log_safe.(m) .- log_safe.(N))
 end
 
 const pmi³ = eval_pmi³
 
-function eval_ppmi(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
+function eval_ppmi(data::AssociationDataFormat)
+    @extract_values data a N k m
     max.(0, log_safe.(a) .- log_safe.(N) .- (log_safe.(k) .+ log_safe.(m) .- log_safe.(N)))
 end
 
@@ -45,10 +42,8 @@ const ppmi = eval_ppmi
 
 # Classic LLR: 2 * (a * log(a / E11) + b * log(b / E12) + c * log(c / E21) + d * log(d / E22))
 # LLR=2×[(alog(a)+blog(b)+clog(c)+dlog(d))−(alog(E11)+blog(E12​)+clog(E21)+dlog(E22))]
-function eval_llr(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
-    a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
-    E₁₁, E₁₂, E₂₁, E₂₂ = con_tbl.E₁₁, con_tbl.E₁₂, con_tbl.E₂₁, con_tbl.E₂₂
+function eval_llr(data::AssociationDataFormat)
+    @extract_values data a b c d E₁₁ E₁₂ E₂₁ E₂₂
 
     # Compute the terms
     observed_term = a .* log_safe.(a) .+ b .* log_safe.(b) .+ c .* log_safe.(c) .+ d .* log_safe.(d)
@@ -63,11 +58,12 @@ const llr = eval_llr
 
 # LLR2: 2 * (a * log(a) - (a + b) * log(a + b) + c * log(c) - (c + d) * log(c + d))
 # LLR2=2(a⋅log(a)−(a+b)⋅log(a+b)+c⋅log(c)−(c+d)⋅log(c+d))
-function eval_llr²(data::ContingencyTable)
-    con_tbl = extract_cached_data(data.con_tbl)
+function eval_llr²(data::AssociationDataFormat)
+    # con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components for readability
-    a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
-    E₁₁, E₁₂, E₂₁, E₂₂ = con_tbl.E₁₁, con_tbl.E₁₂, con_tbl.E₂₁, con_tbl.E₂₂
+    # a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
+    # E₁₁, E₁₂, E₂₁, E₂₂ = con_tbl.E₁₁, con_tbl.E₁₂, con_tbl.E₂₁, con_tbl.E₂₂
+    @extract_values data a b c d E₁₁ E₁₂ E₂₁ E₂₂
 
     # Compute the observed and expected terms using log_safe
     observed_term = a .* log_safe.(a) .+ b .* log_safe.(b) .+ c .* log_safe.(c) .+ d .* log_safe.(d)
@@ -80,7 +76,7 @@ end
 const llr² = eval_llr²
 
 # deltapi: \Delta \pi = \frac{a}{a + b} - \frac{c}{c + d}
-function eval_deltapi(data::ContingencyTable)
+function eval_deltapi(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
 
@@ -96,7 +92,7 @@ const δπ = eval_deltapi
 
 
 # minimum sensitivity: \text{Min. Sensitivity} = \min\left(\frac{a}{a + b}, \frac{d}{c + d}\right)
-function eval_minsensitivity(data::ContingencyTable)
+function eval_minsensitivity(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     a, d, m, n = con_tbl.a, con_tbl.d, con_tbl.m, con_tbl.n
@@ -119,7 +115,7 @@ const minsen = eval_minsensitivity
 # a + b  = m, c + d = n, a + c = k, b + d = l
 
 # Dice f Co-occurrence based word association
-function eval_dice(data::ContingencyTable)
+function eval_dice(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     # Extract individual components for readability and performance
@@ -136,7 +132,7 @@ const dice = eval_dice
 
 
 # Log Dice: \text{Log Dice} = 14 + \log_2\left(\frac{2a}{2a + b + c}\right)
-function eval_logdice(data::ContingencyTable)
+function eval_logdice(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     # Extract individual components for readability and performance
@@ -151,7 +147,7 @@ const logdice = eval_logdice
 
 # Relative Risk: \text{Relative Risk} = \frac{\frac{a}{a + b}}{\frac{c}{c + d}}
 #  https://www.ncbi.nlm.nih.gov/books/NBK430824/figure/article-28324.image.f1/
-function eval_relrisk(data::ContingencyTable)
+function eval_relrisk(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
@@ -165,7 +161,7 @@ const rr = eval_relrisk
 
 
 # Log Relative Risk: \text{Log Relative Risk} = \log\left(\frac{\frac{a}{a + b}}{\frac{c}{c + d}}\right)
-function eval_logrelrisk(data::ContingencyTable)
+function eval_logrelrisk(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
@@ -180,7 +176,7 @@ const lrr = eval_logrelrisk
 
 # Risk Difference: \frac{a}{a + b} - \frac{c}{c + d}
 # incidence proportion difference 46.6.2 Incidence proportion difference, https://www.r4epi.com/measures-of-association
-function eval_riskdiff(data::ContingencyTable)
+function eval_riskdiff(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
@@ -194,7 +190,7 @@ const rd = eval_riskdiff
 
 
 # Attributable Risk: \frac{a}{a + b} - \frac{c}{c + d}
-function eval_attrrisk(data::ContingencyTable)
+function eval_attrrisk(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
@@ -208,7 +204,7 @@ const ar = eval_attrrisk
 
 
 # Odds Ratio: \frac{a \cdot d}{b \cdot c}
-function eval_oddsratio(data::ContingencyTable)
+function eval_oddsratio(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
@@ -222,7 +218,7 @@ const or = eval_oddsratio
 
 
 # Log Odds Ratio: \log\left(\frac{a \cdot d}{b \cdot c}\right)
-function eval_logoddsratio(data::ContingencyTable)
+function eval_logoddsratio(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
@@ -236,7 +232,7 @@ const lor = eval_logoddsratio
 
 
 # Jaccard Index (for 2×2): a / (k + m - a) == a / (a + b + c)
-function eval_jaccardidx(data::ContingencyTable)
+function eval_jaccardidx(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, k, m = con_tbl.a, con_tbl.k, con_tbl.m
     a ./ max.(k .+ m .- a, eps())
@@ -247,7 +243,7 @@ const jaccardidx = eval_jaccardidx
 
 # Ochiai Index
 # "Ochiai", a / sqrt((a + b) * (a + c))
-function eval_ochiaiidx(data::ContingencyTable)
+function eval_ochiaiidx(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, m, k = con_tbl.a, con_tbl.m, con_tbl.k
@@ -261,7 +257,7 @@ const ochiaiidx = eval_ochiaiidx
 
 # Piatetsky Shapiro
 # "Piatetsky Shapiro", \frac{a}{n} - \frac{(a + b)(a + c)}{n^2}
-function eval_piatetskyshapiro(data::ContingencyTable)
+function eval_piatetskyshapiro(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
@@ -275,7 +271,7 @@ const piatetskyshapiro = eval_piatetskyshapiro
 
 # Yule's Omega (ω) Coefficient
 # "Yule's Omega", sqrt((a * d) - (b * c)) / sqrt((a * d) + (b * c))
-function eval_yuleomega(data::ContingencyTable)
+function eval_yuleomega(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
@@ -292,7 +288,7 @@ const yuleomega = eval_yuleomega
 
 # Yule's Q  Coefficient
 # "Yule's Q", (a * d) - (b * c)) / (a * d) + (b * c), \frac{a \cdot d - b \cdot c}{a \cdot d + b \cdot c}
-function eval_yuleq(data::ContingencyTable)
+function eval_yuleq(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # Extract individual components
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
@@ -309,7 +305,7 @@ const yuleq = eval_yuleq
 
 # Phi Coefficient
 # (a * d - b * c) / sqrt((a + b) * (c + d) * (a + c) * (b + d))
-function eval_phicoef(data::ContingencyTable)
+function eval_phicoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
     num = (a .* d) .- (b .* c)
@@ -323,7 +319,7 @@ const φ = eval_phicoef
 
 # Cramers V
 # "Cramers V", sqrt(chi2 / (N * (min(k, l) - 1))), \sqrt{\frac{\phi^2}{\min(1, 1)}} = \sqrt{\phi^2} = \|\phi\| using the standard formula and not the determinant of the contringency table
-function eval_cramersv(data::ContingencyTable)
+function eval_cramersv(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     # Extract relevant variables
@@ -349,7 +345,7 @@ const cramersv = eval_cramersv
 
 
 # Tschuprow's T
-function eval_tschuprowt(data::ContingencyTable)
+function eval_tschuprowt(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     # Extract relevant variables
@@ -375,7 +371,7 @@ const tschuprowt = eval_tschuprowt
 
 # Contingency Coefficient
 # "Contingency Coefficient", sqrt(chi2 / (chi2 + N)), \sqrt{\frac{\chi^2}{\chi^2 + n}}
-function eval_contcoef(data::ContingencyTable)
+function eval_contcoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     # Extract relevant variables
@@ -401,7 +397,7 @@ const contcoef = eval_contcoef
 
 # Cosine Similarity
 # "Cosine Similarity", a / sqrt((a + b) * (a + c)), \frac{a}{\sqrt{(a + b)(a + c)}}
-function eval_cosinesim(data::ContingencyTable)
+function eval_cosinesim(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     # Extract relevant variables
@@ -416,7 +412,7 @@ const cosinesim = eval_cosinesim
 
 # Overlap Coefficient
 # "Overlap Coefficient", a / min(m, k), \frac{a}{\min(a + b, a + c)}
-function eval_overlapcoef(data::ContingencyTable)
+function eval_overlapcoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     # Extract relevant variables
@@ -431,7 +427,7 @@ const overlapcoef = eval_overlapcoef
 
 # Kulczynski Similarity
 # "Kulczynski Similarity", a / ((k + m) / 2), \frac{a}{a + b} + \frac{a}{a + c}
-function eval_kulczynskisim(data::ContingencyTable)
+function eval_kulczynskisim(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
 
     # Extract relevant variables
@@ -444,7 +440,7 @@ end
 const kulczynskisim = eval_kulczynskisim
 
 # Tanimoto Coefficient == Jaccard for binary data: a / (k + m - a)
-function eval_tanimotocoef(data::ContingencyTable)
+function eval_tanimotocoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     con_tbl.a ./ max.(con_tbl.k .+ con_tbl.m .- con_tbl.a, eps())
 end
@@ -454,63 +450,63 @@ const tanimotocoef = eval_tanimotocoef
 # ======================================== from that point on I need to check the implementation (newer chatgpt session with the measures from the screenshots in the metrics folder)
 
 # 1. Joint Probability
-function eval_jointprob(data::ContingencyTable)
+function eval_jointprob(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, N = con_tbl.a, con_tbl.N
     a ./ N
 end
 
 # 2. Conditional Probability
-function eval_condprob(data::ContingencyTable)
+function eval_condprob(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, m = con_tbl.a, con_tbl.m
     a ./ m
 end
 
 # 3. Reverse Conditional Probability
-function eval_reversecondprob(data::ContingencyTable)
+function eval_reversecondprob(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, k = con_tbl.a, con_tbl.k
     a ./ k
 end
 
 # 5. Mutual Dependency
-# function eval_mutualdependency(data::ContingencyTable)
+# function eval_mutualdependency(data::AssociationDataFormat)
 #     con_tbl = extract_cached_data(data.con_tbl)
 #     a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
 #     (a ./ N) .^ 2 ./ ((k ./ N) .* (m ./ N))
 # end
 
 # # 6. Log Frequency Biased MD
-# function eval_logfreqbiasmd(data::ContingencyTable)
+# function eval_logfreqbiasmd(data::AssociationDataFormat)
 #     con_tbl = extract_cached_data(data.con_tbl)
 #     a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
 #     log_safe.((a ./ N) .^ 2 ./ ((k ./ N) .* (m ./ N))) .+ log_safe.(a ./ N)
 # end
 
 # 7. Normalized Expectation
-function eval_normalizedexpectation(data::ContingencyTable)
+function eval_normalizedexpectation(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
     (2 .* (a ./ N)) ./ ((m ./ N) .+ (k ./ N))
 end
 
 # 8. Mutual Expectation
-function eval_mutualexpectation(data::ContingencyTable)
+function eval_mutualexpectation(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
     (2 .* (a ./ N)) .* (a ./ N) ./ ((m ./ N) .+ (k ./ N))
 end
 
 # 9. Salience
-function eval_salience(data::ContingencyTable)
+function eval_salience(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, N, k, m = con_tbl.a, con_tbl.N, con_tbl.k, con_tbl.m
     (a ./ N) .^ 2 ./ ((m ./ N) .* (k ./ N)) .* log_safe.(a ./ N)
 end
 
 # 10. Pearson’s Chi² Test
-function eval_chi2(data::ContingencyTable)
+function eval_chi2(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c, d, N = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d, con_tbl.N
     expected = (a .+ b) .* (a .+ c) ./ max.(N, eps())
@@ -521,7 +517,7 @@ end
 # Requires specialized statistical libraries for exact calculation
 
 # 12. t-Test
-function eval_ttest(data::ContingencyTable)
+function eval_ttest(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, c, N = con_tbl.a, con_tbl.c, con_tbl.N
     numerator = (a ./ N) .- (c ./ N)
@@ -530,7 +526,7 @@ function eval_ttest(data::ContingencyTable)
 end
 
 # 13. z-Score
-function eval_zscore(data::ContingencyTable)
+function eval_zscore(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, c, N = con_tbl.a, con_tbl.c, con_tbl.N
     numerator = (a ./ N) .- (c ./ N)
@@ -539,7 +535,7 @@ function eval_zscore(data::ContingencyTable)
 end
 
 # 14. Poisson Significance Measure
-function eval_poissonsig(data::ContingencyTable)
+function eval_poissonsig(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, m, k, N = con_tbl.a, con_tbl.m, con_tbl.k, con_tbl.N
     f_obs = a
@@ -548,7 +544,7 @@ function eval_poissonsig(data::ContingencyTable)
 end
 
 # # 15. Log Likelihood Ratio
-# function eval_llr(data::ContingencyTable)
+# function eval_llr(data::AssociationDataFormat)
 #     con_tbl = extract_cached_data(data.con_tbl)
 #     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
 #     E₁₁, E₁₂, E₂₁, E₂₂ = con_tbl.E₁₁, con_tbl.E₁₂, con_tbl.E₂₁, con_tbl.E₂₂
@@ -558,77 +554,77 @@ end
 # end
 
 # # 16. Squared Log Likelihood Ratio
-# function eval_llr_squared(data::ContingencyTable)
+# function eval_llr_squared(data::AssociationDataFormat)
 #     eval_llr(data) .^ 2
 # end
 
 # Association Coefficients (Examples Below)
 
 # 17. Russel-Rao
-function eval_russelrao(data::ContingencyTable)
+function eval_russelrao(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
     a ./ (a .+ b .+ c .+ d)
 end
 
 # 18. Sokal-Michener
-function eval_sokalmichener(data::ContingencyTable)
+function eval_sokalmichener(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, d, b, c = con_tbl.a, con_tbl.d, con_tbl.b, con_tbl.c
     (a .+ d) ./ (a .+ b .+ c .+ d)
 end
 
 # 19. Rogers-Tanimoto
-# function eval_rogerstanimoto(data::ContingencyTable)
+# function eval_rogerstanimoto(data::AssociationDataFormat)
 #     con_tbl = extract_cached_data(data.con_tbl)
 #     a, d, b, c = con_tbl.a, con_tbl.d, con_tbl.b, con_tbl.c
 #     (a .+ d) ./ (a .+ 2 .* (b .+ c) .+ d)
 # end
 
 # # 20. Hamann
-# function eval_hamann(data::ContingencyTable)
+# function eval_hamann(data::AssociationDataFormat)
 #     con_tbl = extract_cached_data(data.con_tbl)
 #     a, d, b, c = con_tbl.a, con_tbl.d, con_tbl.b, con_tbl.c
 #     ((a .+ d) .- (b .+ c)) ./ (a .+ b .+ c .+ d)
 # end
 
 # # 22. Jaccard
-# function eval_jaccard(data::ContingencyTable)
+# function eval_jaccard(data::AssociationDataFormat)
 #     con_tbl = extract_cached_data(data.con_tbl)
 #     a, b, c = con_tbl.a, con_tbl.b, con_tbl.c
 #     a ./ (a .+ b .+ c)
 # end
 
 # 21. Third Sokal-Sneath
-function eval_third_sokalsneath(data::ContingencyTable)
+function eval_third_sokalsneath(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     b, c, a, d = con_tbl.b, con_tbl.c, con_tbl.a, con_tbl.d
     (b .+ c) ./ (a .+ d)
 end
 
 # 23. First Kulczynski
-function eval_first_kulczynski(data::ContingencyTable)
+function eval_first_kulczynski(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c = con_tbl.a, con_tbl.b, con_tbl.c
     a ./ (b .+ c)
 end
 
 # 24. Second Sokal-Sneath
-function eval_second_sokalsneath(data::ContingencyTable)
+function eval_second_sokalsneath(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c = con_tbl.a, con_tbl.b, con_tbl.c
     a ./ (a .+ 2 .* (b .+ c))
 end
 
 # 25. Second Kulczynski
-function eval_second_kulczynski(data::ContingencyTable)
+function eval_second_kulczynski(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c = con_tbl.a, con_tbl.b, con_tbl.c
     0.5 .* ((a ./ (a .+ b)) .+ (a ./ (a .+ c)))
 end
 
 # 26. Fourth Sokal-Sneath
-function eval_fourth_sokalsneath(data::ContingencyTable)
+function eval_fourth_sokalsneath(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
     0.25 .* ((a ./ (a .+ b)) .+ (a ./ (a .+ c)) .+ (d ./ (d .+ b)) .+ (d ./ (d .+ c)))
@@ -643,14 +639,14 @@ end
 # This is already implemented earlier as eval_yuleq. No further action needed.
 
 # 30. Driver-Kroeber
-function eval_driverkroeber(data::ContingencyTable)
+function eval_driverkroeber(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
     a ./ sqrt.((a .+ b) .* (a .+ c))
 end
 
 # 31. Fifth Sokal-Sneath
-function eval_fifth_sokalsneath(data::ContingencyTable)
+function eval_fifth_sokalsneath(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
     (a .* d) ./ sqrt.((a .+ b) .* (a .+ c) .* (d .+ b) .* (d .+ c))
@@ -660,42 +656,42 @@ end
 # This has already been implemented as eval_cramersv due to the connection between the two.
 
 # 33. Baroni-Urbani
-function eval_baroniurbani(data::ContingencyTable)
+function eval_baroniurbani(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, d, b, c = con_tbl.a, con_tbl.d, con_tbl.b, con_tbl.c
     (a .+ sqrt.(a .* d)) ./ (a .+ b .+ c .+ sqrt.(a .* d))
 end
 
 # 34. Braun-Blanquet
-function eval_braunblanquet(data::ContingencyTable)
+function eval_braunblanquet(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c = con_tbl.a, con_tbl.b, con_tbl.c
     a ./ max.(a .+ b, a .+ c)
 end
 
 # 35. Simpson
-function eval_simpson(data::ContingencyTable)
+function eval_simpson(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c = con_tbl.a, con_tbl.b, con_tbl.c
     a ./ min.(a .+ b, a .+ c)
 end
 
 # 36. Michael
-function eval_michael(data::ContingencyTable)
+function eval_michael(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c, d = con_tbl.a, con_tbl.b, con_tbl.c, con_tbl.d
     (4 .* (a .* d .- b .* c)) ./ ((a .+ d) .^ 2 .+ (b .+ c) .^ 2)
 end
 
 # 37. Mountford
-function eval_mountford(data::ContingencyTable)
+function eval_mountford(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c = con_tbl.a, con_tbl.b, con_tbl.c
     (2 .* a) ./ (2 .* b .* c .+ a .* b .+ a .* c)
 end
 
 # 38. Fager
-function eval_fager(data::ContingencyTable)
+function eval_fager(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     a, b, c = con_tbl.a, con_tbl.b, con_tbl.c
     (a ./ sqrt.((a .+ b) .* (a .+ c))) .- (0.5 .* max.(b, c))
@@ -801,7 +797,7 @@ end
 
 # Rogers-Tanimoto Coefficient  (traditional)
 # "Rogers-Tanimoto Coefficient", \frac{a}{a + 2(b + c)}
-function eval_rogerstanimotocoef(data::ContingencyTable)
+function eval_rogerstanimotocoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     con_tbl.a ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c))
 end
@@ -811,7 +807,7 @@ const rogerstanimotocoef = eval_rogerstanimotocoef
 
 # Rogers-Tanimoto Coefficient (incorporates the frequency of occurrences where neither of the events occurs, making it more inclusive in certain scenarios)
 # "Rogers-Tanimoto Coefficient", (a + d) / (a + 2 * (b + c) + d)
-function eval_rogerstanimotocoef2(data::ContingencyTable)
+function eval_rogerstanimotocoef2(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c) .+ con_tbl.d)
 end
@@ -820,7 +816,7 @@ const rogerstanimotocoef2 = eval_rogerstanimotocoef2
 
 # Hamann Similarity
 # "Hamann Similarity", \frac{a + d - b - c}{N}
-function eval_hamannsim(data::ContingencyTable)
+function eval_hamannsim(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a .+ con_tbl.d .- con_tbl.b .- con_tbl.c) ./ con_tbl.N
 end
@@ -829,7 +825,7 @@ const hamannsim = eval_hamannsim
 
 # Hamann Similarity 2
 # "Hamann Similarity", \frac{a - d}{a + b + c - d}
-function eval_hamannsim2(data::ContingencyTable)
+function eval_hamannsim2(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a .- con_tbl.d) ./ (con_tbl.a .+ con_tbl.b .+ con_tbl.c .- con_tbl.d)
 end
@@ -838,7 +834,7 @@ const hamannsim2 = eval_hamannsim2
 
 # Goodman-Kruskal Index
 # "Goodman-Kruskal Index", (a * d - b * c) / (a * d + b * c)
-function eval_goodmankruskalidx(data::ContingencyTable)
+function eval_goodmankruskalidx(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a .* con_tbl.d .- con_tbl.b .* con_tbl.c) ./ (con_tbl.a .* con_tbl.d .+ con_tbl.b .* con_tbl.c)
 end
@@ -848,7 +844,7 @@ const goodmankruskalidx = eval_goodmankruskalidx
 
 # Gower's Coefficient (traditional) \frac{a}{a + b + c}
 # "Gower's Coefficient",
-function eval_gowercoef(data::ContingencyTable)
+function eval_gowercoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     con_tbl.a ./ (con_tbl.a .+ con_tbl.b .+ con_tbl.c)
 end
@@ -857,7 +853,7 @@ const gowercoef = eval_gowercoef
 
 # Gower's Coefficient, \frac{a + d}{a + d + 2(b + c)}
 # "Gower's Coefficient", (a + d) / (a + d + 2 * (b + c))
-function eval_gowercoef2(data::ContingencyTable)
+function eval_gowercoef2(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* (con_tbl.b .+ con_tbl.c))
 end
@@ -866,7 +862,7 @@ const gowercoef2 = eval_gowercoef2
 
 # Czekanowski-Dice Coefficient, \frac{2a}{2a + b + c}
 # "Czekanowski-Dice Coefficient", 2 * a / (2 * a + b + c)
-function eval_czekanowskidicecoef(data::ContingencyTable)
+function eval_czekanowskidicecoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     2 * con_tbl.a ./ (2 .* con_tbl.a .+ con_tbl.b .+ con_tbl.c)
 end
@@ -875,7 +871,7 @@ const czekanowskidicecoef = eval_czekanowskidicecoef
 
 # Sorgenfrey Index (traditional) \frac{2a - b - c}{2a + b + c}
 # "Sorgenfrey Index",
-function eval_sorgenfreyidx(data::ContingencyTable)
+function eval_sorgenfreyidx(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # \frac{2a - b - c}{2a + b + c}
     (2 * con_tbl.a .- con_tbl.b .- con_tbl.c) ./ (2 .* con_tbl.a .+ con_tbl.b .+ con_tbl.c)
@@ -885,7 +881,7 @@ const sorgenfreyidx = eval_sorgenfreyidx
 
 # Sorgenfrey Index
 # "Sorgenfrey Index", (a + d) / (2 * (a + d) + b + c)
-function eval_sorgenfreyidx2(data::ContingencyTable)
+function eval_sorgenfreyidx2(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a .+ con_tbl.d) ./ (2 .* (con_tbl.a .+ con_tbl.d) .+ con_tbl.b .+ con_tbl.c)
 end
@@ -894,7 +890,7 @@ const sorgenfreyidx2 = eval_sorgenfreyidx2
 
 # Mountford's Coefficient (traditional) \frac{a}{a + 2b + 2c}
 # "Mountford's Coefficient",
-function eval_mountfordcoef(data::ContingencyTable)
+function eval_mountfordcoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # \frac{a}{a + 2b + 2c}
     con_tbl.a ./ (con_tbl.a .+ 2 .* (con_tbl.b .+ con_tbl.c))
@@ -904,7 +900,7 @@ const mountfordcoef = eval_mountfordcoef
 
 # Mountford's Coefficient 2 (alternative)
 # "Mountford's Coefficient", (a + d) / (a + d + 2 * sqrt((b + c) * (k + m)))
-function eval_mountfordcoef2(data::ContingencyTable)
+function eval_mountfordcoef2(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a .+ con_tbl.d) ./ (con_tbl.a .+ con_tbl.d .+ 2 .* sqrt.((con_tbl.b .+ con_tbl.c) .* (con_tbl.k .+ con_tbl.m)))
 end
@@ -913,7 +909,7 @@ const mountfordcoef2 = eval_mountfordcoef2
 
 # Sokal-Sneath Index, \frac{a}{a + 2b + 2c}
 # "Sokal-Sneath Index", a / (a + 2 * (b + c))
-function eval_sokalsneathidx(data::ContingencyTable)
+function eval_sokalsneathidx(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     con_tbl.a ./ (con_tbl.a .+ 2 * (con_tbl.b .+ con_tbl.c))
 end
@@ -922,7 +918,7 @@ const sokalsneathidx = eval_sokalsneathidx
 
 # Sokal-Michener Coefficient
 # "Sokal-Michener Coefficient", DONE \frac{a + d}{a + b + c + d}
-function eval_sokalmichenercoef(data::ContingencyTable)
+function eval_sokalmichenercoef(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     (con_tbl.a .+ con_tbl.d) ./ con_tbl.N
 end
@@ -932,7 +928,7 @@ const sokalmichenercoef = eval_sokalmichenercoef
 
 # Gravity G Index
 # "Gravity G Index", (a * d) / (b * c)
-function eval_lexicalgravity(data::ContingencyTable)
+function eval_lexicalgravity(data::AssociationDataFormat)
     con_tbl = extract_cached_data(data.con_tbl)
     # log((f(w1,w2)*n(w1)/f(w1))) + log((f(w1,w2)*n'(w2)/f(w2)))
     # calculate the n'(w2) and f(w2) for each word in the context window
@@ -953,16 +949,16 @@ const lexicalgravity = eval_lexicalgravity
 
 
 """
-    evalassoc(metricType::Type{<:AssociationMetric}, cont_tbl::ContingencyTable)
+    evalassoc(metricType::Type{<:AssociationMetric}, cont_tbl::AssociationDataFormat)
 
 Evaluate an association metric based on the provided metric type and a contingency table. This function dynamically dispatches the calculation to the appropriate function determined by `metricType`.
 
 # Arguments
 - `metrics::Array{<:AssociationMetric}`: An array of association metric types to evaluate.
-- `data::ContingencyTable`: The contingency table data on which to evaluate the metrics. To create one, use the `ContingencyTable` constructor.
+- `data::AssociationDataFormat`: The contingency table data on which to evaluate the metrics. To create one, use the `AssociationDataFormat` constructor.
 
 # Returns
-- A Vector of numerical values where each value represents the association metric score of the node word picked when creating the ContingencyTable with each of the co-occurring words in the window length picked when creating the ContingencyTable.
+- A Vector of numerical values where each value represents the association metric score of the node word picked when creating the AssociationDataFormat with each of the co-occurring words in the window length picked when creating the AssociationDataFormat.
 
 # Usage
 
@@ -989,11 +985,11 @@ result = evalassoc(Dice, cont_tbl)
 
 For detailed mathematical definitions and discussion on each metric, refer to our documentation site.
 """
-function evalassoc(metricType::Type{<:AssociationMetric}, input::Union{ContingencyTable,AbstractString}; node::AbstractString="", windowsize::Int=0, minfreq::Int=5)
+function evalassoc(metricType::Type{<:AssociationMetric}, input::Union{AssociationDataFormat,AbstractString}; node::AbstractString="", windowsize::Int=0, minfreq::Int=5)
 
-    # Convert raw input to ContingencyTable if necessary
+    # Convert raw input to AssociationDataFormat if necessary
     if input isa AbstractString
-        input = ContingencyTable(input, node, windowsize, minfreq)
+        input = AssociationDataFormat(input, node, windowsize, minfreq)
     end
 
     func_name = Symbol("eval_", lowercase(string(metricType)))  # Construct function name
@@ -1002,13 +998,13 @@ function evalassoc(metricType::Type{<:AssociationMetric}, input::Union{Contingen
 end
 
 """
-    evalassoc(metrics::Array{<:AssociationMetric}, cont_tbl::ContingencyTable)
+    evalassoc(metrics::Array{<:AssociationMetric}, cont_tbl::AssociationDataFormat)
 
 Evaluate an array of association metrics on the given contingency table.
 
 # Arguments
 - `metrics::Array{<:AssociationMetric}`: An array of association metric types to evaluate.
-- `data::ContingencyTable`: The contingency table data on which to evaluate the metrics.
+- `data::AssociationDataFormat`: The contingency table data on which to evaluate the metrics.
 
 # Returns
 - A DataFrame where each column represents an evaluation result for a corresponding metric.
@@ -1038,16 +1034,16 @@ n×2 DataFrame
    4 | 0.7      0.6
 ```
 """
-function evalassoc(metrics::Vector{DataType}, input::Union{ContingencyTable,AbstractString};
+function evalassoc(metrics::Vector{DataType}, input::Union{AssociationDataFormat,AbstractString};
     node::AbstractString="", windowsize::Int=0, minfreq::Int=5)
     # Validate that all elements are subtypes of AssociationMetric
     if !all(metric -> metric <: AssociationMetric, metrics)
         throw(ArgumentError("All metrics must be subtypes of AssociationMetric. Found: $metrics"))
     end
 
-    # Convert raw input to ContingencyTable if necessary
+    # Convert raw input to AssociationDataFormat if necessary
     if input isa AbstractString
-        input = ContingencyTable(input, node, windowsize, minfreq)
+        input = AssociationDataFormat(input, node, windowsize, minfreq)
     end
 
     results_df = DataFrame()
@@ -1070,7 +1066,7 @@ for metric in ALL_METRICS
 
         # Define the unified API function
         $(Symbol("eval_", lowercase(string(metric))))(
-            input::Union{ContingencyTable,AbstractString},
+            input::Union{AssociationDataFormat,AbstractString},
             node::AbstractString="",
             windowsize::Int=0,
             minfreq::Int=5
@@ -1156,7 +1152,7 @@ function generate_docstring(metric::Symbol)
     $(template.description)
 
     # Arguments
-    - `data::ContingencyTable`: The contingency table to evaluate.
+    - `data::AssociationDataFormat`: The contingency table to evaluate.
 
     # Returns
     - `Array`: An array of $(string(metric)) scores.

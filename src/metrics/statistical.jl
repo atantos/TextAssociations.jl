@@ -4,19 +4,19 @@
 # =====================================
 
 # Delta Pi
-function eval_deltapi(data::ContingencyTable)
+function eval_deltapi(data::AssociationDataFormat)
     @extract_values data a c m n
     (a ./ max.(m, eps())) .- (c ./ max.(n, eps()))
 end
 
 # Minimum Sensitivity
-function eval_minsens(data::ContingencyTable)
+function eval_minsens(data::AssociationDataFormat)
     @extract_values data a d m n
     min.(a ./ max.(m, eps()), d ./ max.(n, eps()))
 end
 
 # Chi-square
-function eval_chisquare(data::ContingencyTable)
+function eval_chisquare(data::AssociationDataFormat)
     @extract_values data a b c d E₁₁ E₁₂ E₂₁ E₂₂
 
     E₁₁ = max.(E₁₁, eps())
@@ -29,14 +29,14 @@ function eval_chisquare(data::ContingencyTable)
 end
 
 # T-score
-function eval_tscore(data::ContingencyTable)
+function eval_tscore(data::AssociationDataFormat)
     @extract_values data a m k N
     expected = (m .* k) ./ N
     (a .- expected) ./ sqrt.(max.(a, eps()))
 end
 
 # Z-score
-function eval_zscore(data::ContingencyTable)
+function eval_zscore(data::AssociationDataFormat)
     @extract_values data a m k N
     expected = (m .* k) ./ N
     variance = expected .* (1 .- m ./ N) .* (1 .- k ./ N)
@@ -44,7 +44,7 @@ function eval_zscore(data::ContingencyTable)
 end
 
 # Phi Coefficient
-function eval_phicoef(data::ContingencyTable)
+function eval_phicoef(data::AssociationDataFormat)
     @extract_values data a b c d
     num = (a .* d) .- (b .* c)
     denom = sqrt.((a .+ b) .* (c .+ d) .* (a .+ c) .* (b .+ d) .+ eps())
@@ -52,7 +52,7 @@ function eval_phicoef(data::ContingencyTable)
 end
 
 # Cramér's V
-function eval_cramersv(data::ContingencyTable)
+function eval_cramersv(data::AssociationDataFormat)
     chi2 = eval_chisquare(data)
     con_tbl = extract_cached_data(data.con_tbl)
     N = con_tbl.N[1]  # N is constant for all rows
@@ -60,7 +60,7 @@ function eval_cramersv(data::ContingencyTable)
 end
 
 # Tschuprow's T
-function eval_tschuprowt(data::ContingencyTable)
+function eval_tschuprowt(data::AssociationDataFormat)
     chi2 = eval_chisquare(data)
     con_tbl = extract_cached_data(data.con_tbl)
     N = con_tbl.N[1]
@@ -68,7 +68,7 @@ function eval_tschuprowt(data::ContingencyTable)
 end
 
 # Contingency Coefficient
-function eval_contcoef(data::ContingencyTable)
+function eval_contcoef(data::AssociationDataFormat)
     chi2 = eval_chisquare(data)
     con_tbl = extract_cached_data(data.con_tbl)
     N = con_tbl.N[1]
@@ -76,13 +76,13 @@ function eval_contcoef(data::ContingencyTable)
 end
 
 # Piatetsky-Shapiro
-function eval_piatetskyshapiro(data::ContingencyTable)
+function eval_piatetskyshapiro(data::AssociationDataFormat)
     @extract_values data a N k m
     (a ./ N) .- ((k .* m) ./ (N .* N))
 end
 
 # Yule's Omega
-function eval_yuleomega(data::ContingencyTable)
+function eval_yuleomega(data::AssociationDataFormat)
     @extract_values data a b c d
     num = sqrt.(max.(a .* d, 0)) .- sqrt.(max.(b .* c, 0))
     denom = sqrt.(a .* d) .+ sqrt.(b .* c)
@@ -90,7 +90,7 @@ function eval_yuleomega(data::ContingencyTable)
 end
 
 # Yule's Q
-function eval_yuleq(data::ContingencyTable)
+function eval_yuleq(data::AssociationDataFormat)
     @extract_values data a b c d
     num = (a .* d) .- (b .* c)
     denom = (a .* d) .+ (b .* c)
