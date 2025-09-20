@@ -12,23 +12,28 @@ using SparseArrays: SparseMatrixCSC
 using Chain
 using ProgressMeter
 
-# Include source files in logical order
+
+# === Types & core ===
 include("types.jl")
+
+# === Utils ===
 include("utils/io.jl")
 include("utils/text_processing.jl")
 include("utils/statistical.jl")
 include("utils/text_analysis.jl")
+
+# === Core data structures ===
 include("core/contingency_table.jl")
 include("core/corpus_analysis.jl")
 include("core/advanced_corpus.jl")
-include("metrics/_iface.jl")
-include("metrics/base.jl")
-include("metrics/information_theoretic.jl")
-include("metrics/statistical.jl")
-include("metrics/similarity.jl")
-include("metrics/epidemiological.jl")
-include("metrics/lexical_gravity.jl")
+
+# === Metrics (iface first, then the umbrella) ===
+include("metrics/_iface.jl")          # abstract API & fallbacks
+include("metrics/metrics.jl")         # umbrella that pulls all metric impls
+
+# === Public API last ===
 include("api.jl")
+
 
 # Exports
 export

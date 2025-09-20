@@ -77,8 +77,9 @@ const llr² = eval_llr²
 
 # deltapi: \Delta \pi = \frac{a}{a + b} - \frac{c}{c + d}
 function eval_deltapi(data::AssociationDataFormat)
-    con_tbl = extract_cached_data(data.con_tbl)
-    a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
+    # con_tbl = extract_cached_data(data.con_tbl)
+    # a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
+    @extract_values data a c m n
 
     # Avoid division by zero by ensuring denominators are never zero
     denom1 = m .+ eps()
@@ -93,9 +94,9 @@ const δπ = eval_deltapi
 
 # minimum sensitivity: \text{Min. Sensitivity} = \min\left(\frac{a}{a + b}, \frac{d}{c + d}\right)
 function eval_minsensitivity(data::AssociationDataFormat)
-    con_tbl = extract_cached_data(data.con_tbl)
-
-    a, d, m, n = con_tbl.a, con_tbl.d, con_tbl.m, con_tbl.n
+    # con_tbl = extract_cached_data(data.con_tbl)
+    # a, d, m, n = con_tbl.a, con_tbl.d, con_tbl.m, con_tbl.n
+    @extract_values data a d m n
 
     # Avoid division by zero by ensuring denominators are never zero
     denom1 = m .+ eps()
@@ -116,10 +117,10 @@ const minsen = eval_minsensitivity
 
 # Dice f Co-occurrence based word association
 function eval_dice(data::AssociationDataFormat)
-    con_tbl = extract_cached_data(data.con_tbl)
-
     # Extract individual components for readability and performance
-    a, m, k = con_tbl.a, con_tbl.m, con_tbl.k
+    # con_tbl = extract_cached_data(data.con_tbl)
+    # a, m, k = con_tbl.a, con_tbl.m, con_tbl.k
+    @extract_values data a m k
 
     # Avoid division by zero by ensuring the denominator is never zero
     denom = m .+ k .+ eps()
@@ -133,10 +134,9 @@ const dice = eval_dice
 
 # Log Dice: \text{Log Dice} = 14 + \log_2\left(\frac{2a}{2a + b + c}\right)
 function eval_logdice(data::AssociationDataFormat)
-    con_tbl = extract_cached_data(data.con_tbl)
-
-    # Extract individual components for readability and performance
-    a, m, k = con_tbl.a, con_tbl.m, con_tbl.k
+    # con_tbl = extract_cached_data(data.con_tbl)
+    # a, m, k = con_tbl.a, con_tbl.m, con_tbl.k
+    @extract_values data a m k
 
     # Compute Log Dice using logarithmic properties
     14 .+ log2_safe.(2 .* a) .- log2_safe.(m .+ k)
@@ -148,9 +148,9 @@ const logdice = eval_logdice
 # Relative Risk: \text{Relative Risk} = \frac{\frac{a}{a + b}}{\frac{c}{c + d}}
 #  https://www.ncbi.nlm.nih.gov/books/NBK430824/figure/article-28324.image.f1/
 function eval_relrisk(data::AssociationDataFormat)
-    con_tbl = extract_cached_data(data.con_tbl)
-    # Extract individual components
-    a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
+    # con_tbl = extract_cached_data(data.con_tbl)
+    # a, c, m, n = con_tbl.a, con_tbl.c, con_tbl.m, con_tbl.n
+    @extract_values data a c m n
 
     # Avoid division by zero
     max.((a .* n) ./ (c .* m), eps())  # Ensure no division leads to invalid values
