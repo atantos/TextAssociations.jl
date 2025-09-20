@@ -11,6 +11,7 @@ using TextAnalysis
 using SparseArrays: SparseMatrixCSC
 using Chain
 using ProgressMeter
+using Unicode
 
 
 # === Types & core ===

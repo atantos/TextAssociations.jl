@@ -29,19 +29,22 @@ struct ContingencyTable{T} <: AssociationDataFormat
         node::AbstractString,
         windowsize::Int,
         minfreq::Int64=5;
-        auto_prep::Bool=true)
+        auto_prep::Bool=true,
+        strip_accents::Bool=true) # for stripping accent (e.g., Greek tonos) for downstream analysis
+
         windowsize > 0 || throw(ArgumentError("Window size must be positive"))
         minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
         !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
 
-        prepared_string = auto_prep ? prepstring(inputstring) : StringDocument(inputstring)
+        prepared_string = auto_prep ? prepstring(inputstring; strip_accents=strip_accents) : StringDocument(inputstring)
         input_ref = LazyInput(prepared_string)
 
         f = () -> conttbl(prepared_string, node, windowsize, minfreq)
-        con_tbl = LazyProcess(f)  # R defaults to DataFrame via LazyProcess ctor
+        con_tbl = LazyProcess(f)
 
         return new{typeof(f)}(con_tbl, node, windowsize, minfreq, input_ref)
     end
+
 
     # NEW: Build from an existing LazyProcess that yields a DataFrame (keeps laziness)
     function ContingencyTable(con_tbl::LazyProcess{T,DataFrame},

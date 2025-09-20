@@ -61,20 +61,23 @@ struct CorpusContingencyTable <: AssociationDataFormat
     function CorpusContingencyTable(corpus::Corpus,
         node::AbstractString,
         windowsize::Int,
-        minfreq::Int64=5)
+        minfreq::Int64=5;
+        strip_accents::Bool=false)  # <-- NEW
 
         # Create contingency tables for each document
         tables = ContingencyTable[]
         @showprogress desc = "Processing documents..." for doc in corpus.documents
             try
-                ct = ContingencyTable(text(doc), node, windowsize, 1)  # Use minfreq=1 per doc
+                # Always go through ContingencyTable’s string path so we can apply the toggle
+                ct = ContingencyTable(text(doc), node, windowsize, 1;
+                    auto_prep=true, strip_accents=strip_accents)
                 push!(tables, ct)
             catch e
                 @warn "Skipping document due to error: $e"
             end
         end
 
-        # Define lazy aggregation
+        # Lazy aggregation as before
         f = () -> aggregate_contingency_tables(tables, minfreq)
         aggregated = LazyProcess(f)
 
@@ -467,7 +470,11 @@ end
 Get comprehensive statistics about the corpus.
 """
 function corpus_statistics(corpus::Corpus;
-    include_token_distribution::Bool=true)
+    include_token_distribution::Bool=true,
+    # NEW: control normalization & accent stripping
+    unicode_form::Symbol=:NFC,
+    strip_accents::Bool=true)
+
     total_tokens = 0
     unique_tokens_set = Set{String}()
     doc_lengths = Int[]
@@ -475,12 +482,26 @@ function corpus_statistics(corpus::Corpus;
 
     for doc in corpus.documents
         doc_tokens = tokens(doc)
-        total_tokens += length(doc_tokens)
-        union!(unique_tokens_set, doc_tokens)
-        push!(doc_lengths, length(doc_tokens))
+
+        # --- NEW: normalize (and optionally strip accents) per token ---
+        toks = if strip_accents || unicode_form != :NFC
+            [
+                begin
+                    s = Unicode.normalize(t, unicode_form)
+                    strip_accents ? strip_diacritics(s; target_form=unicode_form) : s
+                end for t in doc_tokens
+            ]
+        else
+            doc_tokens
+        end
+        # ---------------------------------------------------------------
+
+        total_tokens += length(toks)
+        union!(unique_tokens_set, toks)
+        push!(doc_lengths, length(toks))
 
         # Count token frequencies
-        for token in doc_tokens
+        for token in toks
             token_frequencies[token] = get(token_frequencies, token, 0) + 1
         end
     end
@@ -495,14 +516,13 @@ function corpus_statistics(corpus::Corpus;
     sorted_freqs = sort(collect(values(token_frequencies)), rev=true)
     cumsum_freqs = cumsum(sorted_freqs)
 
-    # Find how many words cover 25%, 50%, 75%, and 100% of corpus
+    # Find how many words cover 25%, 50%, 75%, 90%, 95%, 99% of corpus
     twenty_five_percent_coverage = findfirst(x -> x >= total_tokens * 0.25, cumsum_freqs)
     fifty_percent_coverage = findfirst(x -> x >= total_tokens * 0.5, cumsum_freqs)
     seventy_five_percent_coverage = findfirst(x -> x >= total_tokens * 0.75, cumsum_freqs)
     ninety_percent_coverage = findfirst(x -> x >= total_tokens * 0.9, cumsum_freqs)
     ninety_five_percent_coverage = findfirst(x -> x >= total_tokens * 0.95, cumsum_freqs)
     ninety_nine_percent_coverage = findfirst(x -> x >= total_tokens * 0.99, cumsum_freqs)
-    # 100% coverage is simply the vocabulary size
 
     stats = Dict{Symbol,Any}(
         # Document statistics
@@ -513,14 +533,14 @@ function corpus_statistics(corpus::Corpus;
         :max_doc_length => maximum(doc_lengths),
         :std_doc_length => std(doc_lengths),
 
-        # Token statistics
+        # Token statistics (now reflect normalized/stripped tokens)
         :total_tokens => total_tokens,
-        :vocabulary_size => length(corpus.vocabulary),  # Unique types
-        :unique_tokens => length(unique_tokens_set),    # Should be same as vocabulary_size
+        :vocabulary_size => length(unique_tokens_set),  # ← UPDATED
+        :unique_tokens => length(unique_tokens_set),
 
         # Lexical diversity metrics
         :type_token_ratio => type_token_ratio,
-        :standardized_ttr => type_token_ratio * sqrt(total_tokens),  # Standardized TTR
+        :standardized_ttr => type_token_ratio * sqrt(total_tokens),
         :hapax_legomena => hapax_count,
         :hapax_ratio => hapax_count / length(unique_tokens_set),
 
@@ -542,7 +562,6 @@ function corpus_statistics(corpus::Corpus;
         :coverage_ratio_99 => ninety_nine_percent_coverage / length(unique_tokens_set)
     )
 
-    # Add token distribution statistics if requested
     if include_token_distribution
         freq_values = collect(values(token_frequencies))
         stats[:mean_token_frequency] = mean(freq_values)
@@ -551,19 +570,17 @@ function corpus_statistics(corpus::Corpus;
         stats[:min_token_frequency] = minimum(freq_values)
 
         # Zipf's law coefficient (rough estimate)
-        # log(rank) vs log(frequency) should be linear
         top_n = min(1000, length(freq_values))
         top_freqs = sorted_freqs[1:top_n]
         ranks = 1:top_n
         if top_n > 10
             log_ranks = log.(ranks)
             log_freqs = log.(top_freqs)
-            # Simple linear regression for Zipf coefficient
             mean_x = mean(log_ranks)
             mean_y = mean(log_freqs)
             zipf_slope = sum((log_ranks .- mean_x) .* (log_freqs .- mean_y)) /
                          sum((log_ranks .- mean_x) .^ 2)
-            stats[:zipf_coefficient] = abs(zipf_slope)  # Should be close to -1 for natural language
+            stats[:zipf_coefficient] = abs(zipf_slope)
         end
     end
 

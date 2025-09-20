@@ -619,9 +619,10 @@ function evalassoc(::Type{T},
     minfreq::Int=5;
     scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
+    strip_accents::Bool=false,
     kwargs...) where {T<:AssociationMetric}
     ct = ContingencyTable(inputstring, node, windowsize, minfreq)
-    return evalassoc(T, ct; scores_only=scores_only, tokens=tokens, kwargs...)
+    return evalassoc(T, ct; scores_only=scores_only, tokens=tokens, strip_accents=strip_accents, kwargs...)
 end
 
 """
