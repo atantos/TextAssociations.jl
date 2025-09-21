@@ -111,15 +111,54 @@ Load a corpus from various sources.
 - `text_column`: Column name for text (for CSV/JSON)
 - `metadata_columns`: Columns to include as metadata
 - `preprocess`: Apply preprocessing (default: true)
+- `preprocess_options`: Dict or NamedTuple of preprocessing options
 - `min_doc_length`: Minimum document length in tokens (default: 10)
 - `max_doc_length`: Maximum document length in tokens (default: nothing)
+
+# Preprocessing Options
+Pass preprocessing options as a Dict or NamedTuple:
+```julia
+load_corpus("path/", preprocess_options=(strip_accents=true, strip_case=false))
+# or
+load_corpus("path/", preprocess_options=Dict(:strip_accents => true))
+```
+
+Available options (see prepstring for details):
+- strip_punctuation (default: true)
+- punctuation_to_space (default: true) 
+- normalize_whitespace (default: true)
+- strip_case (default: true)
+- strip_accents (default: false)
+- unicode_form (default: :NFC)
+- use_prepare (default: false)
 """
 function load_corpus(path::AbstractString;
     text_column::Symbol=:text,
     metadata_columns::Vector{Symbol}=Symbol[],
     preprocess::Bool=true,
+    preprocess_options::Union{Dict,NamedTuple,Nothing}=nothing,
     min_doc_length::Int=10,
     max_doc_length::Union{Nothing,Int}=nothing)
+
+    # Set up default preprocessing options
+    default_prep_opts = (
+        strip_punctuation=true,
+        punctuation_to_space=true,
+        normalize_whitespace=true,
+        strip_case=true,
+        strip_accents=false,
+        unicode_form=:NFC,
+        use_prepare=false
+    )
+
+    # Merge user options with defaults
+    prep_opts = if preprocess_options === nothing
+        default_prep_opts
+    elseif isa(preprocess_options, Dict)
+        merge(default_prep_opts, NamedTuple(preprocess_options))
+    else
+        merge(default_prep_opts, preprocess_options)
+    end
 
     documents = StringDocument{String}[]
     metadata = Dict{String,Any}()
@@ -129,15 +168,20 @@ function load_corpus(path::AbstractString;
         files = filter(f -> endswith(f, ".txt"), readdir(path, join=true))
         @showprogress desc = "Loading files..." for file in files
             content = read_text_smart(file)
-            # println(content)
-            doc = preprocess ? prepstring(content) : StringDocument(content)
-            # println(doc.text)
+
+            # Apply preprocessing with options
+            if preprocess
+                doc = prepstring(content; prep_opts...)
+                typed_doc = StringDocument{String}(text(doc))
+            else
+                typed_doc = StringDocument{String}(content)
+            end
 
             # Check document length
-            doc_tokens = tokens(doc)
+            doc_tokens = tokens(typed_doc)
             if length(doc_tokens) >= min_doc_length &&
                (max_doc_length === nothing || length(doc_tokens) <= max_doc_length)
-                push!(documents, doc)
+                push!(documents, typed_doc)
                 metadata[basename(file)] = Dict(:source => file)
             end
         end
@@ -148,13 +192,20 @@ function load_corpus(path::AbstractString;
 
         @showprogress desc = "Processing CSV rows..." for row in eachrow(df)
             text_content = string(row[text_column])
-            doc = preprocess ? prepstring(text_content) : StringDocument(text_content)
+
+            # Apply preprocessing with options
+            if preprocess
+                doc = prepstring(text_content; prep_opts...)
+                typed_doc = StringDocument{String}(text(doc))
+            else
+                typed_doc = StringDocument{String}(text_content)
+            end
 
             # Check document length
-            doc_tokens = tokens(doc)
+            doc_tokens = tokens(typed_doc)
             if length(doc_tokens) >= min_doc_length &&
                (max_doc_length === nothing || length(doc_tokens) <= max_doc_length)
-                push!(documents, doc)
+                push!(documents, typed_doc)
 
                 # Store metadata
                 row_metadata = Dict{Symbol,Any}()
@@ -175,13 +226,19 @@ function load_corpus(path::AbstractString;
             @showprogress desc = "Processing JSON entries..." for (i, entry) in enumerate(json_data)
                 text_content = string(get(entry, string(text_column), ""))
                 if !isempty(text_content)
-                    doc = preprocess ? prepstring(text_content) : StringDocument(text_content)
+                    # Apply preprocessing with options
+                    if preprocess
+                        doc = prepstring(text_content; prep_opts...)
+                        typed_doc = StringDocument{String}(text(doc))
+                    else
+                        typed_doc = StringDocument{String}(text_content)
+                    end
 
                     # Check document length
-                    doc_tokens = tokens(doc)
+                    doc_tokens = tokens(typed_doc)
                     if length(doc_tokens) >= min_doc_length &&
                        (max_doc_length === nothing || length(doc_tokens) <= max_doc_length)
-                        push!(documents, doc)
+                        push!(documents, typed_doc)
                         metadata["doc_$(length(documents))"] = entry
                     end
                 end
@@ -192,26 +249,80 @@ function load_corpus(path::AbstractString;
     end
 
     println("Loaded $(length(documents)) documents")
-    return Corpus(documents, metadata=metadata)
+
+    # Store preprocessing options in corpus metadata for reproducibility
+    corpus = Corpus(documents, metadata=metadata)
+
+    # You might want to store prep options in the corpus somehow
+    # For example, add to the metadata dict:
+    corpus.metadata["_preprocessing_options"] = Dict(pairs(prep_opts))
+
+    return corpus
 end
 
 """
     load_corpus_df(df::DataFrame; kwargs...) -> Corpus
 
 Load corpus directly from a DataFrame.
+
+# Arguments  
+- `df`: DataFrame containing documents
+- `text_column`: Column containing text (default: :text)
+- `metadata_columns`: Columns to preserve as metadata
+- `preprocess`: Whether to preprocess (default: true)
+- `preprocess_options`: Dict or NamedTuple of preprocessing options
+
+# Example
+```julia
+corpus = load_corpus_df(
+    df,
+    text_column=:content,
+    metadata_columns=[:author, :date],
+    preprocess_options=(strip_accents=true, strip_case=false)
+)
+```
 """
 function load_corpus_df(df::DataFrame;
     text_column::Symbol=:text,
     metadata_columns::Vector{Symbol}=Symbol[],
-    preprocess::Bool=true)
+    preprocess::Bool=true,
+    preprocess_options::Union{Dict,NamedTuple,Nothing}=nothing)
+
+    # Set up default preprocessing options
+    default_prep_opts = (
+        strip_punctuation=true,
+        punctuation_to_space=true,
+        normalize_whitespace=true,
+        strip_case=true,
+        strip_accents=false,
+        unicode_form=:NFC,
+        use_prepare=false
+    )
+
+    # Merge user options with defaults
+    prep_opts = if preprocess_options === nothing
+        default_prep_opts
+    elseif isa(preprocess_options, Dict)
+        merge(default_prep_opts, NamedTuple(preprocess_options))
+    else
+        merge(default_prep_opts, preprocess_options)
+    end
 
     documents = StringDocument{String}[]
     metadata = Dict{String,Any}()
 
     @showprogress desc = "Processing DataFrame..." for (idx, row) in enumerate(eachrow(df))
         text_content = string(row[text_column])
-        doc = preprocess ? prepstring(text_content) : StringDocument(text_content)
-        push!(documents, doc)
+
+        # Apply preprocessing with options
+        if preprocess
+            doc = prepstring(text_content; prep_opts...)
+            typed_doc = StringDocument{String}(text(doc))
+        else
+            typed_doc = StringDocument{String}(text_content)
+        end
+
+        push!(documents, typed_doc)
 
         # Store metadata
         row_metadata = Dict{Symbol,Any}()
@@ -223,7 +334,12 @@ function load_corpus_df(df::DataFrame;
         metadata["doc_$idx"] = row_metadata
     end
 
-    return Corpus(documents, metadata=metadata)
+    corpus = Corpus(documents, metadata=metadata)
+
+    # Store preprocessing options for reproducibility
+    corpus.metadata["_preprocessing_options"] = Dict(pairs(prep_opts))
+
+    return corpus
 end
 
 # =====================================
