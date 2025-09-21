@@ -172,9 +172,9 @@ function load_corpus(path::AbstractString;
             # Apply preprocessing with options
             if preprocess
                 doc = prepstring(content; prep_opts...)
-                typed_doc = StringDocument{String}(text(doc))
+                typed_doc = StringDocument(text(doc))
             else
-                typed_doc = StringDocument{String}(content)
+                typed_doc = StringDocument(content)
             end
 
             # Check document length
@@ -196,9 +196,9 @@ function load_corpus(path::AbstractString;
             # Apply preprocessing with options
             if preprocess
                 doc = prepstring(text_content; prep_opts...)
-                typed_doc = StringDocument{String}(text(doc))
+                typed_doc = StringDocument(text(doc))
             else
-                typed_doc = StringDocument{String}(text_content)
+                typed_doc = StringDocument(text_content)
             end
 
             # Check document length
@@ -229,9 +229,9 @@ function load_corpus(path::AbstractString;
                     # Apply preprocessing with options
                     if preprocess
                         doc = prepstring(text_content; prep_opts...)
-                        typed_doc = StringDocument{String}(text(doc))
+                        typed_doc = StringDocument(text(doc))
                     else
-                        typed_doc = StringDocument{String}(text_content)
+                        typed_doc = StringDocument(text_content)
                     end
 
                     # Check document length
@@ -317,9 +317,9 @@ function load_corpus_df(df::DataFrame;
         # Apply preprocessing with options
         if preprocess
             doc = prepstring(text_content; prep_opts...)
-            typed_doc = StringDocument{String}(text(doc))
+            typed_doc = StringDocument(text(doc))
         else
-            typed_doc = StringDocument{String}(text_content)
+            typed_doc = StringDocument(text_content)
         end
 
         push!(documents, typed_doc)
