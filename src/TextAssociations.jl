@@ -97,6 +97,14 @@ export
     MountfordCoef, MountfordCoef2,
     SokalSneathIdx, SokalMichenerCoef,
     LexicalGravity,
-    ChiSquare, Tscore, Zscore
+    ChiSquare, Tscore, Zscore,
+
+    # DataFrame utilities
+    get_analysis_info,
+    get_metric_used,
+    analysis_summary,
+    filter_by_score,
+    export_with_metadata,
+    load_with_metadata
 
 end
