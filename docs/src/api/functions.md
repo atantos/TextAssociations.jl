@@ -1,0 +1,762 @@
+# Main Functions
+
+```@meta
+CurrentModule = TextAssociations
+```
+
+This section provides comprehensive documentation for all main API functions in TextAssociations.jl.
+
+## Function Categories
+
+```@contents
+Pages = ["functions.md"]
+Depth = 2
+```
+
+## Core Evaluation Functions
+
+### evalassoc - Primary Evaluation Function
+
+```@docs
+evalassoc
+```
+
+The `evalassoc` function is the primary interface for computing association metrics. It supports multiple signatures for different use cases.
+
+#### Method Signatures
+
+```julia
+# Single metric on prepared data
+evalassoc(metric::Type{<:AssociationMetric},
+          data::AssociationDataFormat;
+          scores_only::Bool=false,
+          tokens::Union{Nothing,Vector{String}}=nothing) -> Union{DataFrame, Vector}
+
+# Multiple metrics on prepared data
+evalassoc(metrics::Vector{DataType},
+          data::AssociationDataFormat;
+          scores_only::Bool=false) -> Union{DataFrame, Dict}
+
+# Direct from text (single metric)
+evalassoc(metric::Type{<:AssociationMetric},
+          text::AbstractString,
+          node::AbstractString,
+          windowsize::Int,
+          minfreq::Int=5;
+          scores_only::Bool=false) -> Union{DataFrame, Vector}
+```
+
+#### Parameters
+
+| Parameter        | Type                     | Description                                | Default   |
+| ---------------- | ------------------------ | ------------------------------------------ | --------- |
+| `metric/metrics` | Type or Vector{DataType} | Association metric(s) to compute           | Required  |
+| `data`           | AssociationDataFormat    | ContingencyTable or CorpusContingencyTable | Required  |
+| `scores_only`    | Bool                     | Return only numeric scores                 | `false`   |
+| `tokens`         | Vector{String}           | Token list for metrics that need it        | `nothing` |
+| `text`           | AbstractString           | Raw text for direct evaluation             | -         |
+| `node`           | AbstractString           | Target word                                | -         |
+| `windowsize`     | Int                      | Context window size                        | -         |
+| `minfreq`        | Int                      | Minimum frequency threshold                | `5`       |
+
+#### Return Values
+
+- **Default** (`scores_only=false`): Returns `DataFrame` with columns:
+
+  - `Node`: Target word
+  - `Collocate`: Co-occurring word
+  - `Frequency`: Co-occurrence frequency
+  - `[MetricName]`: Score column(s) named after metric(s)
+
+- **Performance mode** (`scores_only=true`):
+  - Single metric: `Vector{Float64}` of scores
+  - Multiple metrics: `Dict{String, Vector{Float64}}`
+
+#### Examples
+
+##### Basic Usage
+
+```@example evalassoc
+using TextAssociations
+
+text = """
+Data science combines mathematics, statistics, and computer science.
+Machine learning is a crucial part of data science.
+Data analysis helps extract insights from data.
+"""
+
+# Create contingency table
+ct = ContingencyTable(text, "data", windowsize=3, minfreq=1)
+
+# Single metric evaluation
+pmi_results = evalassoc(PMI, ct)
+println("PMI Results:")
+println(pmi_results)
+```
+
+##### Multiple Metrics
+
+```@example evalassoc_multi
+# Evaluate multiple metrics simultaneously
+metrics = [PMI, LogDice, LLR, Dice]
+multi_results = evalassoc(metrics, ct)
+
+println("\nColumns in results: ", names(multi_results))
+println("Top result by PMI:")
+println(first(sort(multi_results, :PMI, rev=true), 1))
+```
+
+##### Direct from Text
+
+```@example evalassoc_direct
+# Skip contingency table creation
+results = evalassoc(PMI, text, "science", windowsize=4, minfreq=1)
+println("\nDirect evaluation results:")
+println(results)
+```
+
+##### Performance Mode
+
+```@example evalassoc_perf
+# Get only scores for better performance
+scores = evalassoc(PMI, ct, scores_only=true)
+println("\nScore vector: ", scores)
+println("Length: ", length(scores))
+
+# Multiple metrics with scores_only
+score_dict = evalassoc([PMI, LogDice], ct, scores_only=true)
+println("\nScore dictionary keys: ", keys(score_dict))
+```
+
+#### Advanced Usage
+
+##### Custom Filtering Pipeline
+
+```@example evalassoc_advanced
+# Evaluate and filter in one pipeline
+function analyze_with_thresholds(text, word, thresholds)
+    ct = ContingencyTable(text, word, 5, 2)
+    results = evalassoc([PMI, LogDice, LLR], ct)
+
+    # Apply multiple thresholds
+    filtered = filter(row ->
+        row.PMI >= thresholds[:pmi] &&
+        row.LogDice >= thresholds[:logdice] &&
+        row.LLR >= thresholds[:llr],
+        results
+    )
+
+    return sort(filtered, :PMI, rev=true)
+end
+
+thresholds = Dict(:pmi => 2.0, :logdice => 5.0, :llr => 3.84)
+filtered = analyze_with_thresholds(text, "data", thresholds)
+println("Filtered results: ", nrow(filtered), " collocates")
+```
+
+## Text Processing Functions
+
+### prepstring - Text Preprocessing
+
+```@docs
+prepstring
+```
+
+Preprocesses text with extensive customization options for different languages and domains.
+
+#### Parameters
+
+| Parameter              | Type           | Description                       | Default  |
+| ---------------------- | -------------- | --------------------------------- | -------- |
+| `input_path`           | AbstractString | File path, directory, or raw text | Required |
+| `strip_punctuation`    | Bool           | Remove punctuation                | `true`   |
+| `punctuation_to_space` | Bool           | Replace punctuation with spaces   | `true`   |
+| `strip_whitespace`     | Bool           | Remove all whitespace             | `false`  |
+| `normalize_whitespace` | Bool           | Collapse multiple spaces          | `true`   |
+| `strip_case`           | Bool           | Convert to lowercase              | `true`   |
+| `strip_accents`        | Bool           | Remove diacritical marks          | `false`  |
+| `unicode_form`         | Symbol         | Unicode normalization form        | `:NFC`   |
+| `use_prepare`          | Bool           | Apply TextAnalysis pipeline       | `false`  |
+
+#### Examples
+
+##### Basic Preprocessing
+
+```@example prepstring
+using TextAssociations
+
+# Default preprocessing
+text = "Hello, WORLD!!! Multiple   spaces..."
+doc = prepstring(text)
+println("Default: '", text(doc), "'")
+
+# Custom preprocessing
+doc_custom = prepstring(text,
+    strip_case=false,        # Keep original case
+    strip_punctuation=false, # Keep punctuation
+    normalize_whitespace=true # Fix spacing only
+)
+println("Custom: '", text(doc_custom), "'")
+```
+
+##### Multilingual Text
+
+```@example prepstring_multi
+# Greek text with diacritics
+greek = "Καλημέρα! Η ανάλυση κειμένου είναι σημαντική."
+
+# Keep diacritics (default)
+doc_with = prepstring(greek, strip_accents=false)
+println("With accents: '", text(doc_with), "'")
+
+# Remove diacritics
+doc_without = prepstring(greek, strip_accents=true)
+println("Without accents: '", text(doc_without), "'")
+```
+
+##### Processing Files and Directories
+
+```@example prepstring_files
+# From file
+# doc = prepstring("document.txt")
+
+# From directory (concatenates all .txt files)
+# doc = prepstring("corpus/")
+
+# Example with temporary file
+using Mmap
+temp_file = tempname() * ".txt"
+write(temp_file, "Sample text from file.")
+doc = prepstring(temp_file)
+println("From file: '", text(doc), "'")
+rm(temp_file)
+```
+
+### createvocab - Vocabulary Creation
+
+```@docs
+createvocab
+```
+
+Creates an ordered dictionary mapping words to indices.
+
+#### Parameters
+
+- `input`: Either a `StringDocument` or `Vector{String}`
+
+#### Returns
+
+- `OrderedDict{String,Int}`: Word-to-index mapping
+
+#### Examples
+
+```@example vocab
+using TextAssociations
+
+# From document
+doc = prepstring("The quick brown fox jumps over the lazy dog")
+vocab = createvocab(doc)
+
+println("Vocabulary size: ", length(vocab))
+println("First 5 words:")
+for (word, idx) in Iterators.take(vocab, 5)
+    println("  $idx: '$word'")
+end
+
+# From word vector
+words = ["apple", "banana", "cherry", "apple"]  # Duplicates removed
+vocab2 = createvocab(words)
+println("\nUnique words: ", length(vocab2))
+```
+
+## Utility Functions
+
+### listmetrics - List Available Metrics
+
+```@docs
+listmetrics
+```
+
+Returns a vector of all available association metric symbols.
+
+#### Example
+
+```@example listmetrics
+using TextAssociations
+
+metrics = listmetrics()
+println("Total available metrics: ", length(metrics))
+println("\nInformation-theoretic metrics:")
+info_metrics = filter(m -> occursin("PMI", String(m)) || m == :PPMI, metrics)
+println(info_metrics)
+
+println("\nStatistical metrics:")
+stat_metrics = filter(m -> m in [:LLR, :ChiSquare, :Tscore, :Zscore], metrics)
+println(stat_metrics)
+```
+
+### extract_cached_data - Access Lazy Data
+
+```@docs
+extract_cached_data
+```
+
+Extracts data from a `LazyProcess`, computing it if necessary.
+
+#### Parameters
+
+- `z::LazyProcess`: Lazy process wrapper
+
+#### Returns
+
+- The computed/cached result
+
+#### Example
+
+```@example lazy
+using TextAssociations
+
+# ContingencyTable uses lazy evaluation internally
+ct = ContingencyTable("sample text", "text", 3, 1)
+
+# First access computes the table
+println("First access...")
+data1 = extract_cached_data(ct.con_tbl)
+
+# Second access uses cache (no computation)
+println("Second access...")
+data2 = extract_cached_data(ct.con_tbl)
+
+println("Same object? ", data1 === data2)  # true - same cached object
+```
+
+### extract_document - Access Document
+
+```@docs
+extract_document
+```
+
+Extracts the document from a `LazyInput` wrapper.
+
+#### Parameters
+
+- `input::LazyInput`: Lazy input wrapper
+
+#### Returns
+
+- `StringDocument`: The stored document
+
+## Batch Processing Functions
+
+### Processing Multiple Nodes
+
+```@example batch
+using TextAssociations
+
+text = """
+Artificial intelligence and machine learning are transforming technology.
+Deep learning, a subset of machine learning, uses neural networks.
+Machine learning algorithms can learn from data without explicit programming.
+"""
+
+# Analyze multiple words
+nodes = ["learning", "machine", "neural", "data"]
+results = Dict{String, DataFrame}()
+
+for node in nodes
+    ct = ContingencyTable(text, node, windowsize=3, minfreq=1)
+    results[node] = evalassoc(PMI, ct)
+end
+
+println("Results per node:")
+for (node, df) in results
+    println("  $node: $(nrow(df)) collocates, top PMI = $(maximum(df.PMI))")
+end
+```
+
+### Comparative Analysis
+
+```@example comparative
+using TextAssociations
+using DataFrames
+
+# Compare different window sizes
+function compare_parameters(text, word)
+    params = [
+        (window=2, minfreq=1),
+        (window=5, minfreq=1),
+        (window=10, minfreq=1)
+    ]
+
+    comparison = DataFrame()
+    for p in params
+        ct = ContingencyTable(text, word, p.window, p.minfreq)
+        df = evalassoc(PMI, ct)
+        df.WindowSize .= p.window
+        append!(comparison, df)
+    end
+
+    return comparison
+end
+
+comparison = compare_parameters(text, "learning")
+grouped = groupby(comparison, :WindowSize)
+summary = combine(grouped,
+    nrow => :NumCollocates,
+    :PMI => mean => :AvgPMI,
+    :PMI => maximum => :MaxPMI
+)
+println("\nWindow size comparison:")
+println(summary)
+```
+
+## Performance Optimization
+
+### Memory-Efficient Processing
+
+```@example memory
+using TextAssociations
+
+# Use scores_only for large-scale processing
+function process_many_nodes(text, nodes)
+    scores = Dict{String, Vector{Float64}}()
+
+    for node in nodes
+        ct = ContingencyTable(text, node, 5, 1)
+        # Get only scores to save memory
+        scores[node] = evalassoc(PMI, ct, scores_only=true)
+    end
+
+    return scores
+end
+
+nodes = ["intelligence", "artificial", "learning"]
+score_dict = process_many_nodes(text, nodes)
+println("\nScore vectors per node:")
+for (node, scores) in score_dict
+    println("  $node: $(length(scores)) scores, max = $(maximum(scores))")
+end
+```
+
+### Parallel Evaluation
+
+```@example parallel
+using TextAssociations
+
+# Function for parallel processing (conceptual)
+function parallel_evaluate(texts, word, metrics)
+    results = []
+
+    # In practice, use @distributed or Threads.@threads
+    for text in texts
+        ct = ContingencyTable(text, word, 5, 2)
+        push!(results, evalassoc(metrics, ct))
+    end
+
+    return results
+end
+
+# Example with multiple text segments
+texts = [
+    "Machine learning is powerful.",
+    "Deep learning uses neural networks.",
+    "Artificial intelligence includes machine learning."
+]
+
+results = parallel_evaluate(texts, "learning", [PMI, LogDice])
+println("\nResults from $(length(results)) text segments processed")
+```
+
+## Error Handling and Validation
+
+### Input Validation
+
+```@example validation
+using TextAssociations
+
+# Handle empty or invalid inputs
+function safe_evaluate(text, word, metric)
+    try
+        # Validate inputs
+        isempty(text) && throw(ArgumentError("Text cannot be empty"))
+        isempty(word) && throw(ArgumentError("Word cannot be empty"))
+
+        ct = ContingencyTable(text, word, 5, 1)
+        results = evalassoc(metric, ct)
+
+        if isempty(results)
+            println("Warning: No collocates found for '$word'")
+            return DataFrame()
+        end
+
+        return results
+    catch e
+        println("Error: ", e)
+        return DataFrame()
+    end
+end
+
+# Test with various inputs
+println("Valid input:")
+valid = safe_evaluate(text, "learning", PMI)
+println("  Found $(nrow(valid)) collocates")
+
+println("\nEmpty word:")
+empty_word = safe_evaluate(text, "", PMI)
+
+println("\nWord not in text:")
+missing = safe_evaluate(text, "quantum", PMI)
+```
+
+### Parameter Validation
+
+```@example param_validation
+# Validate parameters before processing
+function validated_analysis(text, word, windowsize, minfreq)
+    # Check window size
+    if windowsize < 1
+        throw(ArgumentError("Window size must be positive"))
+    elseif windowsize > 50
+        @warn "Large window size may include noise" windowsize
+    end
+
+    # Check minimum frequency
+    if minfreq < 1
+        throw(ArgumentError("Minimum frequency must be at least 1"))
+    elseif minfreq > 100
+        @warn "High minimum frequency may exclude valid collocates" minfreq
+    end
+
+    ct = ContingencyTable(text, word, windowsize, minfreq)
+    return evalassoc(PMI, ct)
+end
+
+# Test validation
+try
+    validated_analysis(text, "learning", -1, 5)
+catch e
+    println("Caught error: ", e)
+end
+
+results = validated_analysis(text, "learning", 3, 1)
+println("Valid analysis: $(nrow(results)) results")
+```
+
+## Integration Examples
+
+### Complete Analysis Pipeline
+
+```@example pipeline
+using TextAssociations
+using DataFrames
+
+function comprehensive_analysis(text, target_word)
+    # Step 1: Preprocess
+    doc = prepstring(text,
+        strip_punctuation=true,
+        strip_case=true,
+        normalize_whitespace=true
+    )
+
+    # Step 2: Create contingency table
+    ct = ContingencyTable(text(doc), target_word, windowsize=5, minfreq=1)
+
+    # Step 3: Evaluate multiple metrics
+    metrics = [PMI, LogDice, LLR, Dice, JaccardIdx]
+    results = evalassoc(metrics, ct)
+
+    # Step 4: Add composite score
+    results.CompositeScore = (
+        results.PMI / maximum(results.PMI) * 0.3 +
+        results.LogDice / 14 * 0.3 +
+        results.LLR / maximum(results.LLR) * 0.2 +
+        results.Dice * 0.1 +
+        results.JaccardIdx * 0.1
+    )
+
+    # Step 5: Sort by composite score
+    sort!(results, :CompositeScore, rev=true)
+
+    return results
+end
+
+analysis = comprehensive_analysis(text, "learning")
+println("\nTop 3 collocates by composite score:")
+for row in eachrow(first(analysis, 3))
+    println("  $(row.Collocate): Score = $(round(row.CompositeScore, digits=3))")
+end
+```
+
+### Export Functions
+
+```@example export
+using TextAssociations
+using CSV
+
+# Prepare results for export
+ct = ContingencyTable(text, "intelligence", 5, 1)
+results = evalassoc([PMI, LogDice, LLR], ct)
+
+# Add metadata
+metadata!(results, "node", "intelligence", style=:note)
+metadata!(results, "window_size", 5, style=:note)
+metadata!(results, "min_freq", 1, style=:note)
+metadata!(results, "timestamp", now(), style=:note)
+
+# Export to CSV
+output_file = tempname() * ".csv"
+CSV.write(output_file, results)
+println("Results exported to: ", output_file)
+
+# Clean up
+rm(output_file)
+```
+
+## Function Chaining and Composition
+
+### Using Chain.jl
+
+```@example chain
+using TextAssociations
+using Chain
+using DataFrames
+
+# Chain operations for cleaner code
+result = @chain text begin
+    prepstring(strip_accents=false)
+    text
+    ContingencyTable("learning", 4, 1)
+    evalassoc([PMI, LogDice], _)
+    filter(row -> row.PMI > 2 && row.LogDice > 5, _)
+    sort(:PMI, rev=true)
+    first(5)
+end
+
+println("\nChained analysis result:")
+println(result)
+```
+
+### Custom Function Composition
+
+```@example compose
+# Compose functions for reusable pipelines
+preprocess = text -> prepstring(text, strip_case=true, strip_punctuation=true)
+analyze = (text, word) -> ContingencyTable(text, word, 5, 2)
+evaluate = ct -> evalassoc([PMI, LogDice, LLR], ct)
+filter_strong = df -> filter(row -> row.PMI > 3 && row.LLR > 10.83, df)
+
+# Use composition
+pipeline = text -> begin
+    doc = preprocess(text)
+    ct = analyze(text(doc), "machine")
+    results = evaluate(ct)
+    filter_strong(results)
+end
+
+final_results = pipeline(text)
+println("\nPipeline results: $(nrow(final_results)) strong collocates")
+```
+
+## Best Practices
+
+### 1. Parameter Selection
+
+```julia
+# Recommended defaults
+const DEFAULT_PARAMS = Dict(
+    :windowsize => 5,      # Balanced for most applications
+    :minfreq => 5,         # Filter noise in medium corpora
+    :strip_case => true,   # Standard normalization
+    :strip_punctuation => true,
+    :normalize_whitespace => true
+)
+```
+
+### 2. Metric Selection Guide
+
+```julia
+# Choose metrics based on goal
+const METRIC_GUIDE = Dict(
+    "discovery" => [PMI, PPMI],           # Find new associations
+    "validation" => [LLR, ChiSquare],     # Test significance
+    "comparison" => [LogDice, PPMI],      # Cross-corpus stable
+    "similarity" => [Dice, JaccardIdx],   # Measure overlap
+    "comprehensive" => [PMI, LogDice, LLR, Dice]  # Multiple perspectives
+)
+```
+
+### 3. Performance Tips
+
+```julia
+# For large-scale processing
+function optimized_processing(corpus, nodes, metrics)
+    # 1. Reuse contingency tables
+    cache = Dict{String, ContingencyTable}()
+
+    # 2. Use scores_only when possible
+    # 3. Process in batches
+    # 4. Consider parallel processing
+
+    results = Dict()
+    for node in nodes
+        if !haskey(cache, node)
+            cache[node] = ContingencyTable(corpus, node, 5, 10)
+        end
+        results[node] = evalassoc(metrics, cache[node], scores_only=true)
+    end
+
+    return results
+end
+```
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+| Issue                 | Cause                        | Solution                                     |
+| --------------------- | ---------------------------- | -------------------------------------------- |
+| Empty results         | Word not in text or too rare | Lower `minfreq`, check preprocessing         |
+| Memory error          | Large vocabulary             | Use `scores_only=true`, stream processing    |
+| Slow performance      | Large corpus or window       | Reduce window size, increase minfreq         |
+| Unexpected collocates | Preprocessing issues         | Check `strip_accents`, `strip_case` settings |
+
+### Debug Helper
+
+```@example debug
+function debug_analysis(text, word, windowsize, minfreq)
+    println("Debug Analysis for '$word'")
+    println("="^40)
+
+    # Check preprocessing
+    doc = prepstring(text)
+    tokens = TextAnalysis.tokens(doc)
+    println("Total tokens: ", length(tokens))
+    println("Unique tokens: ", length(unique(tokens)))
+    println("Word frequency: ", count(==(lowercase(word)), tokens))
+
+    # Check contingency table
+    ct = ContingencyTable(text(doc), word, windowsize, minfreq)
+    data = extract_cached_data(ct.con_tbl)
+    println("Contingency table rows: ", nrow(data))
+
+    if !isempty(data)
+        println("Frequency range: ", minimum(data.a), " - ", maximum(data.a))
+    end
+
+    # Check results
+    results = evalassoc(PMI, ct)
+    println("Final results: ", nrow(results), " collocates")
+
+    return results
+end
+
+debug_results = debug_analysis(text, "learning", 3, 1)
+```
+
+## See Also
+
+- [Core Types](@ref): Type definitions and structures
+- [Corpus Functions](@ref): Corpus-level operations
+- [Metrics Guide](@ref): Detailed metric descriptions
+- [Examples](@ref): More usage examples
+- [API Reference](@ref): Complete API documentation

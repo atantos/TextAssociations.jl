@@ -2,3 +2,6 @@
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 TextAssociations = "7b6babba-2ab1-4176-83fb-e096766ccca2"
+
+[compat]
+Documenter = "1.0"
