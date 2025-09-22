@@ -638,7 +638,8 @@ function corpus_statistics(corpus::Corpus;
 
         # Lexical diversity metrics
         :type_token_ratio => type_token_ratio,
-        :standardized_ttr => type_token_ratio * sqrt(total_tokens),
+        # :standardized_ttr => mean(length(unique(collect(w))) / length(w) for w in partition(doc_tokens, window_size)), # to implement as a separate function cf. https://chatgpt.com/g/g-p-68a3278f66bc81918deff6fb2d51139c-adjectives-sentiment-analysis/c/68cf06d7-a9f4-832f-91df-f4f7945e1de5
+        :root_ttr => type_token_ratio * sqrt(total_tokens),
         :hapax_legomena => hapax_count,
         :hapax_ratio => hapax_count / length(unique_tokens_set),
 
@@ -661,14 +662,14 @@ function corpus_statistics(corpus::Corpus;
     )
 
     if include_token_distribution
-        freq_values = collect(values(token_frequencies))
-        stats[:mean_token_frequency] = mean(freq_values)
-        stats[:median_token_frequency] = median(freq_values)
-        stats[:max_token_frequency] = maximum(freq_values)
-        stats[:min_token_frequency] = minimum(freq_values)
+        freq_type_values = collect(values(token_frequencies))
+        stats[:mean_type_frequency] = mean(freq_type_values)
+        stats[:median_type_frequency] = median(freq_type_values)
+        stats[:max_type_frequency] = maximum(freq_type_values)
+        stats[:min_type_frequency] = minimum(freq_type_values)
 
         # Zipf's law coefficient (rough estimate)
-        top_n = min(1000, length(freq_values))
+        top_n = min(1000, length(freq_type_values))
         top_freqs = sorted_freqs[1:top_n]
         ranks = 1:top_n
         if top_n > 10
