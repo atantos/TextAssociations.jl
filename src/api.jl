@@ -459,16 +459,15 @@ Evaluate an association metric on a contingency table.
 #
 # NOTE: Count-only metrics should *not* require tokens; token-based ones should accept `tokens` kwarg.
 
-# ----------------------------
-# Small trait: which metrics need tokens?
-# Extend this in your metric files as needed (defaults to false).
-# Example elsewhere: NeedsTokens(::Type{LexicalGravity}) = Val(true)
-# ----------------------------
+# =====================================
+# Core evalassoc function from api.jl
+# =====================================
+
+# Trait to indicate which metrics need tokens
+# Default: metrics don't need tokens
 NeedsTokens(::Type{T}) where {T<:AssociationMetric} = Val(false)
 
-# ----------------------------
 # Internal: resolve metric entry point by naming convention
-# ----------------------------
 @inline function _resolve_metric_function(::Type{T}) where {T<:AssociationMetric}
     fname = Symbol("eval_", lowercase(String(nameof(T))))
     if !isdefined(@__MODULE__, fname)
@@ -476,10 +475,6 @@ NeedsTokens(::Type{T}) where {T<:AssociationMetric} = Val(false)
     end
     return getfield(@__MODULE__, fname)
 end
-
-# ----------------------------
-# Core, single-metric API over AssociationDataFormat
-# ----------------------------
 
 """
     evalassoc(metricType::Type{<:AssociationMetric}, x::AssociationDataFormat;
@@ -504,6 +499,7 @@ function evalassoc(::Type{T}, x::AssociationDataFormat;
 
     # Compute scores
     scores = if needs_tok === Val(true)
+        # This metric NEEDS tokens, so get them and pass them
         toks = tokens === nothing ? assoc_tokens(x) : tokens
         toks === nothing && error("$(T) requires tokens; pass `tokens=...` or implement assoc_tokens(::$(typeof(x))).")
         f(x; tokens=toks, kwargs...)
@@ -527,15 +523,10 @@ function evalassoc(::Type{T}, x::AssociationDataFormat;
     out[!, :Node] = fill(assoc_node(x), nrow(df))
     out[!, :Collocate] = String.(df.Collocate)
     # Assumes your contingency schema puts co-occurrence freq in :a
-    # (Adjust if your column name differs.)
     out[!, :Frequency] = df.a
     out[!, Symbol(nameof(T))] = scores
     return out
 end
-
-# ----------------------------
-# Multi-metric API over AssociationDataFormat
-# ----------------------------
 
 """
     evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
@@ -586,9 +577,14 @@ function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     end
 end
 
+# =====================================
+# Convenience functions from api.jl (FIXED)
+# =====================================
+
 # Convenience for `Vector{DataType}` if you keep that style elsewhere
 function evalassoc(metrics::Vector{DataType},
-    x::AssociationDataFormat; scores_only::Bool=false,
+    x::AssociationDataFormat;
+    scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...)
     return evalassoc(Vector{Type{<:AssociationMetric}}(metrics), x;
@@ -608,6 +604,7 @@ end
               minfreq::Int=5;
               scores_only::Bool=false,
               tokens::Union{Nothing,Vector{String}}=nothing,
+              strip_accents::Bool=false,
               kwargs...)
 
 Convenience overload to compute a metric directly from a raw string.
@@ -619,10 +616,15 @@ function evalassoc(::Type{T},
     minfreq::Int=5;
     scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
-    strip_accents::Bool=false,
+    strip_accents::Bool=false,  # For preprocessing
     kwargs...) where {T<:AssociationMetric}
-    ct = ContingencyTable(inputstring, node, windowsize, minfreq)
-    return evalassoc(T, ct; scores_only=scores_only, tokens=tokens, strip_accents=strip_accents, kwargs...)
+
+    # Pass strip_accents to ContingencyTable constructor
+    ct = ContingencyTable(inputstring, node, windowsize, minfreq;
+        strip_accents=strip_accents)
+
+    # Don't pass strip_accents to evalassoc - it's not needed there
+    return evalassoc(T, ct; scores_only=scores_only, tokens=tokens, kwargs...)
 end
 
 """
@@ -633,6 +635,7 @@ end
               minfreq::Int=5;
               scores_only::Bool=false,
               tokens::Union{Nothing,Vector{String}}=nothing,
+              strip_accents::Bool=false,
               kwargs...)
 
 Convenience overload to compute multiple metrics directly from raw text.
@@ -644,8 +647,14 @@ function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     minfreq::Int=5;
     scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
+    strip_accents::Bool=false,  # For preprocessing
     kwargs...)
-    ct = ContingencyTable(inputstring, node, windowsize, minfreq)
+
+    # Pass strip_accents to ContingencyTable constructor
+    ct = ContingencyTable(inputstring, node, windowsize, minfreq;
+        strip_accents=strip_accents)
+
+    # Don't pass strip_accents to evalassoc
     return evalassoc(metrics, ct; scores_only=scores_only, tokens=tokens, kwargs...)
 end
 
@@ -657,8 +666,10 @@ function evalassoc(metrics::Vector{DataType},
     minfreq::Int=5;
     scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
+    strip_accents::Bool=false,  # For preprocessing
     kwargs...)
+
     return evalassoc(Vector{Type{<:AssociationMetric}}(metrics),
         inputstring, node, windowsize, minfreq;
-        scores_only=scores_only, tokens=tokens, kwargs...)
+        scores_only=scores_only, tokens=tokens, strip_accents=strip_accents, kwargs...)
 end

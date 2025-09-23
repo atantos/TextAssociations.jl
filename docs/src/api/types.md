@@ -15,21 +15,21 @@ The type system is organized into several categories:
 <pre>
 TextAssociations Types
 ├── Data Structures
-│   ├── ContingencyTable      # Word co-occurrence data
-│   ├── Corpus                # Document collection
+│   ├── ContingencyTable       # Word co-occurrence data
+│   ├── Corpus                 # Document collection
 │   └── CorpusContingencyTable # Aggregated corpus data
 ├── Analysis Results
-│   ├── MultiNodeAnalysis     # Multiple word analysis
+│   ├── MultiNodeAnalysis      # Multiple word analysis
 │   ├── TemporalCorpusAnalysis # Time-based analysis
-│   ├── SubcorpusComparison   # Comparative analysis
-│   ├── CollocationNetwork    # Network representation
-│   └── Concordance          # KWIC concordance
+│   ├── SubcorpusComparison    # Comparative analysis
+│   ├── CollocationNetwork     # Network representation
+│   └── Concordance            # KWIC concordance
 ├── Abstract Types
-│   ├── AssociationMetric     # Base for all metrics
-│   └── AssociationDataFormat # Base for data formats
+│   ├── AssociationMetric      # Base for all metrics
+│   └── AssociationDataFormat  # Base for data formats
 └── Utility Types
-    ├── LazyProcess          # Lazy evaluation wrapper
-    └── LazyInput           # Lazy input wrapper
+    ├── LazyProcess            # Lazy evaluation wrapper
+    └── LazyInput              # Lazy input wrapper
 </pre>
 </div>
 ```
@@ -83,8 +83,8 @@ Data scientists use various tools for data visualization and data mining.
 Modern data science relies heavily on big data technologies.
 """
 
-# Create contingency table for "data"
-ct = ContingencyTable(text, "data", windowsize=3, minfreq=1)
+# Create contingency table for "data" (use positional args)
+ct = ContingencyTable(text, "data", 3, 1)
 
 # The table is computed lazily when first accessed
 results = evalassoc(PMI, ct)
@@ -102,6 +102,8 @@ The internal contingency table contains the following values for each word pair:
 | c    | Collocate without node  | f(collocate) - a   |
 | d    | Neither occurs          | N - a - b - c      |
 | N    | Total observations      | Total positions    |
+
+---
 
 ### Corpus
 
@@ -130,7 +132,7 @@ Corpus(documents::Vector{StringDocument};
 
 ```@example corpus
 using TextAssociations
-using TextAnalysis
+using TextAnalysis: StringDocument  # avoid bringing TextAnalysis.Corpus into scope
 
 # Create corpus from documents
 docs = [
@@ -139,13 +141,15 @@ docs = [
     StringDocument("Deep learning uses neural networks.")
 ]
 
-corpus = Corpus(docs, metadata=Dict("source" => "AI texts"))
+corpus = TextAssociations.Corpus(docs, metadata=Dict("source" => "AI texts"))
 
 println("Corpus Statistics:")
 println("  Documents: ", length(corpus.documents))
 println("  Vocabulary size: ", length(corpus.vocabulary))
-println("  Metadata: ", keys(corpus.metadata))
+println("  Metadata: ", collect(keys(corpus.metadata)))
 ```
+
+---
 
 ### CorpusContingencyTable
 
@@ -193,17 +197,17 @@ Stores results from analyzing multiple node words across a corpus.
 
 #### Example
 
-```@example multi
-using TextAssociations
-
-# Assuming corpus is defined
-analysis = MultiNodeAnalysis(
-    ["learning", "intelligence"],
-    Dict("learning" => DataFrame(), "intelligence" => DataFrame()),
-    corpus,
-    Dict(:windowsize => 5, :metric => PMI)
-)
+```julia
+# Example (illustrative)
+# analysis = MultiNodeAnalysis(
+#     ["learning", "intelligence"],
+#     Dict("learning" => DataFrame(), "intelligence" => DataFrame()),
+#     corpus,
+#     Dict(:windowsize => 5, :metric => PMI)
+# )
 ```
+
+---
 
 ### TemporalCorpusAnalysis
 
@@ -220,6 +224,8 @@ Results from analyzing word associations over time periods.
 - `trend_analysis::DataFrame`: Trend statistics
 - `corpus_ref::Corpus`: Source corpus
 
+---
+
 ### SubcorpusComparison
 
 ```@docs
@@ -235,6 +241,8 @@ Results from comparing word associations between different subcorpora.
 - `results::Dict{String,DataFrame}`: Results per subcorpus
 - `statistical_tests::DataFrame`: Statistical comparisons
 - `effect_sizes::DataFrame`: Effect size calculations
+
+---
 
 ### CollocationNetwork
 
@@ -253,29 +261,28 @@ Network representation of word collocations for visualization and analysis.
 
 #### Example
 
-```@example network
-using TextAssociations
-using DataFrames
-
-# Create a simple collocation network
-nodes = ["machine", "learning", "deep", "neural"]
-edges = DataFrame(
-    Source = ["machine", "machine", "deep"],
-    Target = ["learning", "deep", "neural"],
-    Weight = [8.5, 6.2, 7.8],
-    Metric = ["PMI", "PMI", "PMI"]
-)
-node_metrics = DataFrame(
-    Node = nodes,
-    Degree = [2, 1, 2, 1],
-    AvgScore = [7.35, 8.5, 7.0, 7.8]
-)
-
-network = CollocationNetwork(
-    nodes, edges, node_metrics,
-    Dict(:metric => PMI, :depth => 2)
-)
+```julia
+# Example (illustrative)
+# using DataFrames
+# nodes = ["machine", "learning", "deep", "neural"]
+# edges = DataFrame(
+#     Source = ["machine", "machine", "deep"],
+#     Target = ["learning", "deep", "neural"],
+#     Weight = [8.5, 6.2, 7.8],
+#     Metric = ["PMI", "PMI", "PMI"]
+# )
+# node_metrics = DataFrame(
+#     Node = nodes,
+#     Degree = [2, 1, 2, 1],
+#     AvgScore = [7.35, 8.5, 7.0, 7.8]
+# )
+# network = CollocationNetwork(
+#     nodes, edges, node_metrics,
+#     Dict(:metric => PMI, :depth => 2)
+# )
 ```
+
+---
 
 ### Concordance
 
@@ -310,8 +317,10 @@ abstract type AssociationMetric <: SemiMetric end
 abstract type PMI <: AssociationMetric end
 abstract type Dice <: AssociationMetric end
 abstract type LLR <: AssociationMetric end
-# ... 50+ more metrics
+# ... more metrics
 ```
+
+---
 
 ### AssociationDataFormat
 
@@ -351,22 +360,23 @@ Enables lazy evaluation with caching for expensive computations.
 
 ```@example lazy
 using TextAssociations
+using DataFrames
 
-# Create a lazy process
-expensive_computation = LazyProcess(() -> begin
-    println("Computing...")
-    sleep(1)  # Simulate expensive operation
-    return 42
-end)
+# Return a DataFrame so it matches LazyProcess{..., DataFrame}
+expensive_df() = DataFrame(x = 1:3, y = [10, 20, 30])
+
+lp = LazyProcess(expensive_df)   # default R = DataFrame
 
 # First call computes the result
-result1 = extract_cached_data(expensive_computation)  # Prints "Computing..."
+result1 = extract_cached_data(lp)
 
 # Second call uses cache
-result2 = extract_cached_data(expensive_computation)  # No printing
+result2 = extract_cached_data(lp)
 
-println("Results equal: ", result1 == result2)  # true - same cached object
+println("Results equal: ", result1 == result2)
 ```
+
+---
 
 ### LazyInput
 
@@ -444,14 +454,14 @@ isa(ct, AssociationDataFormat)  # true
 
 ### Optimization Tips
 
-1. **Use lazy evaluation**: Data is computed only when needed
-2. **Reuse contingency tables**: Avoid recreating for multiple metrics
-3. **Stream large corpora**: Use `stream_corpus_analysis()` for memory efficiency
-4. **Cache results**: LazyProcess automatically caches computations
+1. **Use lazy evaluation**: Data is computed only when needed.
+2. **Reuse contingency tables**: Avoid recreating for multiple metrics.
+3. **Stream large corpora**: Use `stream_corpus_analysis()` for memory efficiency.
+4. **Cache results**: `LazyProcess` automatically caches computations.
 
 ## See Also
 
-- [Main Functions](@ref): Functions that operate on these types
-- [Corpus Functions](@ref): Corpus-specific operations
-- [Metric Functions](@ref): Metric implementations
-- [Examples](@ref): Practical usage examples
+- Main Functions — coming soon
+- Corpus Functions — coming soon
+- Metric Functions — coming soon
+- Examples — coming soon

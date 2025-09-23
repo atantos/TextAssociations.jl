@@ -13,9 +13,15 @@ assoc_node(x::ContingencyTable) = x.node
 assoc_ws(x::ContingencyTable) = x.windowsize
 assoc_tokens(x::ContingencyTable) = String.(tokens(extract_document(x.input_ref)))
 
-# CorpusContingencyTable
+# CorpusContingencyTablex
 assoc_df(x::CorpusContingencyTable) = extract_cached_data(x.aggregated_table)
 assoc_node(x::CorpusContingencyTable) = x.node
 assoc_ws(x::CorpusContingencyTable) = x.windowsize
-# If/when you add cct.corpus, return flattened tokens here; for now:
-assoc_tokens(x::CorpusContingencyTable) = nothing
+# Extract all tokens from the corpus
+function assoc_tokens(x::CorpusContingencyTable)
+    all_tokens = String[]
+    for doc in x.corpus_ref.documents
+        append!(all_tokens, tokens(doc))
+    end
+    return all_tokens
+end
