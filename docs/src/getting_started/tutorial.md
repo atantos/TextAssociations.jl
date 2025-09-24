@@ -100,7 +100,7 @@ for (i, doc) in enumerate(docs)
 end
 
 # Load corpus from directory
-corpus = load_corpus(temp_dir, preprocess=true, min_doc_length=5)
+corpus = read_corpus(temp_dir, preprocess=true, min_doc_length=5)
 
 println("Corpus loaded:")
 println("  Documents: ", length(corpus.documents))
@@ -207,7 +207,7 @@ Here's everything together in a typical workflow:
 ```@example tutorial
 function analyze_text(text::String, target_word::String)
     # 1. Preprocess text
-    doc = prepstring(text, strip_case=true, strip_punctuation=true)
+    doc = prep_string(text, strip_case=true, strip_punctuation=true)
 
     # 2. Create contingency table
     ct = ContingencyTable(text(doc), target_word, windowsize=5, minfreq=2)

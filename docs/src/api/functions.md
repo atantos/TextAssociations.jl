@@ -156,10 +156,10 @@ println("Filtered results: ", nrow(filtered), " collocates")
 
 ## Text Processing Functions
 
-### prepstring - Text Preprocessing
+### prep_string - Text Preprocessing
 
 ```@docs
-prepstring
+prep_string
 ```
 
 Preprocesses text with extensive customization options for different languages and domains.
@@ -182,16 +182,16 @@ Preprocesses text with extensive customization options for different languages a
 
 ##### Basic Preprocessing
 
-```@example prepstring
+```@example prep_string
 using TextAssociations
 
 # Default preprocessing
 text = "Hello, WORLD!!! Multiple   spaces..."
-doc = prepstring(text)
+doc = prep_string(text)
 println("Default: '", text(doc), "'")
 
 # Custom preprocessing
-doc_custom = prepstring(text,
+doc_custom = prep_string(text,
     strip_case=false,        # Keep original case
     strip_punctuation=false, # Keep punctuation
     normalize_whitespace=true # Fix spacing only
@@ -201,41 +201,41 @@ println("Custom: '", text(doc_custom), "'")
 
 ##### Multilingual Text
 
-```@example prepstring_multi
+```@example prep_string_multi
 # Greek text with diacritics
 greek = "Καλημέρα! Η ανάλυση κειμένου είναι σημαντική."
 
 # Keep diacritics (default)
-doc_with = prepstring(greek, strip_accents=false)
+doc_with = prep_string(greek, strip_accents=false)
 println("With accents: '", text(doc_with), "'")
 
 # Remove diacritics
-doc_without = prepstring(greek, strip_accents=true)
+doc_without = prep_string(greek, strip_accents=true)
 println("Without accents: '", text(doc_without), "'")
 ```
 
 ##### Processing Files and Directories
 
-```@example prepstring_files
+```@example prep_string_files
 # From file
-# doc = prepstring("document.txt")
+# doc = prep_string("document.txt")
 
 # From directory (concatenates all .txt files)
-# doc = prepstring("corpus/")
+# doc = prep_string("corpus/")
 
 # Example with temporary file
 using Mmap
 temp_file = tempname() * ".txt"
 write(temp_file, "Sample text from file.")
-doc = prepstring(temp_file)
+doc = prep_string(temp_file)
 println("From file: '", text(doc), "'")
 rm(temp_file)
 ```
 
-### createvocab - Vocabulary Creation
+### build_vocab - Vocabulary Creation
 
 ```@docs
-createvocab
+build_vocab
 ```
 
 Creates an ordered dictionary mapping words to indices.
@@ -254,8 +254,8 @@ Creates an ordered dictionary mapping words to indices.
 using TextAssociations
 
 # From document
-doc = prepstring("The quick brown fox jumps over the lazy dog")
-vocab = createvocab(doc)
+doc = prep_string("The quick brown fox jumps over the lazy dog")
+vocab = build_vocab(doc)
 
 println("Vocabulary size: ", length(vocab))
 println("First 5 words:")
@@ -265,7 +265,7 @@ end
 
 # From word vector
 words = ["apple", "banana", "cherry", "apple"]  # Duplicates removed
-vocab2 = createvocab(words)
+vocab2 = build_vocab(words)
 println("\nUnique words: ", length(vocab2))
 ```
 
@@ -295,10 +295,10 @@ stat_metrics = filter(m -> m in [:LLR, :ChiSquare, :Tscore, :Zscore], metrics)
 println(stat_metrics)
 ```
 
-### extract_cached_data - Access Lazy Data
+### cached_data - Access Lazy Data
 
 ```@docs
-extract_cached_data
+cached_data
 ```
 
 Extracts data from a `LazyProcess`, computing it if necessary.
@@ -321,19 +321,19 @@ ct = ContingencyTable("sample text", "text", 3, 1)
 
 # First access computes the table
 println("First access...")
-data1 = extract_cached_data(ct.con_tbl)
+data1 = cached_data(ct.con_tbl)
 
 # Second access uses cache (no computation)
 println("Second access...")
-data2 = extract_cached_data(ct.con_tbl)
+data2 = cached_data(ct.con_tbl)
 
 println("Same object? ", data1 === data2)  # true - same cached object
 ```
 
-### extract_document - Access Document
+### document - Access Document
 
 ```@docs
-extract_document
+document
 ```
 
 Extracts the document from a `LazyInput` wrapper.
@@ -552,7 +552,7 @@ using DataFrames
 
 function comprehensive_analysis(text, target_word)
     # Step 1: Preprocess
-    doc = prepstring(text,
+    doc = prep_string(text,
         strip_punctuation=true,
         strip_case=true,
         normalize_whitespace=true
@@ -623,7 +623,7 @@ using DataFrames
 
 # Chain operations for cleaner code
 result = @chain text begin
-    prepstring(strip_accents=false)
+    prep_string(strip_accents=false)
     text
     ContingencyTable("learning", 4, 1)
     evalassoc([PMI, LogDice], _)
@@ -640,7 +640,7 @@ println(result)
 
 ```@example compose
 # Compose functions for reusable pipelines
-preprocess = text -> prepstring(text, strip_case=true, strip_punctuation=true)
+preprocess = text -> prep_string(text, strip_case=true, strip_punctuation=true)
 analyze = (text, word) -> ContingencyTable(text, word, 5, 2)
 evaluate = ct -> evalassoc([PMI, LogDice, LLR], ct)
 filter_strong = df -> filter(row -> row.PMI > 3 && row.LLR > 10.83, df)
@@ -728,7 +728,7 @@ function debug_analysis(text, word, windowsize, minfreq)
     println("="^40)
 
     # Check preprocessing
-    doc = prepstring(text)
+    doc = prep_string(text)
     tokens = TextAnalysis.tokens(doc)
     println("Total tokens: ", length(tokens))
     println("Unique tokens: ", length(unique(tokens)))
@@ -736,7 +736,7 @@ function debug_analysis(text, word, windowsize, minfreq)
 
     # Check contingency table
     ct = ContingencyTable(text(doc), word, windowsize, minfreq)
-    data = extract_cached_data(ct.con_tbl)
+    data = cached_data(ct.con_tbl)
     println("Contingency table rows: ", nrow(data))
 
     if !isempty(data)

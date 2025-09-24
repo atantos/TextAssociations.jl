@@ -368,10 +368,10 @@ expensive_df() = DataFrame(x = 1:3, y = [10, 20, 30])
 lp = LazyProcess(expensive_df)   # default R = DataFrame
 
 # First call computes the result
-result1 = extract_cached_data(lp)
+result1 = cached_data(lp)
 
 # Second call uses cache
-result2 = extract_cached_data(lp)
+result2 = cached_data(lp)
 
 println("Results equal: ", result1 == result2)
 ```

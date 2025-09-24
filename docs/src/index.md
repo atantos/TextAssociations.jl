@@ -99,7 +99,7 @@ See [Installation](@ref) for detailed instructions and troubleshooting.
 using TextAssociations
 
 # Load and preprocess text
-doc = prepstring("Your text here...",
+doc = prep_string("Your text here...",
     strip_punctuation=true,
     strip_case=true
 )
@@ -117,7 +117,7 @@ pmi_scores = evalassoc(PMI, ct)
 using TextAssociations
 
 # Load corpus from directory
-corpus = load_corpus("path/to/documents/")
+corpus = read_corpus("path/to/documents/")
 
 # Analyze across entire corpus
 results = analyze_corpus(corpus, "innovation", PMI,
@@ -126,7 +126,7 @@ results = analyze_corpus(corpus, "innovation", PMI,
 )
 
 # Get corpus statistics
-stats = corpus_statistics(corpus)
+stats = corpus_stats(corpus)
 println("Documents: $(stats[:num_documents])")
 println("Vocabulary: $(stats[:vocabulary_size])")
 ```
@@ -138,7 +138,7 @@ println("Vocabulary: $(stats[:vocabulary_size])")
 Track how word associations change over time:
 
 ```julia
-temporal_analysis = temporal_corpus_analysis(
+temporal_analysis = analyze_temporal(
     corpus, ["digital", "transformation"], :year, PMI
 )
 ```
@@ -148,7 +148,7 @@ temporal_analysis = temporal_corpus_analysis(
 Build networks of related terms:
 
 ```julia
-network = build_collocation_network(
+network = colloc_graph(
     corpus, ["artificial", "intelligence"],
     metric=PMI, depth=2
 )
@@ -177,7 +177,7 @@ TextAssociations.jl
 ├── Analysis Functions
 │   ├── evalassoc()          # Metric evaluation
 │   ├── analyze_corpus()     # Corpus analysis
-│   └── extract_keywords()   # Keyword extraction
+│   └── keyterms()   # Keyword extraction
 │
 └── Advanced Features
     ├── Temporal analysis
