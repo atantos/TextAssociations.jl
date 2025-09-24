@@ -93,7 +93,7 @@ using TextAssociations
 println("TextAssociations version: ", pkgversion(TextAssociations))
 
 # List available metrics
-metrics = listmetrics()
+metrics = available_metrics()
 println("Available metrics: ", length(metrics))
 
 # Run a simple test

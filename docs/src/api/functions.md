@@ -271,20 +271,20 @@ println("\nUnique words: ", length(vocab2))
 
 ## Utility Functions
 
-### listmetrics - List Available Metrics
+### available_metrics - List Available Metrics
 
 ```@docs
-listmetrics
+available_metrics
 ```
 
 Returns a vector of all available association metric symbols.
 
 #### Example
 
-```@example listmetrics
+```@example available_metrics
 using TextAssociations
 
-metrics = listmetrics()
+metrics = available_metrics()
 println("Total available metrics: ", length(metrics))
 println("\nInformation-theoretic metrics:")
 info_metrics = filter(m -> occursin("PMI", String(m)) || m == :PPMI, metrics)

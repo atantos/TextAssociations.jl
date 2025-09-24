@@ -271,7 +271,7 @@ Now that you understand the basics:
 ?analyze_corpus
 
 # List all available metrics
-listmetrics()
+available_metrics()
 
 # Check package version
 using Pkg
