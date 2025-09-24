@@ -54,26 +54,26 @@ export
     Concordance,
 
     # Main API functions
-    evalassoc,
+    assoc_score,
     listmetrics,
-    extract_cached_data,
-    extract_document,
+    cached_data,
+    document,
     # corpus-related API functions
-    load_corpus, load_corpus_df,
-    analyze_corpus, analyze_multiple_nodes,
-    corpus_statistics, vocab_coverage,
+    read_corpus, read_corpus_df,
+    analyze_corpus, analyze_nodes,
+    corpus_stats, vocab_coverage,
     coverage_summary, token_distribution,
-    export_results,
+    write_results,
     batch_process_corpus, stream_corpus_analysis,
     # Advanced features
-    temporal_corpus_analysis, compare_subcorpora,
-    extract_keywords, build_collocation_network,
-    export_network_to_gephi, concord,
+    analyze_temporal, compare_subcorpora,
+    keyterms, colloc_graph,
+    gephi_graph, concord,
 
     # Utility functions
-    normalize_node, prepstring,
-    createvocab,
-    conttbl,
+    normalize_node, prep_string,
+    build_vocab,
+    cont_table,
 
     # All metric types
     PMI, PMI², PMI³, PPMI,
@@ -99,10 +99,10 @@ export
     ChiSquare, Tscore, Zscore,
 
     # DataFrame utilities
-    get_analysis_info,
-    get_metric_used,
+    write_results,
+    analysis_metric,
     analysis_summary,
-    filter_by_score,
+    filter_scores,
     export_with_metadata,
     load_with_metadata
 

@@ -38,14 +38,14 @@ struct ContingencyTable{T} <: AssociationDataFormat
 
         # NORMALIZE THE NODE WORD to match corpus preprocessing
         normalized_node = normalize_node(node;
-            strip_case=true,  # matches prepstring default
+            strip_case=true,  # matches prep_string default
             strip_accents=strip_accents,
             unicode_form=:NFC)
 
-        prepared_string = auto_prep ? prepstring(inputstring; strip_accents=strip_accents) : StringDocument(inputstring)
+        prepared_string = auto_prep ? prep_string(inputstring; strip_accents=strip_accents) : StringDocument(inputstring)
         input_ref = LazyInput(prepared_string)
 
-        f = () -> conttbl(prepared_string, normalized_node, windowsize, minfreq)
+        f = () -> cont_table(prepared_string, normalized_node, windowsize, minfreq)
         con_tbl = LazyProcess(f)
 
         return new{typeof(f)}(con_tbl, normalized_node, windowsize, minfreq, input_ref)
@@ -83,12 +83,12 @@ ContingencyTable(df::DataFrame,
 
 
 """
-    conttbl(input_doc::StringDocument, target_word::AbstractString,
+    cont_table(input_doc::StringDocument, target_word::AbstractString,
             windowsize::Int64=5, minfreq::Int64=3) -> DataFrame
 
 Compute the contingency table for a target word in a document.
 """
-function conttbl(input_doc::StringDocument, target_word::AbstractString,
+function cont_table(input_doc::StringDocument, target_word::AbstractString,
     windowsize::Int64=5, minfreq::Int64=3)
 
     input_tokens = TextAnalysis.tokenize(language(input_doc), text(input_doc))

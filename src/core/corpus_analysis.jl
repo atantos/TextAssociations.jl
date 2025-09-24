@@ -33,7 +33,7 @@ struct Corpus <: AssociationDataFormat
         for doc in docs
             append!(all_tokens, tokens(doc))
         end
-        vocabulary = createvocab(unique(all_tokens))
+        vocabulary = build_vocab(unique(all_tokens))
 
         # Optionally build document-term matrix
         dtm = nothing
@@ -114,7 +114,7 @@ end
 # =====================================
 
 """
-    load_corpus(path::AbstractString; kwargs...) -> Corpus
+    read_corpus(path::AbstractString; kwargs...) -> Corpus
 
 Load a corpus from various sources.
 
@@ -130,12 +130,12 @@ Load a corpus from various sources.
 # Preprocessing Options
 Pass preprocessing options as a Dict or NamedTuple:
 ```julia
-load_corpus("path/", preprocess_options=(strip_accents=true, strip_case=false))
+read_corpus("path/", preprocess_options=(strip_accents=true, strip_case=false))
 # or
-load_corpus("path/", preprocess_options=Dict(:strip_accents => true))
+read_corpus("path/", preprocess_options=Dict(:strip_accents => true))
 ```
 
-Available options (see prepstring for details):
+Available options (see prep_string for details):
 - strip_punctuation (default: true)
 - punctuation_to_space (default: true) 
 - normalize_whitespace (default: true)
@@ -144,7 +144,7 @@ Available options (see prepstring for details):
 - unicode_form (default: :NFC)
 - use_prepare (default: false)
 """
-function load_corpus(path::AbstractString;
+function read_corpus(path::AbstractString;
     text_column::Symbol=:text,
     metadata_columns::Vector{Symbol}=Symbol[],
     preprocess::Bool=true,
@@ -183,7 +183,7 @@ function load_corpus(path::AbstractString;
 
             # Apply preprocessing with options
             if preprocess
-                doc = prepstring(content; prep_opts...)
+                doc = prep_string(content; prep_opts...)
                 typed_doc = StringDocument(text(doc))
             else
                 typed_doc = StringDocument(content)
@@ -207,7 +207,7 @@ function load_corpus(path::AbstractString;
 
             # Apply preprocessing with options
             if preprocess
-                doc = prepstring(text_content; prep_opts...)
+                doc = prep_string(text_content; prep_opts...)
                 typed_doc = StringDocument(text(doc))
             else
                 typed_doc = StringDocument(text_content)
@@ -240,7 +240,7 @@ function load_corpus(path::AbstractString;
                 if !isempty(text_content)
                     # Apply preprocessing with options
                     if preprocess
-                        doc = prepstring(text_content; prep_opts...)
+                        doc = prep_string(text_content; prep_opts...)
                         typed_doc = StringDocument(text(doc))
                     else
                         typed_doc = StringDocument(text_content)
@@ -273,7 +273,7 @@ function load_corpus(path::AbstractString;
 end
 
 """
-    load_corpus_df(df::DataFrame; kwargs...) -> Corpus
+    read_corpus_df(df::DataFrame; kwargs...) -> Corpus
 
 Load corpus directly from a DataFrame.
 
@@ -286,7 +286,7 @@ Load corpus directly from a DataFrame.
 
 # Example
 ```julia
-corpus = load_corpus_df(
+corpus = read_corpus_df(
     df,
     text_column=:content,
     metadata_columns=[:author, :date],
@@ -294,7 +294,7 @@ corpus = load_corpus_df(
 )
 ```
 """
-function load_corpus_df(df::DataFrame;
+function read_corpus_df(df::DataFrame;
     text_column::Symbol=:text,
     metadata_columns::Vector{Symbol}=Symbol[],
     preprocess::Bool=true,
@@ -328,7 +328,7 @@ function load_corpus_df(df::DataFrame;
 
         # Apply preprocessing with options
         if preprocess
-            doc = prepstring(text_content; prep_opts...)
+            doc = prep_string(text_content; prep_opts...)
             typed_doc = StringDocument(text(doc))
         else
             typed_doc = StringDocument(text_content)
@@ -371,7 +371,7 @@ function aggregate_contingency_tables(tables::Vector{ContingencyTable}, minfreq:
     # Collect all collocates across documents
     all_collocates = Set{Symbol}()
     for table in tables
-        ct = extract_cached_data(table.con_tbl)
+        ct = cached_data(table.con_tbl)
         !isempty(ct) && union!(all_collocates, ct.Collocate)
     end
 
@@ -383,7 +383,7 @@ function aggregate_contingency_tables(tables::Vector{ContingencyTable}, minfreq:
 
     # Aggregate across documents
     for table in tables
-        ct = extract_cached_data(table.con_tbl)
+        ct = cached_data(table.con_tbl)
         isempty(ct) && continue
 
         for row in eachrow(ct)
@@ -458,7 +458,7 @@ function analyze_corpus(corpus::Corpus,
         strip_accents=strip_accents)
 
     # Evaluate metric on aggregated data - now returns DataFrame by default
-    scores_df = evalassoc(metric, cct)
+    scores_df = assoc_score(metric, cct)
 
     # If no results, return empty DataFrame
     if nrow(scores_df) == 0
@@ -472,14 +472,14 @@ function analyze_corpus(corpus::Corpus,
     end
 
     # Get aggregated table for additional info
-    agg_table = extract_cached_data(cct.aggregated_table)
+    agg_table = cached_data(cct.aggregated_table)
 
-    # The evalassoc already returns DataFrame with Node, Collocate, Frequency, and metric column
+    # The assoc_score already returns DataFrame with Node, Collocate, Frequency, and metric column
     # We just need to add DocFrequency and rename the metric column to Score
 
     # Calculate document frequency for each collocate
     doc_freq = [count(t -> begin
-            ct = extract_cached_data(t.con_tbl)
+            ct = cached_data(t.con_tbl)
             !isempty(ct) && col in ct.Collocate
         end, cct.tables) for col in scores_df.Collocate]
 
@@ -506,7 +506,7 @@ function analyze_corpus(corpus::Corpus,
 end
 
 """
-    analyze_multiple_nodes(corpus::Corpus,
+    analyze_nodes(corpus::Corpus,
                           nodes::Vector{String},
                           metrics::Vector{DataType};
                           windowsize::Int=5,
@@ -517,7 +517,7 @@ end
 Analyze multiple node words with multiple metrics across a corpus.
 Each result DataFrame now includes the Node column and metadata.
 """
-function analyze_multiple_nodes(corpus::Corpus,
+function analyze_nodes(corpus::Corpus,
     nodes::Vector{String},
     metrics::Vector{DataType};
     windowsize::Int=5,
@@ -542,14 +542,14 @@ function analyze_multiple_nodes(corpus::Corpus,
                 strip_accents=strip_accents)
 
             # Get aggregated table
-            agg_table = extract_cached_data(cct.aggregated_table)
+            agg_table = cached_data(cct.aggregated_table)
 
             if !isempty(agg_table)
                 # Evaluate all metrics using the new API
-                metric_results = evalassoc(metrics, cct)
+                metric_results = assoc_score(metrics, cct)
 
                 if !isempty(metric_results)
-                    # The evalassoc with multiple metrics returns DataFrame with all metric columns
+                    # The assoc_score with multiple metrics returns DataFrame with all metric columns
                     # Keep top N by first metric
                     first_metric = Symbol(string(metrics[1]))
                     sort!(metric_results, first_metric, rev=true)
@@ -587,12 +587,12 @@ function analyze_multiple_nodes(corpus::Corpus,
 end
 
 """
-    corpus_statistics(corpus::Corpus; 
+    corpus_stats(corpus::Corpus; 
                      include_token_distribution::Bool=true) -> Dict
 
 Get comprehensive statistics about the corpus.
 """
-function corpus_statistics(corpus::Corpus;
+function corpus_stats(corpus::Corpus;
     include_token_distribution::Bool=true,
     # NEW: control normalization & accent stripping
     unicode_form::Symbol=:NFC,
@@ -858,11 +858,11 @@ end
 # =====================================
 
 """
-    export_results(analysis::MultiNodeAnalysis, path::AbstractString; format::Symbol=:csv)
+    write_results(analysis::MultiNodeAnalysis, path::AbstractString; format::Symbol=:csv)
 
 Export analysis results to file. Results now include Node column.
 """
-function export_results(analysis::MultiNodeAnalysis, path::AbstractString; format::Symbol=:csv)
+function write_results(analysis::MultiNodeAnalysis, path::AbstractString; format::Symbol=:csv)
     if format == :csv
         # Option 1: Export each node's results to separate files
         for (node, results) in analysis.results
@@ -912,16 +912,16 @@ function export_results(analysis::MultiNodeAnalysis, path::AbstractString; forma
 end
 
 # =====================================
-# Extend evalassoc for corpus types
+# Extend assoc_score for corpus types
 # =====================================
 
 """
-    evalassoc(metric::Type{<:AssociationMetric}, cct::CorpusContingencyTable)
+    assoc_score(metric::Type{<:AssociationMetric}, cct::CorpusContingencyTable)
 
 Evaluate a metric on a corpus contingency table by wrapping the corpus-level
 lazy aggregated table into a `ContingencyTable` without materializing it.
 """
-function evalassoc(::Type{T}, cct::CorpusContingencyTable) where {T<:AssociationMetric}
+function assoc_score(::Type{T}, cct::CorpusContingencyTable) where {T<:AssociationMetric}
     # Keep the aggregation lazy: pass the existing LazyProcess straight through.
     temp_ct = ContingencyTable(
         cct.aggregated_table,            # LazyProcess{…,DataFrame}
@@ -931,7 +931,7 @@ function evalassoc(::Type{T}, cct::CorpusContingencyTable) where {T<:Association
         LazyInput(StringDocument(""))    # dummy input; fine for corpus-level metrics
     )
 
-    return evalassoc(T, temp_ct)
+    return assoc_score(T, temp_ct)
 end
 
 
@@ -941,10 +941,10 @@ end
 
 function demonstrate_corpus_analysis()
     # Example 1: Load corpus from directory
-    corpus = load_corpus("path/to/texts/", preprocess=true, min_doc_length=50)
+    corpus = read_corpus("path/to/texts/", preprocess=true, min_doc_length=50)
 
     # Get corpus statistics
-    stats = corpus_statistics(corpus)
+    stats = corpus_stats(corpus)
     println("Corpus contains $(stats[:num_documents]) documents with $(stats[:total_tokens]) tokens")
 
     # Example 2: Analyze single node word - NOW WITH NODE COLUMN
@@ -957,14 +957,14 @@ function demonstrate_corpus_analysis()
     nodes = ["important", "significant", "critical", "essential"]
     metrics = [PMI, LogDice, LLR]
 
-    multi_analysis = analyze_multiple_nodes(
+    multi_analysis = analyze_nodes(
         corpus, nodes, metrics,
         windowsize=5, minfreq=10, top_n=50
     )
 
     # Each result DataFrame now includes the Node column
     # Export results - the exported files will include the Node column
-    export_results(multi_analysis, "results/", format=:csv)
+    write_results(multi_analysis, "results/", format=:csv)
 
     # Example 4: Combine results from multiple nodes into single DataFrame
     all_results = DataFrame()
@@ -985,7 +985,7 @@ function demonstrate_corpus_analysis()
         year=[2020, 2021]
     )
 
-    corpus_from_df = load_corpus_df(
+    corpus_from_df = read_corpus_df(
         df,
         text_column=:text,
         metadata_columns=[:author, :year]
@@ -1040,7 +1040,7 @@ function batch_process_corpus(corpus::Corpus,
         println("Processing batch $batch_num (nodes $batch_start-$batch_end)")
 
         # Analyze batch
-        analysis = analyze_multiple_nodes(
+        analysis = analyze_nodes(
             corpus, batch_nodes, metrics,
             windowsize=windowsize, minfreq=minfreq
         )
@@ -1048,7 +1048,7 @@ function batch_process_corpus(corpus::Corpus,
         # Save batch results
         batch_dir = joinpath(output_dir, "batch_$batch_num")
         mkpath(batch_dir)
-        export_results(analysis, batch_dir, format=:csv)
+        write_results(analysis, batch_dir, format=:csv)
 
         # Collect all results
         for (node, df) in analysis.results
@@ -1096,7 +1096,7 @@ function stream_corpus_analysis(file_pattern::AbstractString,
         chunk_docs = StringDocument[]
         for file in file_chunk
             content = read(file, String)
-            push!(chunk_docs, prepstring(content))
+            push!(chunk_docs, prep_string(content))
         end
 
         # Create temporary corpus
@@ -1104,7 +1104,7 @@ function stream_corpus_analysis(file_pattern::AbstractString,
 
         # Analyze chunk
         cct = CorpusContingencyTable(temp_corpus, node, windowsize, 1)
-        chunk_table = extract_cached_data(cct.aggregated_table)
+        chunk_table = cached_data(cct.aggregated_table)
 
         # Aggregate with previous chunks
         # for row in eachrow(chunk_table)

@@ -99,7 +99,7 @@ println("Available metrics: ", length(metrics))
 # Run a simple test
 text = "The quick brown fox jumps over the lazy dog"
 ct = ContingencyTable(text, "the", 3, 1)
-results = evalassoc(PMI, ct)
+results = assoc_score(PMI, ct)
 println("Test successful: ", !isempty(results))
 ```
 

@@ -4,14 +4,14 @@
 # =====================================
 
 """
-    get_analysis_info(df::DataFrame) -> Dict{String, Any}
+    write_results(df::DataFrame) -> Dict{String, Any}
 
 Extract all analysis metadata from a result DataFrame.
 
 # Returns
 Dictionary containing available metadata fields like metric, node, windowsize, etc.
 """
-function get_analysis_info(df::DataFrame)
+function write_results(df::DataFrame)
     info = Dict{String,Any}()
     metadata_keys = ["metric", "metrics", "node", "windowsize", "minfreq",
         "top_n", "analysis_type", "corpus_size", "timestamp"]
@@ -25,11 +25,11 @@ function get_analysis_info(df::DataFrame)
 end
 
 """
-    get_metric_used(df::DataFrame) -> String
+    analysis_metric(df::DataFrame) -> String
 
 Get the metric(s) used in the analysis from DataFrame metadata.
 """
-function get_metric_used(df::DataFrame)
+function analysis_metric(df::DataFrame)
     # Check for single metric first
     if haskey(metadata(df), "metric")
         return metadata(df, "metric")
@@ -52,7 +52,7 @@ julia> analysis_summary(results)
 ```
 """
 function analysis_summary(df::DataFrame)
-    metric = get_metric_used(df)
+    metric = analysis_metric(df)
     node = metadata(df, "node", "Unknown")
     ws = metadata(df, "windowsize", "Unknown")
     mf = metadata(df, "minfreq", "Unknown")
@@ -92,7 +92,7 @@ function combine_results_with_metadata(dfs::Vector{DataFrame})
 
     for df in dfs
         node = metadata(df, "node", nothing)
-        metric = get_metric_used(df)
+        metric = analysis_metric(df)
 
         if node !== nothing
             push!(all_nodes, node)
@@ -112,7 +112,7 @@ function combine_results_with_metadata(dfs::Vector{DataFrame})
 end
 
 """
-    filter_by_score(df::DataFrame, min_score::Real; metric::Union{Symbol,Nothing}=nothing) -> DataFrame
+    filter_scores(df::DataFrame, min_score::Real; metric::Union{Symbol,Nothing}=nothing) -> DataFrame
 
 Filter results by minimum score threshold, preserving metadata.
 
@@ -121,7 +121,7 @@ Filter results by minimum score threshold, preserving metadata.
 - `min_score`: Minimum score threshold
 - `metric`: Score column to use (default: :Score or first metric column)
 """
-function filter_by_score(df::DataFrame, min_score::Real; metric::Union{Symbol,Nothing}=nothing)
+function filter_scores(df::DataFrame, min_score::Real; metric::Union{Symbol,Nothing}=nothing)
     # Determine which column to filter by
     score_col = if metric !== nothing
         metric

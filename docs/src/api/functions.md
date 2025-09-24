@@ -15,30 +15,30 @@ Depth = 2
 
 ## Core Evaluation Functions
 
-### evalassoc - Primary Evaluation Function
+### assoc_score - Primary Evaluation Function
 
 ```@docs
-evalassoc
+assoc_score
 ```
 
-The `evalassoc` function is the primary interface for computing association metrics. It supports multiple signatures for different use cases.
+The `assoc_score` function is the primary interface for computing association metrics. It supports multiple signatures for different use cases.
 
 #### Method Signatures
 
 ```julia
 # Single metric on prepared data
-evalassoc(metric::Type{<:AssociationMetric},
+assoc_score(metric::Type{<:AssociationMetric},
           data::AssociationDataFormat;
           scores_only::Bool=false,
           tokens::Union{Nothing,Vector{String}}=nothing) -> Union{DataFrame, Vector}
 
 # Multiple metrics on prepared data
-evalassoc(metrics::Vector{DataType},
+assoc_score(metrics::Vector{DataType},
           data::AssociationDataFormat;
           scores_only::Bool=false) -> Union{DataFrame, Dict}
 
 # Direct from text (single metric)
-evalassoc(metric::Type{<:AssociationMetric},
+assoc_score(metric::Type{<:AssociationMetric},
           text::AbstractString,
           node::AbstractString,
           windowsize::Int,
@@ -76,7 +76,7 @@ evalassoc(metric::Type{<:AssociationMetric},
 
 ##### Basic Usage
 
-```@example evalassoc
+```@example assoc_score
 using TextAssociations
 
 text = """
@@ -89,17 +89,17 @@ Data analysis helps extract insights from data.
 ct = ContingencyTable(text, "data", windowsize=3, minfreq=1)
 
 # Single metric evaluation
-pmi_results = evalassoc(PMI, ct)
+pmi_results = assoc_score(PMI, ct)
 println("PMI Results:")
 println(pmi_results)
 ```
 
 ##### Multiple Metrics
 
-```@example evalassoc_multi
+```@example assoc_score_multi
 # Evaluate multiple metrics simultaneously
 metrics = [PMI, LogDice, LLR, Dice]
-multi_results = evalassoc(metrics, ct)
+multi_results = assoc_score(metrics, ct)
 
 println("\nColumns in results: ", names(multi_results))
 println("Top result by PMI:")
@@ -108,23 +108,23 @@ println(first(sort(multi_results, :PMI, rev=true), 1))
 
 ##### Direct from Text
 
-```@example evalassoc_direct
+```@example assoc_score_direct
 # Skip contingency table creation
-results = evalassoc(PMI, text, "science", windowsize=4, minfreq=1)
+results = assoc_score(PMI, text, "science", windowsize=4, minfreq=1)
 println("\nDirect evaluation results:")
 println(results)
 ```
 
 ##### Performance Mode
 
-```@example evalassoc_perf
+```@example assoc_score_perf
 # Get only scores for better performance
-scores = evalassoc(PMI, ct, scores_only=true)
+scores = assoc_score(PMI, ct, scores_only=true)
 println("\nScore vector: ", scores)
 println("Length: ", length(scores))
 
 # Multiple metrics with scores_only
-score_dict = evalassoc([PMI, LogDice], ct, scores_only=true)
+score_dict = assoc_score([PMI, LogDice], ct, scores_only=true)
 println("\nScore dictionary keys: ", keys(score_dict))
 ```
 
@@ -132,11 +132,11 @@ println("\nScore dictionary keys: ", keys(score_dict))
 
 ##### Custom Filtering Pipeline
 
-```@example evalassoc_advanced
+```@example assoc_score_advanced
 # Evaluate and filter in one pipeline
 function analyze_with_thresholds(text, word, thresholds)
     ct = ContingencyTable(text, word, 5, 2)
-    results = evalassoc([PMI, LogDice, LLR], ct)
+    results = assoc_score([PMI, LogDice, LLR], ct)
 
     # Apply multiple thresholds
     filtered = filter(row ->
@@ -365,7 +365,7 @@ results = Dict{String, DataFrame}()
 
 for node in nodes
     ct = ContingencyTable(text, node, windowsize=3, minfreq=1)
-    results[node] = evalassoc(PMI, ct)
+    results[node] = assoc_score(PMI, ct)
 end
 
 println("Results per node:")
@@ -391,7 +391,7 @@ function compare_parameters(text, word)
     comparison = DataFrame()
     for p in params
         ct = ContingencyTable(text, word, p.window, p.minfreq)
-        df = evalassoc(PMI, ct)
+        df = assoc_score(PMI, ct)
         df.WindowSize .= p.window
         append!(comparison, df)
     end
@@ -424,7 +424,7 @@ function process_many_nodes(text, nodes)
     for node in nodes
         ct = ContingencyTable(text, node, 5, 1)
         # Get only scores to save memory
-        scores[node] = evalassoc(PMI, ct, scores_only=true)
+        scores[node] = assoc_score(PMI, ct, scores_only=true)
     end
 
     return scores
@@ -450,7 +450,7 @@ function parallel_evaluate(texts, word, metrics)
     # In practice, use @distributed or Threads.@threads
     for text in texts
         ct = ContingencyTable(text, word, 5, 2)
-        push!(results, evalassoc(metrics, ct))
+        push!(results, assoc_score(metrics, ct))
     end
 
     return results
@@ -482,7 +482,7 @@ function safe_evaluate(text, word, metric)
         isempty(word) && throw(ArgumentError("Word cannot be empty"))
 
         ct = ContingencyTable(text, word, 5, 1)
-        results = evalassoc(metric, ct)
+        results = assoc_score(metric, ct)
 
         if isempty(results)
             println("Warning: No collocates found for '$word'")
@@ -528,7 +528,7 @@ function validated_analysis(text, word, windowsize, minfreq)
     end
 
     ct = ContingencyTable(text, word, windowsize, minfreq)
-    return evalassoc(PMI, ct)
+    return assoc_score(PMI, ct)
 end
 
 # Test validation
@@ -563,7 +563,7 @@ function comprehensive_analysis(text, target_word)
 
     # Step 3: Evaluate multiple metrics
     metrics = [PMI, LogDice, LLR, Dice, JaccardIdx]
-    results = evalassoc(metrics, ct)
+    results = assoc_score(metrics, ct)
 
     # Step 4: Add composite score
     results.CompositeScore = (
@@ -595,7 +595,7 @@ using CSV
 
 # Prepare results for export
 ct = ContingencyTable(text, "intelligence", 5, 1)
-results = evalassoc([PMI, LogDice, LLR], ct)
+results = assoc_score([PMI, LogDice, LLR], ct)
 
 # Add metadata
 metadata!(results, "node", "intelligence", style=:note)
@@ -626,7 +626,7 @@ result = @chain text begin
     prep_string(strip_accents=false)
     text
     ContingencyTable("learning", 4, 1)
-    evalassoc([PMI, LogDice], _)
+    assoc_score([PMI, LogDice], _)
     filter(row -> row.PMI > 2 && row.LogDice > 5, _)
     sort(:PMI, rev=true)
     first(5)
@@ -642,7 +642,7 @@ println(result)
 # Compose functions for reusable pipelines
 preprocess = text -> prep_string(text, strip_case=true, strip_punctuation=true)
 analyze = (text, word) -> ContingencyTable(text, word, 5, 2)
-evaluate = ct -> evalassoc([PMI, LogDice, LLR], ct)
+evaluate = ct -> assoc_score([PMI, LogDice, LLR], ct)
 filter_strong = df -> filter(row -> row.PMI > 3 && row.LLR > 10.83, df)
 
 # Use composition
@@ -702,7 +702,7 @@ function optimized_processing(corpus, nodes, metrics)
         if !haskey(cache, node)
             cache[node] = ContingencyTable(corpus, node, 5, 10)
         end
-        results[node] = evalassoc(metrics, cache[node], scores_only=true)
+        results[node] = assoc_score(metrics, cache[node], scores_only=true)
     end
 
     return results
@@ -744,7 +744,7 @@ function debug_analysis(text, word, windowsize, minfreq)
     end
 
     # Check results
-    results = evalassoc(PMI, ct)
+    results = assoc_score(PMI, ct)
     println("Final results: ", nrow(results), " collocates")
 
     return results

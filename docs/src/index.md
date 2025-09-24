@@ -42,7 +42,7 @@ Neural networks power deep learning systems.
 ct = ContingencyTable(text, "learning", windowsize=3, minfreq=1)
 
 # Calculate multiple metrics
-results = evalassoc([PMI, LogDice, LLR], ct)
+results = assoc_score([PMI, LogDice, LLR], ct)
 
 # Display top collocations
 using DataFrames
@@ -108,7 +108,7 @@ doc = prep_string("Your text here...",
 ct = ContingencyTable(text(doc), "word", windowsize=5, minfreq=3)
 
 # Evaluate metrics
-pmi_scores = evalassoc(PMI, ct)
+pmi_scores = assoc_score(PMI, ct)
 ```
 
 ### Corpus-Level Analysis
@@ -175,7 +175,7 @@ TextAssociations.jl
 │   └── Metrics              # Association measures
 │
 ├── Analysis Functions
-│   ├── evalassoc()          # Metric evaluation
+│   ├── assoc_score()          # Metric evaluation
 │   ├── analyze_corpus()     # Corpus analysis
 │   └── keyterms()   # Keyword extraction
 │

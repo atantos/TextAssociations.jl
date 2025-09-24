@@ -33,7 +33,7 @@ ct = ContingencyTable(
 )
 
 # Calculate PMI (Pointwise Mutual Information)
-results = evalassoc(PMI, ct)
+results = assoc_score(PMI, ct)
 println(results)
 ```
 
@@ -65,7 +65,7 @@ Different metrics capture different aspects of word association:
 ```@example tutorial
 # Evaluate multiple metrics at once
 metrics = [PMI, LogDice, LLR, Dice]
-multi_results = evalassoc(metrics, ct)
+multi_results = assoc_score(metrics, ct)
 
 # View the first few rows
 println("Multiple metrics comparison:")
@@ -140,7 +140,7 @@ Apply filters to find the most relevant collocations:
 ```@example tutorial
 # Recreate results for filtering example
 ct = ContingencyTable(text, "science", 4, 1)
-results = evalassoc([PMI, LogDice, LLR], ct)
+results = assoc_score([PMI, LogDice, LLR], ct)
 
 # Filter for strong collocations
 strong_collocations = filter(row ->
@@ -165,7 +165,7 @@ Save your results for further analysis or publication:
 using CSV
 
 # Create results
-results = evalassoc([PMI, LogDice], ct)
+results = assoc_score([PMI, LogDice], ct)
 
 # Save to CSV
 output_file = "collocations.csv"
@@ -213,7 +213,7 @@ function analyze_text(text::String, target_word::String)
     ct = ContingencyTable(text(doc), target_word, windowsize=5, minfreq=2)
 
     # 3. Calculate multiple metrics
-    results = evalassoc([PMI, LogDice, LLR], ct)
+    results = assoc_score([PMI, LogDice, LLR], ct)
 
     # 4. Filter significant results
     significant = filter(row -> row.LLR > 10.83, results)  # p < 0.001
@@ -266,7 +266,7 @@ Now that you understand the basics:
 
 ```julia
 # Get help on any function
-?evalassoc
+?assoc_score
 ?ContingencyTable
 ?analyze_corpus
 

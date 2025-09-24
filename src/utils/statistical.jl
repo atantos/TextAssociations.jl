@@ -16,11 +16,11 @@ Returns a list of all supported association metrics.
 listmetrics() = METRIC_TYPES
 
 """
-    extract_cached_data(z::LazyProcess{T,R}) -> R
+    cached_data(z::LazyProcess{T,R}) -> R
 
 Extract data from a LazyProcess, computing it if necessary.
 """
-function extract_cached_data(z::LazyProcess{T,R}) where {T,R}
+function cached_data(z::LazyProcess{T,R}) where {T,R}
     if !z.cached_process
         z.cached_result = z.f()
         z.cached_process = true
@@ -29,10 +29,10 @@ function extract_cached_data(z::LazyProcess{T,R}) where {T,R}
 end
 
 """
-    extract_document(input::LazyInput) -> StringDocument
+    document(input::LazyInput) -> StringDocument
 
 Extract the document from a LazyInput wrapper.
 """
-function extract_document(input::LazyInput)
-    return extract_cached_data(input.loader)
+function document(input::LazyInput)
+    return cached_data(input.loader)
 end

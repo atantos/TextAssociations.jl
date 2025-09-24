@@ -83,17 +83,17 @@ text = "The cat sat on the mat. The cat played with the ball."
 ct = ContingencyTable(text, "cat", windowsize=3, minfreq=1)
 
 # Calculate PMI scores
-pmi_scores = evalassoc(PMI, ct)
+pmi_scores = assoc_score(PMI, ct)
 
 # Multiple metrics at once
-results = evalassoc([PMI, LogDice, LLR], ct)
+results = assoc_score([PMI, LogDice, LLR], ct)
 ```
 
 ### Corpus Analysis
 
 ```julia
 # Load a corpus from a directory
-corpus = load_corpus("path/to/texts/", preprocess=true)
+corpus = read_corpus("path/to/texts/", preprocess=true)
 
 # Analyze word associations across the entire corpus
 results = analyze_corpus(corpus, "innovation", PMI, windowsize=5, minfreq=10)
@@ -101,10 +101,10 @@ results = analyze_corpus(corpus, "innovation", PMI, windowsize=5, minfreq=10)
 # Analyze multiple words with multiple metrics
 nodes = ["technology", "innovation", "research"]
 metrics = [PMI, LogDice, LLR, ChiSquare]
-analysis = analyze_multiple_nodes(corpus, nodes, metrics, top_n=100)
+analysis = analyze_nodes(corpus, nodes, metrics, top_n=100)
 
 # Export results
-export_results(analysis, "results/", format=:csv)
+write_results(analysis, "results/", format=:csv)
 ```
 
 ## 📊 Supported Metrics
@@ -176,7 +176,7 @@ TextAssociations.jl supports 50+ metrics organized by category:
 Track how word associations change over time:
 
 ```julia
-temporal_analysis = temporal_corpus_analysis(
+temporal_analysis = analyze_temporal(
     corpus, ["pandemic", "vaccine"], :year, PMI, time_bins=5
 )
 ```
@@ -198,23 +198,23 @@ tests = comparison.statistical_tests
 Build and export word association networks:
 
 ```julia
-network = build_collocation_network(
+network = colloc_graph(
     corpus, ["climate", "change"],
     metric=PMI, depth=2, min_score=3.0
 )
-export_network_to_gephi(network, "nodes.csv", "edges.csv")
+gephi_graph(network, "nodes.csv", "edges.csv")
 ```
 
 ### Keyword Extraction
 
 ```julia
-keywords = extract_keywords(corpus, method=:tfidf, num_keywords=50)
+keywords = keyterms(corpus, method=:tfidf, num_keywords=50)
 ```
 
 ### Concordance (KWIC)
 
 ```julia
-concordance = concord(corpus, "innovation", context_size=50)
+concordance = kwic(corpus, "innovation", context_size=50)
 for line in concordance.lines
     println("...$(line.LeftContext) [$(line.Node)] $(line.RightContext)...")
 end
@@ -229,7 +229,7 @@ end
 using Distributed
 addprocs(4)
 
-analysis = analyze_multiple_nodes(
+analysis = analyze_nodes(
     corpus, nodes, metrics, parallel=true
 )
 ```
@@ -283,15 +283,15 @@ TextAssociations.jl is ideal for:
 
 ```julia
 # Load abstracts from CSV
-corpus = load_corpus("papers.csv",
+corpus = read_corpus("papers.csv",
     text_column=:abstract,
     metadata_columns=[:year, :journal])
 
 # Extract domain-specific keywords
-keywords = extract_keywords(corpus, method=:tfidf, num_keywords=100)
+keywords = keyterms(corpus, method=:tfidf, num_keywords=100)
 
 # Analyze key terms over time
-temporal = temporal_corpus_analysis(
+temporal = analyze_temporal(
     corpus, keywords[1:10], :year, PMI
 )
 
@@ -303,16 +303,16 @@ comparison = compare_subcorpora(corpus, :journal, "methodology", LogDice)
 
 ```julia
 # Load novels
-corpus = load_corpus("novels/", preprocess=true)
+corpus = read_corpus("novels/", preprocess=true)
 
 # Character co-occurrence network
 characters = ["Elizabeth", "Darcy", "Jane", "Bingley"]
-network = build_collocation_network(
+network = colloc_graph(
     corpus, characters, windowsize=20
 )
 
 # Export for visualization
-export_network_to_gephi(network, "characters.csv", "relations.csv")
+gephi_graph(network, "characters.csv", "relations.csv")
 ```
 
 ## 🤝 Contributing

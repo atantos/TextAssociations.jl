@@ -4,7 +4,7 @@
 # # =====================================
 
 # """
-#     evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
+#     assoc_score(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
 
 # Evaluate an association metric on a contingency table.
 
@@ -18,10 +18,10 @@
 # # Examples
 # ```julia
 # ct = ContingencyTable("text", "word", 5, 2)
-# scores = evalassoc(PMI, ct)
+# scores = assoc_score(PMI, ct)
 # ```
 # """
-# function evalassoc(::Type{T}, ct::ContingencyTable) where {T<:AssociationMetric}
+# function assoc_score(::Type{T}, ct::ContingencyTable) where {T<:AssociationMetric}
 #     fname = Symbol("eval_", lowercase(String(nameof(T))))
 #     if !isdefined(@__MODULE__, fname)
 #         throw(ArgumentError("Unknown metric type: $(T). Expected a function `$fname`."))
@@ -31,7 +31,7 @@
 # end
 
 # """
-#     evalassoc(metricType::Type{<:AssociationMetric}, 
+#     assoc_score(metricType::Type{<:AssociationMetric}, 
 #               inputstring::AbstractString,
 #               node::AbstractString, 
 #               windowsize::Int, 
@@ -39,24 +39,24 @@
 
 # Convenience method to compute metrics directly from text.
 # """
-# function evalassoc(::Type{T},
+# function assoc_score(::Type{T},
 #     inputstring::AbstractString,
 #     node::AbstractString,
 #     windowsize::Int,
 #     minfreq::Int=5) where {T<:AssociationMetric}
 #     ct = ContingencyTable(inputstring, node, windowsize, minfreq)
-#     return evalassoc(T, ct)
+#     return assoc_score(T, ct)
 # end
 
 # """
-#     evalassoc(metrics::Vector{DataType}, data::ContingencyTable)
+#     assoc_score(metrics::Vector{DataType}, data::ContingencyTable)
 
 # Evaluate multiple metrics on a contingency table.
 
 # # Returns
 # DataFrame with Node column and one column per metric.
 # """
-# function evalassoc(metrics::Vector{DataType}, data::ContingencyTable)
+# function assoc_score(metrics::Vector{DataType}, data::ContingencyTable)
 #     # Validate metrics
 #     if !all(m -> m <: AssociationMetric, metrics)
 #         invalid = filter(m -> !(m <: AssociationMetric), metrics)
@@ -66,7 +66,7 @@
 #     results = DataFrame()
 
 #     # Get the contingency table data to get collocates
-#     con_tbl = extract_cached_data(data.con_tbl)
+#     con_tbl = cached_data(data.con_tbl)
 
 #     if !isempty(con_tbl)
 #         # Add Node column first
@@ -94,7 +94,7 @@
 # end
 
 # """
-#     evalassoc(metrics::Vector{DataType},
+#     assoc_score(metrics::Vector{DataType},
 #               inputstring::AbstractString,
 #               node::AbstractString,
 #               windowsize::Int,
@@ -103,32 +103,32 @@
 # Convenience method to compute multiple metrics directly from text.
 # Returns DataFrame with Node column and metric scores.
 # """
-# function evalassoc(metrics::Vector{DataType},
+# function assoc_score(metrics::Vector{DataType},
 #     inputstring::AbstractString,
 #     node::AbstractString,
 #     windowsize::Int,
 #     minfreq::Int=5)
 #     cont_table = ContingencyTable(inputstring, node, windowsize, minfreq)
-#     return evalassoc(metrics, cont_table)
+#     return assoc_score(metrics, cont_table)
 # end
 
 # # Support for AbstractVector types
-# function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}}, data::ContingencyTable)
-#     return evalassoc(Vector{DataType}(metrics), data)
+# function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}}, data::ContingencyTable)
+#     return assoc_score(Vector{DataType}(metrics), data)
 # end
 
-# function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+# function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
 #     inputstring::AbstractString, node::AbstractString, windowsize::Int, minfreq::Int=5)
-#     return evalassoc(Vector{DataType}(metrics), inputstring, node, windowsize, minfreq)
+#     return assoc_score(Vector{DataType}(metrics), inputstring, node, windowsize, minfreq)
 # end
 
 # """
-#     evalassoc_with_node(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
+#     assoc_score_with_node(metricType::Type{<:AssociationMetric}, data::ContingencyTable)
 
 # Evaluate a single metric and return DataFrame with Node column.
 # This is a convenience function for when you want a DataFrame output even with a single metric.
 # """
-# function evalassoc_with_node(::Type{T}, data::ContingencyTable) where {T<:AssociationMetric}
+# function assoc_score_with_node(::Type{T}, data::ContingencyTable) where {T<:AssociationMetric}
 #     fname = Symbol("eval_", lowercase(String(nameof(T))))
 #     if !isdefined(@__MODULE__, fname)
 #         throw(ArgumentError("Unknown metric type: $(T). Expected a function `$fname`."))
@@ -138,7 +138,7 @@
 #     scores = func(data)
 
 #     # Get the contingency table data to get collocates
-#     con_tbl = extract_cached_data(data.con_tbl)
+#     con_tbl = cached_data(data.con_tbl)
 
 #     if !isempty(con_tbl)
 #         result = DataFrame(
@@ -156,7 +156,7 @@
 # end
 
 # """
-#     evalassoc_with_node(metricType::Type{<:AssociationMetric},
+#     assoc_score_with_node(metricType::Type{<:AssociationMetric},
 #                        inputstring::AbstractString,
 #                        node::AbstractString,
 #                        windowsize::Int,
@@ -164,13 +164,13 @@
 
 # Convenience method to compute a single metric directly from text and return DataFrame with Node column.
 # """
-# function evalassoc_with_node(::Type{T},
+# function assoc_score_with_node(::Type{T},
 #     inputstring::AbstractString,
 #     node::AbstractString,
 #     windowsize::Int,
 #     minfreq::Int=5) where {T<:AssociationMetric}
 #     ct = ContingencyTable(inputstring, node, windowsize, minfreq)
-#     return evalassoc_with_node(T, ct)
+#     return assoc_score_with_node(T, ct)
 # end
 # =====================================
 # File: src/api.jl
@@ -178,7 +178,7 @@
 # =====================================
 
 """
-    evalassoc(metricType::Type{<:AssociationMetric}, data::ContingencyTable; 
+    assoc_score(metricType::Type{<:AssociationMetric}, data::ContingencyTable; 
               scores_only::Bool=false)
 
 Evaluate an association metric on a contingency table.
@@ -193,7 +193,7 @@ Evaluate an association metric on a contingency table.
 - By default: DataFrame with columns [Node, Collocate, Frequency, MetricName]
 - If `scores_only=true`: Vector of association scores
 """
-# function evalassoc(::Type{T}, ct::ContingencyTable;
+# function assoc_score(::Type{T}, ct::ContingencyTable;
 #     scores_only::Bool=false) where {T<:AssociationMetric}
 #     # Calculate scores
 #     fname = Symbol("eval_", lowercase(String(nameof(T))))
@@ -208,7 +208,7 @@ Evaluate an association metric on a contingency table.
 #         return scores
 #     else
 #         # Default: Return DataFrame with words
-#         con_tbl = extract_cached_data(ct.con_tbl)
+#         con_tbl = cached_data(ct.con_tbl)
 
 #         if isempty(scores)
 #             return DataFrame()
@@ -226,7 +226,7 @@ Evaluate an association metric on a contingency table.
 # end
 
 # """
-#     evalassoc(metricType::Type{<:AssociationMetric}, 
+#     assoc_score(metricType::Type{<:AssociationMetric}, 
 #               inputstring::AbstractString,
 #               node::AbstractString, 
 #               windowsize::Int, 
@@ -236,18 +236,18 @@ Evaluate an association metric on a contingency table.
 # Convenience method to compute metrics directly from text.
 # By default returns DataFrame with words.
 # """
-# function evalassoc(::Type{T},
+# function assoc_score(::Type{T},
 #     inputstring::AbstractString,
 #     node::AbstractString,
 #     windowsize::Int,
 #     minfreq::Int=5;
 #     scores_only::Bool=false) where {T<:AssociationMetric}
 #     ct = ContingencyTable(inputstring, node, windowsize, minfreq)
-#     return evalassoc(T, ct; scores_only=scores_only)
+#     return assoc_score(T, ct; scores_only=scores_only)
 # end
 
 # """
-#     evalassoc(metrics::Vector{DataType}, data::ContingencyTable;
+#     assoc_score(metrics::Vector{DataType}, data::ContingencyTable;
 #               scores_only::Bool=false)
 
 # Evaluate multiple metrics on a contingency table.
@@ -256,7 +256,7 @@ Evaluate an association metric on a contingency table.
 # - By default: DataFrame with Node, Collocate, Frequency, and one column per metric
 # - If `scores_only=true`: Dict{String, Vector} with metric names as keys
 # """
-# function evalassoc(metrics::Vector{DataType}, data::ContingencyTable;
+# function assoc_score(metrics::Vector{DataType}, data::ContingencyTable;
 #     scores_only::Bool=false)
 #     # Validate metrics
 #     if !all(m -> m <: AssociationMetric, metrics)
@@ -279,7 +279,7 @@ Evaluate an association metric on a contingency table.
 #         return scores_dict
 #     else
 #         # Default: Return DataFrame
-#         con_tbl = extract_cached_data(data.con_tbl)
+#         con_tbl = cached_data(data.con_tbl)
 
 #         if isempty(con_tbl)
 #             return DataFrame()
@@ -308,7 +308,7 @@ Evaluate an association metric on a contingency table.
 # end
 
 # """
-#     evalassoc(metrics::Vector{DataType},
+#     assoc_score(metrics::Vector{DataType},
 #               inputstring::AbstractString,
 #               node::AbstractString,
 #               windowsize::Int,
@@ -318,30 +318,30 @@ Evaluate an association metric on a contingency table.
 # Convenience method to compute multiple metrics directly from text.
 # By default returns DataFrame with words.
 # """
-# function evalassoc(metrics::Vector{DataType},
+# function assoc_score(metrics::Vector{DataType},
 #     inputstring::AbstractString,
 #     node::AbstractString,
 #     windowsize::Int,
 #     minfreq::Int=5;
 #     scores_only::Bool=false)
 #     cont_table = ContingencyTable(inputstring, node, windowsize, minfreq)
-#     return evalassoc(metrics, cont_table; scores_only=scores_only)
+#     return assoc_score(metrics, cont_table; scores_only=scores_only)
 # end
 
 # # Support for AbstractVector types
-# function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+# function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
 #     data::ContingencyTable;
 #     scores_only::Bool=false)
-#     return evalassoc(Vector{DataType}(metrics), data; scores_only=scores_only)
+#     return assoc_score(Vector{DataType}(metrics), data; scores_only=scores_only)
 # end
 
-# function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+# function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
 #     inputstring::AbstractString,
 #     node::AbstractString,
 #     windowsize::Int,
 #     minfreq::Int=5;
 #     scores_only::Bool=false)
-#     return evalassoc(Vector{DataType}(metrics), inputstring, node, windowsize, minfreq;
+#     return assoc_score(Vector{DataType}(metrics), inputstring, node, windowsize, minfreq;
 #         scores_only=scores_only)
 # end
 # # =====================================
@@ -349,13 +349,13 @@ Evaluate an association metric on a contingency table.
 # # =====================================
 
 # """
-#     evalassoc(metricType::Type{<:AssociationMetric}, cct::CorpusContingencyTable;
+#     assoc_score(metricType::Type{<:AssociationMetric}, cct::CorpusContingencyTable;
 #               scores_only::Bool=false, kwargs...)
 
 # Evaluate a metric directly on a CorpusContingencyTable.
 # `kwargs...` are forwarded to the metric evaluator (e.g., tokens/corpus for LG).
 # """
-# function evalassoc(::Type{T}, cct::CorpusContingencyTable;
+# function assoc_score(::Type{T}, cct::CorpusContingencyTable;
 #     scores_only::Bool=false, kwargs...) where {T<:AssociationMetric}
 
 #     fname = Symbol("eval_", lowercase(String(nameof(T))))
@@ -370,7 +370,7 @@ Evaluate an association metric on a contingency table.
 #     if scores_only
 #         return scores
 #     else
-#         con_tbl = extract_cached_data(cct.aggregated_table)
+#         con_tbl = cached_data(cct.aggregated_table)
 #         if isempty(con_tbl)
 #             return DataFrame()
 #         end
@@ -384,12 +384,12 @@ Evaluate an association metric on a contingency table.
 # end
 
 # """
-#     evalassoc(metrics::Vector{DataType}, cct::CorpusContingencyTable;
+#     assoc_score(metrics::Vector{DataType}, cct::CorpusContingencyTable;
 #               scores_only::Bool=false, kwargs...)
 
 # Evaluate multiple metrics directly on a CorpusContingencyTable.
 # """
-# function evalassoc(metrics::Vector{DataType}, cct::CorpusContingencyTable;
+# function assoc_score(metrics::Vector{DataType}, cct::CorpusContingencyTable;
 #     scores_only::Bool=false, kwargs...)
 
 #     if !all(m -> m <: AssociationMetric, metrics)
@@ -397,7 +397,7 @@ Evaluate an association metric on a contingency table.
 #         throw(ArgumentError("Invalid metric types: $invalid"))
 #     end
 
-#     con_tbl = extract_cached_data(cct.aggregated_table)
+#     con_tbl = cached_data(cct.aggregated_table)
 #     if scores_only
 #         scores_dict = Dict{String,Vector{Float64}}()
 #         for T in metrics
@@ -433,9 +433,9 @@ Evaluate an association metric on a contingency table.
 # end
 
 # # Convenience for AbstractVector{<:Type{<:AssociationMetric}}
-# function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+# function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
 #     cct::CorpusContingencyTable; scores_only::Bool=false, kwargs...)
-#     return evalassoc(Vector{DataType}(metrics), cct; scores_only=scores_only, kwargs...)
+#     return assoc_score(Vector{DataType}(metrics), cct; scores_only=scores_only, kwargs...)
 # end
 # =====================================
 # File: src/api.jl
@@ -460,7 +460,7 @@ Evaluate an association metric on a contingency table.
 # NOTE: Count-only metrics should *not* require tokens; token-based ones should accept `tokens` kwarg.
 
 # =====================================
-# Core evalassoc function from api.jl
+# Core assoc_score function from api.jl
 # =====================================
 
 # Trait to indicate which metrics need tokens
@@ -477,7 +477,7 @@ NeedsTokens(::Type{T}) where {T<:AssociationMetric} = Val(false)
 end
 
 """
-    evalassoc(metricType::Type{<:AssociationMetric}, x::AssociationDataFormat;
+    assoc_score(metricType::Type{<:AssociationMetric}, x::AssociationDataFormat;
               scores_only::Bool=false,
               tokens::Union{Nothing,Vector{String}}=nothing,
               kwargs...)
@@ -489,7 +489,7 @@ Evaluate a metric on any association data format (CT or CCT).
 - Returns a DataFrame by default: [:Node, :Collocate, :Frequency, :<MetricName>].
 - If `scores_only=true`, returns only the scores Vector.
 """
-function evalassoc(::Type{T}, x::AssociationDataFormat;
+function assoc_score(::Type{T}, x::AssociationDataFormat;
     scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...) where {T<:AssociationMetric}
@@ -529,7 +529,7 @@ function evalassoc(::Type{T}, x::AssociationDataFormat;
 end
 
 """
-    evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+    assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
               x::AssociationDataFormat;
               scores_only::Bool=false,
               tokens::Union{Nothing,Vector{String}}=nothing,
@@ -540,7 +540,7 @@ Evaluate multiple metrics on CT or CCT.
 - Returns a DataFrame with one column per metric by default.
 - If `scores_only=true`, returns Dict{String,Vector{Float64}}.
 """
-function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     x::AssociationDataFormat;
     scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
@@ -557,7 +557,7 @@ function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     if scores_only
         scores_dict = Dict{String,Vector{Float64}}()
         for T in metrics
-            scores_dict[String(nameof(T))] = evalassoc(T, x; scores_only=true, tokens=tokens, kwargs...)
+            scores_dict[String(nameof(T))] = assoc_score(T, x; scores_only=true, tokens=tokens, kwargs...)
         end
         return scores_dict
     else
@@ -571,7 +571,7 @@ function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
         out[!, :Frequency] = df.a
 
         for T in metrics
-            out[!, Symbol(nameof(T))] = evalassoc(T, x; scores_only=true, tokens=tokens, kwargs...)
+            out[!, Symbol(nameof(T))] = assoc_score(T, x; scores_only=true, tokens=tokens, kwargs...)
         end
         return out
     end
@@ -582,12 +582,12 @@ end
 # =====================================
 
 # Convenience for `Vector{DataType}` if you keep that style elsewhere
-function evalassoc(metrics::Vector{DataType},
+function assoc_score(metrics::Vector{DataType},
     x::AssociationDataFormat;
     scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...)
-    return evalassoc(Vector{Type{<:AssociationMetric}}(metrics), x;
+    return assoc_score(Vector{Type{<:AssociationMetric}}(metrics), x;
         scores_only=scores_only, tokens=tokens, kwargs...)
 end
 
@@ -597,7 +597,7 @@ end
 # ----------------------------
 
 """
-    evalassoc(metricType::Type{<:AssociationMetric},
+    assoc_score(metricType::Type{<:AssociationMetric},
               inputstring::AbstractString,
               node::AbstractString,
               windowsize::Int,
@@ -609,7 +609,7 @@ end
 
 Convenience overload to compute a metric directly from a raw string.
 """
-function evalassoc(::Type{T},
+function assoc_score(::Type{T},
     inputstring::AbstractString,
     node::AbstractString,
     windowsize::Int,
@@ -623,12 +623,12 @@ function evalassoc(::Type{T},
     ct = ContingencyTable(inputstring, node, windowsize, minfreq;
         strip_accents=strip_accents)
 
-    # Don't pass strip_accents to evalassoc - it's not needed there
-    return evalassoc(T, ct; scores_only=scores_only, tokens=tokens, kwargs...)
+    # Don't pass strip_accents to assoc_score - it's not needed there
+    return assoc_score(T, ct; scores_only=scores_only, tokens=tokens, kwargs...)
 end
 
 """
-    evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+    assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
               inputstring::AbstractString,
               node::AbstractString,
               windowsize::Int,
@@ -640,7 +640,7 @@ end
 
 Convenience overload to compute multiple metrics directly from raw text.
 """
-function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     inputstring::AbstractString,
     node::AbstractString,
     windowsize::Int,
@@ -654,12 +654,12 @@ function evalassoc(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     ct = ContingencyTable(inputstring, node, windowsize, minfreq;
         strip_accents=strip_accents)
 
-    # Don't pass strip_accents to evalassoc
-    return evalassoc(metrics, ct; scores_only=scores_only, tokens=tokens, kwargs...)
+    # Don't pass strip_accents to assoc_score
+    return assoc_score(metrics, ct; scores_only=scores_only, tokens=tokens, kwargs...)
 end
 
 # Keep compatibility with Vector{DataType} call sites
-function evalassoc(metrics::Vector{DataType},
+function assoc_score(metrics::Vector{DataType},
     inputstring::AbstractString,
     node::AbstractString,
     windowsize::Int,
@@ -669,7 +669,7 @@ function evalassoc(metrics::Vector{DataType},
     strip_accents::Bool=false,  # For preprocessing
     kwargs...)
 
-    return evalassoc(Vector{Type{<:AssociationMetric}}(metrics),
+    return assoc_score(Vector{Type{<:AssociationMetric}}(metrics),
         inputstring, node, windowsize, minfreq;
         scores_only=scores_only, tokens=tokens, strip_accents=strip_accents, kwargs...)
 end

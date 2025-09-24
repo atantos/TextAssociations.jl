@@ -45,7 +45,7 @@ Random.seed!(42)
             text = "Hello, World! This is a TEST."
 
             # Test without accent stripping (default)
-            doc = prepstring(text, strip_accents=false)
+            doc = prep_string(text, strip_accents=false)
             processed_text = TextAnalysis.text(doc)
             @test !occursin(",", processed_text)  # Punctuation removed
             @test !occursin("!", processed_text)
@@ -54,14 +54,14 @@ Random.seed!(42)
 
             # Test with accent stripping
             text_greek = "Ένα τεστ με τόνους και διαλυτικά"
-            doc_stripped = prepstring(text_greek, strip_accents=true)
+            doc_stripped = prep_string(text_greek, strip_accents=true)
             @test occursin("ενα", TextAnalysis.text(doc_stripped))
             @test !occursin("ένα", TextAnalysis.text(doc_stripped))
         end
 
         @testset "Vocabulary Creation" begin
-            doc = prepstring("word1 word2 word3 word1")
-            vocab = createvocab(doc)
+            doc = prep_string("word1 word2 word3 word1")
+            vocab = build_vocab(doc)
             # The actual number of unique tokens after tokenization
             # May be 4 if the tokenizer creates an empty token
             @test length(vocab) >= 3  # At least the 3 words we expect
@@ -82,7 +82,7 @@ Random.seed!(42)
 
         @testset "DataFrame vs Scores-only Output" begin
             # Test DataFrame output (default)
-            result_df = evalassoc(PMI, ct, scores_only=false)
+            result_df = assoc_score(PMI, ct, scores_only=false)
             @test isa(result_df, DataFrame)
             @test "Node" in names(result_df)
             @test "Collocate" in names(result_df)
@@ -91,7 +91,7 @@ Random.seed!(42)
             @test all(result_df.Node .== "the")
 
             # Test scores-only output
-            result_scores = evalassoc(PMI, ct, scores_only=true)
+            result_scores = assoc_score(PMI, ct, scores_only=true)
             @test isa(result_scores, Vector{Float64})
             @test length(result_scores) == nrow(result_df)
         end
@@ -100,7 +100,7 @@ Random.seed!(42)
             metrics = [PMI, Dice, JaccardIdx]
 
             # Test DataFrame output for multiple metrics
-            result_df = evalassoc(metrics, ct, scores_only=false)
+            result_df = assoc_score(metrics, ct, scores_only=false)
             @test isa(result_df, DataFrame)
             @test "Node" in names(result_df)
             @test "Collocate" in names(result_df)
@@ -110,7 +110,7 @@ Random.seed!(42)
             @test "JaccardIdx" in names(result_df)
 
             # Test scores-only output for multiple metrics
-            result_dict = evalassoc(metrics, ct, scores_only=true)
+            result_dict = assoc_score(metrics, ct, scores_only=true)
             @test isa(result_dict, Dict{String,Vector{Float64}})
             @test haskey(result_dict, "PMI")
             @test haskey(result_dict, "Dice")
@@ -129,94 +129,94 @@ Random.seed!(42)
 
         @testset "Information Theoretic Metrics" begin
             # Test all return DataFrames by default
-            @test isa(evalassoc(PMI, ct), DataFrame)
-            @test isa(evalassoc(PMI², ct), DataFrame)
-            @test isa(evalassoc(PMI³, ct), DataFrame)
+            @test isa(assoc_score(PMI, ct), DataFrame)
+            @test isa(assoc_score(PMI², ct), DataFrame)
+            @test isa(assoc_score(PMI³, ct), DataFrame)
 
-            ppmi_result = evalassoc(PPMI, ct)
+            ppmi_result = assoc_score(PPMI, ct)
             @test isa(ppmi_result, DataFrame)
             if nrow(ppmi_result) > 0
                 @test all(ppmi_result.PPMI .>= 0)  # PPMI should be non-negative
             end
 
-            @test isa(evalassoc(LLR, ct), DataFrame)
-            @test isa(evalassoc(LLR², ct), DataFrame)
+            @test isa(assoc_score(LLR, ct), DataFrame)
+            @test isa(assoc_score(LLR², ct), DataFrame)
         end
 
         @testset "Statistical Metrics" begin
-            @test isa(evalassoc(ChiSquare, ct), DataFrame)
-            @test isa(evalassoc(Tscore, ct), DataFrame)
-            @test isa(evalassoc(Zscore, ct), DataFrame)
-            @test isa(evalassoc(PhiCoef, ct), DataFrame)
-            @test isa(evalassoc(CramersV, ct), DataFrame)
-            @test isa(evalassoc(YuleQ, ct), DataFrame)
-            @test isa(evalassoc(YuleOmega, ct), DataFrame)
-            @test isa(evalassoc(DeltaPi, ct), DataFrame)
-            @test isa(evalassoc(MinSens, ct), DataFrame)
-            @test isa(evalassoc(PiatetskyShapiro, ct), DataFrame)
-            @test isa(evalassoc(TschuprowT, ct), DataFrame)
-            @test isa(evalassoc(ContCoef, ct), DataFrame)
+            @test isa(assoc_score(ChiSquare, ct), DataFrame)
+            @test isa(assoc_score(Tscore, ct), DataFrame)
+            @test isa(assoc_score(Zscore, ct), DataFrame)
+            @test isa(assoc_score(PhiCoef, ct), DataFrame)
+            @test isa(assoc_score(CramersV, ct), DataFrame)
+            @test isa(assoc_score(YuleQ, ct), DataFrame)
+            @test isa(assoc_score(YuleOmega, ct), DataFrame)
+            @test isa(assoc_score(DeltaPi, ct), DataFrame)
+            @test isa(assoc_score(MinSens, ct), DataFrame)
+            @test isa(assoc_score(PiatetskyShapiro, ct), DataFrame)
+            @test isa(assoc_score(TschuprowT, ct), DataFrame)
+            @test isa(assoc_score(ContCoef, ct), DataFrame)
         end
 
         @testset "Similarity Metrics" begin
-            dice_result = evalassoc(Dice, ct)
+            dice_result = assoc_score(Dice, ct)
             @test isa(dice_result, DataFrame)
             if nrow(dice_result) > 0
                 dice_scores = dice_result.Dice
                 @test all(x -> 0 <= x <= 1 || isnan(x), dice_scores)
             end
 
-            @test isa(evalassoc(LogDice, ct), DataFrame)
+            @test isa(assoc_score(LogDice, ct), DataFrame)
 
-            jaccard_result = evalassoc(JaccardIdx, ct)
+            jaccard_result = assoc_score(JaccardIdx, ct)
             @test isa(jaccard_result, DataFrame)
             if nrow(jaccard_result) > 0
                 jaccard_scores = jaccard_result.JaccardIdx
                 @test all(x -> 0 <= x <= 1 || isnan(x), jaccard_scores)
             end
 
-            @test isa(evalassoc(CosineSim, ct), DataFrame)
-            @test isa(evalassoc(OverlapCoef, ct), DataFrame)
-            @test isa(evalassoc(OchiaiIdx, ct), DataFrame)
-            @test isa(evalassoc(KulczynskiSim, ct), DataFrame)
-            @test isa(evalassoc(TanimotoCoef, ct), DataFrame)
-            @test isa(evalassoc(RogersTanimotoCoef, ct), DataFrame)
-            @test isa(evalassoc(RogersTanimotoCoef2, ct), DataFrame)
-            @test isa(evalassoc(HammanSim, ct), DataFrame)
-            @test isa(evalassoc(HammanSim2, ct), DataFrame)
-            @test isa(evalassoc(GoodmanKruskalIdx, ct), DataFrame)
-            @test isa(evalassoc(GowerCoef, ct), DataFrame)
-            @test isa(evalassoc(GowerCoef2, ct), DataFrame)
-            @test isa(evalassoc(CzekanowskiDiceCoef, ct), DataFrame)
-            @test isa(evalassoc(SorgenfreyIdx, ct), DataFrame)
-            @test isa(evalassoc(SorgenfreyIdx2, ct), DataFrame)
-            @test isa(evalassoc(MountfordCoef, ct), DataFrame)
-            @test isa(evalassoc(MountfordCoef2, ct), DataFrame)
-            @test isa(evalassoc(SokalSneathIdx, ct), DataFrame)
-            @test isa(evalassoc(SokalMichenerCoef, ct), DataFrame)
+            @test isa(assoc_score(CosineSim, ct), DataFrame)
+            @test isa(assoc_score(OverlapCoef, ct), DataFrame)
+            @test isa(assoc_score(OchiaiIdx, ct), DataFrame)
+            @test isa(assoc_score(KulczynskiSim, ct), DataFrame)
+            @test isa(assoc_score(TanimotoCoef, ct), DataFrame)
+            @test isa(assoc_score(RogersTanimotoCoef, ct), DataFrame)
+            @test isa(assoc_score(RogersTanimotoCoef2, ct), DataFrame)
+            @test isa(assoc_score(HammanSim, ct), DataFrame)
+            @test isa(assoc_score(HammanSim2, ct), DataFrame)
+            @test isa(assoc_score(GoodmanKruskalIdx, ct), DataFrame)
+            @test isa(assoc_score(GowerCoef, ct), DataFrame)
+            @test isa(assoc_score(GowerCoef2, ct), DataFrame)
+            @test isa(assoc_score(CzekanowskiDiceCoef, ct), DataFrame)
+            @test isa(assoc_score(SorgenfreyIdx, ct), DataFrame)
+            @test isa(assoc_score(SorgenfreyIdx2, ct), DataFrame)
+            @test isa(assoc_score(MountfordCoef, ct), DataFrame)
+            @test isa(assoc_score(MountfordCoef2, ct), DataFrame)
+            @test isa(assoc_score(SokalSneathIdx, ct), DataFrame)
+            @test isa(assoc_score(SokalMichenerCoef, ct), DataFrame)
         end
 
         @testset "Epidemiological Metrics" begin
-            @test isa(evalassoc(RelRisk, ct), DataFrame)
-            @test isa(evalassoc(LogRelRisk, ct), DataFrame)
-            @test isa(evalassoc(OddsRatio, ct), DataFrame)
-            @test isa(evalassoc(LogOddsRatio, ct), DataFrame)
-            @test isa(evalassoc(RiskDiff, ct), DataFrame)
-            @test isa(evalassoc(AttrRisk, ct), DataFrame)
+            @test isa(assoc_score(RelRisk, ct), DataFrame)
+            @test isa(assoc_score(LogRelRisk, ct), DataFrame)
+            @test isa(assoc_score(OddsRatio, ct), DataFrame)
+            @test isa(assoc_score(LogOddsRatio, ct), DataFrame)
+            @test isa(assoc_score(RiskDiff, ct), DataFrame)
+            @test isa(assoc_score(AttrRisk, ct), DataFrame)
         end
 
         @testset "Lexical Gravity" begin
             # Test lexical gravity with different formulas
-            lg_result = evalassoc(LexicalGravity, ct)
+            lg_result = assoc_score(LexicalGravity, ct)
             @test isa(lg_result, DataFrame)
 
             # Test scores-only mode
-            lg_scores = evalassoc(LexicalGravity, ct, scores_only=true)
+            lg_scores = assoc_score(LexicalGravity, ct, scores_only=true)
             @test isa(lg_scores, Vector{Float64})
 
             # Verify LazyInput is working
             @test !isnothing(ct.input_ref)
-            doc = extract_document(ct.input_ref)
+            doc = document(ct.input_ref)
             @test isa(doc, TextAnalysis.StringDocument)
         end
 
@@ -224,17 +224,17 @@ Random.seed!(42)
             metrics = [PMI, Dice, JaccardIdx]
 
             # Test DataFrame output (default)
-            results_df = evalassoc(metrics, ct)
+            results_df = assoc_score(metrics, ct)
             @test isa(results_df, DataFrame)
             @test all(name in names(results_df) for name in ["Node", "Collocate", "Frequency", "PMI", "Dice", "JaccardIdx"])
 
             # Test scores-only output
-            results_dict = evalassoc(metrics, ct, scores_only=true)
+            results_dict = assoc_score(metrics, ct, scores_only=true)
             @test isa(results_dict, Dict{String,Vector{Float64}})
             @test all(haskey(results_dict, string(m)) for m in metrics)
 
             # Test convenience method from raw text
-            results2 = evalassoc(metrics, text, "the", 3, 1)
+            results2 = assoc_score(metrics, text, "the", 3, 1)
             @test isa(results2, DataFrame)
         end
     end
@@ -260,7 +260,7 @@ Random.seed!(42)
             @test !isempty(corpus.vocabulary)
 
             # Test corpus statistics with accent stripping options
-            stats = corpus_statistics(corpus, unicode_form=:NFC, strip_accents=false)
+            stats = corpus_stats(corpus, unicode_form=:NFC, strip_accents=false)
             @test stats[:num_documents] == 3
             @test stats[:total_tokens] > 0
             @test stats[:unique_tokens] > 0
@@ -281,7 +281,7 @@ Random.seed!(42)
             @test_skip begin
                 nodes = ["the", "cat", "dog"]
                 metrics = [PMI, Dice]
-                analysis = analyze_multiple_nodes(corpus, nodes, metrics,
+                analysis = analyze_nodes(corpus, nodes, metrics,
                     windowsize=3, minfreq=1, top_n=10)
                 @test isa(analysis, MultiNodeAnalysis)
             end
@@ -296,9 +296,9 @@ Random.seed!(42)
             @test cct.windowsize == 3
             @test cct.minfreq == 1
 
-            # Test evalassoc with CorpusContingencyTable
+            # Test assoc_score with CorpusContingencyTable
             # Should return DataFrame by default
-            result = evalassoc(PMI, cct)
+            result = assoc_score(PMI, cct)
             @test isa(result, DataFrame)
             if nrow(result) > 0
                 @test "Node" in names(result)
@@ -307,11 +307,11 @@ Random.seed!(42)
             end
 
             # Test scores-only mode
-            scores = evalassoc(PMI, cct, scores_only=true)
+            scores = assoc_score(PMI, cct, scores_only=true)
             @test isa(scores, Vector{Float64})
 
             # Test multiple metrics
-            multi_result = evalassoc([PMI, Dice], cct)
+            multi_result = assoc_score([PMI, Dice], cct)
             @test isa(multi_result, DataFrame)
         end
 
@@ -324,7 +324,7 @@ Random.seed!(42)
                     year=[2020, 2021, 2022]
                 )
 
-                corpus_from_df = load_corpus_df(
+                corpus_from_df = read_corpus_df(
                     df,
                     text_column=:text,
                     metadata_columns=[:author, :year],
@@ -362,7 +362,7 @@ Random.seed!(42)
             # Skip due to operator issues
             @test_skip begin
                 nodes = ["innovation", "technology"]
-                temporal_results = temporal_corpus_analysis(
+                temporal_results = analyze_temporal(
                     corpus,
                     nodes,
                     :year,
@@ -393,7 +393,7 @@ Random.seed!(42)
         @testset "Keyword Extraction" begin
             # Skip due to function signature issues
             @test_skip begin
-                keywords = extract_keywords(
+                keywords = keyterms(
                     corpus,
                     method=:tfidf,
                     num_keywords=10,
@@ -403,13 +403,13 @@ Random.seed!(42)
                 @test isa(keywords, DataFrame)
             end
 
-            @test_throws ArgumentError extract_keywords(corpus, method=:unknown)
+            @test_throws ArgumentError keyterms(corpus, method=:unknown)
         end
 
         @testset "Collocation Network" begin
             # Skip due to sorting issues
             @test_skip begin
-                network = build_collocation_network(
+                network = colloc_graph(
                     corpus,
                     ["innovation"],
                     metric=PMI,
@@ -424,7 +424,7 @@ Random.seed!(42)
         end
 
         @testset "Concordance" begin
-            concordance = concord(
+            concordance = kwic(
                 corpus,
                 "innovation",
                 context_size=10,
@@ -479,7 +479,7 @@ Random.seed!(42)
 
     @testset "Utility Functions" begin
         @testset "Text Analysis Utilities" begin
-            doc = prepstring("The quick brown fox jumps over the lazy dog")
+            doc = prep_string("The quick brown fox jumps over the lazy dog")
 
             prior_words = TextAssociations.find_prior_words(doc, "fox", 2)
             @test isa(prior_words, Set{String})
@@ -514,24 +514,24 @@ Random.seed!(42)
         @testset "Empty Results" begin
             # Word not in text
             ct = ContingencyTable("This is a test", "missing", 5, 1)
-            result = evalassoc(PMI, ct)
+            result = assoc_score(PMI, ct)
             @test isa(result, DataFrame)
             @test nrow(result) == 0
 
             # Scores-only mode with empty results
-            scores = evalassoc(PMI, ct, scores_only=true)
+            scores = assoc_score(PMI, ct, scores_only=true)
             @test isempty(scores)
 
             # Very high minimum frequency
             ct = ContingencyTable("word "^10, "word", 5, 100)
-            result = evalassoc(PMI, ct)
+            result = assoc_score(PMI, ct)
             @test isa(result, DataFrame)
             @test nrow(result) == 0
         end
 
         @testset "Single Word Text" begin
             ct = ContingencyTable("word", "word", 5, 1)
-            result = evalassoc(PMI, ct)
+            result = assoc_score(PMI, ct)
             @test isa(result, DataFrame)
             @test nrow(result) == 0
         end
@@ -539,7 +539,7 @@ Random.seed!(42)
         @testset "Empty Corpus" begin
             # Fix type signature
             empty_corpus = TextAssociations.Corpus(StringDocument{String}[])
-            stats = corpus_statistics(empty_corpus)
+            stats = corpus_stats(empty_corpus)
             @test stats[:num_documents] == 0
             @test stats[:total_tokens] == 0
         end
@@ -550,7 +550,7 @@ Random.seed!(42)
 
             # Test that unknown metric types throw appropriate errors
             struct UnknownMetric <: AssociationMetric end
-            @test_throws ArgumentError evalassoc(UnknownMetric, ct)
+            @test_throws ArgumentError assoc_score(UnknownMetric, ct)
         end
     end
 
@@ -563,14 +563,14 @@ Random.seed!(42)
             @test !ct.con_tbl.cached_process
 
             # Now access it
-            evalassoc(PMI, ct)
+            assoc_score(PMI, ct)
 
             # Now it should be cached
             @test ct.con_tbl.cached_process
         end
 
         @testset "LazyInput Functionality" begin
-            doc = extract_document(ct.input_ref)
+            doc = document(ct.input_ref)
             @test isa(doc, TextAnalysis.StringDocument)
 
             ct2 = ContingencyTable(text, "text", 5, 1)
@@ -581,11 +581,11 @@ Random.seed!(42)
             lazy_proc = TextAssociations.LazyProcess(() -> DataFrame(a=[1, 2, 3]))
             @test !lazy_proc.cached_process
 
-            result = extract_cached_data(lazy_proc)
+            result = cached_data(lazy_proc)
             @test isa(result, DataFrame)
             @test lazy_proc.cached_process
 
-            result2 = extract_cached_data(lazy_proc)
+            result2 = cached_data(lazy_proc)
             @test result === result2
         end
     end
@@ -597,12 +597,12 @@ Random.seed!(42)
 
             # Test without accent stripping (preserve tonos)
             ct_with_tonos = ContingencyTable(greek_text, "με", 3, 1, strip_accents=false)
-            result_with = evalassoc(PMI, ct_with_tonos)
+            result_with = assoc_score(PMI, ct_with_tonos)
             @test isa(result_with, DataFrame)
 
             # Test with accent stripping
             ct_no_tonos = ContingencyTable(greek_text, "με", 3, 1, strip_accents=true)
-            result_without = evalassoc(PMI, ct_no_tonos)
+            result_without = assoc_score(PMI, ct_no_tonos)
             @test isa(result_without, DataFrame)
         end
 
@@ -610,8 +610,8 @@ Random.seed!(42)
             text = "Café naïve résumé"
 
             # Test different normalization forms
-            doc_nfc = prepstring(text, unicode_form=:NFC)
-            doc_nfd = prepstring(text, unicode_form=:NFD)
+            doc_nfc = prep_string(text, unicode_form=:NFC)
+            doc_nfd = prep_string(text, unicode_form=:NFD)
 
             @test isa(doc_nfc, TextAnalysis.StringDocument)
             @test isa(doc_nfd, TextAnalysis.StringDocument)
@@ -627,12 +627,12 @@ Random.seed!(42)
         corpus = TextAssociations.Corpus(docs)
 
         @testset "Export Results with Node Column" begin
-            # Skip due to analyze_multiple_nodes issues
+            # Skip due to analyze_nodes issues
             @test_skip begin
                 nodes = ["test", "document"]
                 metrics = [PMI, Dice]
 
-                analysis = analyze_multiple_nodes(
+                analysis = analyze_nodes(
                     corpus, nodes, metrics,
                     windowsize=3, minfreq=1, top_n=10
                 )
@@ -640,7 +640,7 @@ Random.seed!(42)
                 # Test CSV export
                 temp_dir = mktempdir()
                 try
-                    export_results(analysis, temp_dir, format=:csv)
+                    write_results(analysis, temp_dir, format=:csv)
                     @test isfile(joinpath(temp_dir, "summary.csv"))
                 finally
                     rm(temp_dir, recursive=true)
@@ -649,7 +649,7 @@ Random.seed!(42)
         end
 
         @testset "Batch Processing" begin
-            # Skip due to analyze_multiple_nodes issues
+            # Skip due to analyze_nodes issues
             @test_skip begin
                 node_file = tempname()
                 output_dir = mktempdir()
@@ -681,11 +681,11 @@ Random.seed!(42)
 
         @testset "Scores-only Performance Mode" begin
             # Single metric performance mode
-            scores = evalassoc(PMI, ct, scores_only=true)
+            scores = assoc_score(PMI, ct, scores_only=true)
             @test isa(scores, Vector{Float64})
 
             # Compare with full DataFrame output
-            df = evalassoc(PMI, ct, scores_only=false)
+            df = assoc_score(PMI, ct, scores_only=false)
             @test length(scores) == nrow(df)
             if nrow(df) > 0
                 @test scores == df.PMI
@@ -693,10 +693,10 @@ Random.seed!(42)
 
             # Multiple metrics performance mode
             metrics = [PMI, Dice, JaccardIdx]
-            scores_dict = evalassoc(metrics, ct, scores_only=true)
+            scores_dict = assoc_score(metrics, ct, scores_only=true)
             @test isa(scores_dict, Dict{String,Vector{Float64}})
 
-            df_multi = evalassoc(metrics, ct, scores_only=false)
+            df_multi = assoc_score(metrics, ct, scores_only=false)
             for m in metrics
                 metric_name = string(m)
                 @test scores_dict[metric_name] == df_multi[!, Symbol(metric_name)]
@@ -712,11 +712,11 @@ Random.seed!(42)
             cct = CorpusContingencyTable(large_corpus, "word", 5, 1)
 
             # Scores only - more efficient
-            scores = evalassoc(PMI, cct, scores_only=true)
+            scores = assoc_score(PMI, cct, scores_only=true)
             @test isa(scores, Vector{Float64})
 
             # DataFrame output - includes metadata
-            df = evalassoc(PMI, cct, scores_only=false)
+            df = assoc_score(PMI, cct, scores_only=false)
             @test isa(df, DataFrame)
             @test "Node" in names(df)
         end
@@ -725,35 +725,35 @@ Random.seed!(42)
     @testset "API Consistency and Compatibility" begin
         text = "Consistency test text with repeated words test."
 
-        @testset "All evalassoc Signatures" begin
+        @testset "All assoc_score Signatures" begin
             ct = ContingencyTable(text, "test", 3, 1)
 
             # Single metric, ContingencyTable, default (DataFrame)
-            r1 = evalassoc(PMI, ct)
+            r1 = assoc_score(PMI, ct)
             @test isa(r1, DataFrame)
 
             # Single metric, ContingencyTable, scores only
-            r2 = evalassoc(PMI, ct, scores_only=true)
+            r2 = assoc_score(PMI, ct, scores_only=true)
             @test isa(r2, Vector{Float64})
 
             # Single metric from raw text - remove strip_accents kwarg
-            r3 = evalassoc(PMI, text, "test", 3, 1)
+            r3 = assoc_score(PMI, text, "test", 3, 1)
             @test isa(r3, DataFrame)
 
             # Single metric from raw text with scores_only
-            r4 = evalassoc(PMI, text, "test", 3, 1, scores_only=true)
+            r4 = assoc_score(PMI, text, "test", 3, 1, scores_only=true)
             @test isa(r4, Vector{Float64})
 
             # Multiple metrics, default output
-            r5 = evalassoc([PMI, Dice], ct)
+            r5 = assoc_score([PMI, Dice], ct)
             @test isa(r5, DataFrame)
 
             # Multiple metrics, scores_only
-            r6 = evalassoc([PMI, Dice], ct, scores_only=true)
+            r6 = assoc_score([PMI, Dice], ct, scores_only=true)
             @test isa(r6, Dict{String,Vector{Float64}})
 
             # Vector{DataType} compatibility
-            r7 = evalassoc(Vector{DataType}([PMI, Dice]), ct)
+            r7 = assoc_score(Vector{DataType}([PMI, Dice]), ct)
             @test isa(r7, DataFrame)
         end
 
@@ -763,19 +763,19 @@ Random.seed!(42)
             cct = CorpusContingencyTable(corpus, "test", 3, 1)
 
             # Single metric on CCT
-            r1 = evalassoc(PMI, cct)
+            r1 = assoc_score(PMI, cct)
             @test isa(r1, DataFrame)
 
             # Single metric on CCT, scores_only
-            r2 = evalassoc(PMI, cct, scores_only=true)
+            r2 = assoc_score(PMI, cct, scores_only=true)
             @test isa(r2, Vector{Float64})
 
             # Multiple metrics on CCT
-            r3 = evalassoc([PMI, Dice], cct)
+            r3 = assoc_score([PMI, Dice], cct)
             @test isa(r3, DataFrame)
 
             # Multiple metrics on CCT, scores_only
-            r4 = evalassoc([PMI, Dice], cct, scores_only=true)
+            r4 = assoc_score([PMI, Dice], cct, scores_only=true)
             @test isa(r4, Dict{String,Vector{Float64}})
         end
     end
@@ -809,7 +809,7 @@ Random.seed!(42)
         end
 
         @testset "Coverage Summary Display" begin
-            stats = corpus_statistics(corpus)
+            stats = corpus_stats(corpus)
             # Test that coverage_summary doesn't error
             @test_nowarn coverage_summary(stats)
         end
@@ -876,7 +876,7 @@ Random.seed!(42)
         @test ct.minfreq == 2
 
         # Test that metrics work with this constructed table
-        result = evalassoc(PMI, ct)
+        result = assoc_score(PMI, ct)
         @test isa(result, DataFrame)
         @test nrow(result) == 2
     end

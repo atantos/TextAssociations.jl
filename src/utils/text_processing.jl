@@ -62,7 +62,7 @@ end
 
 
 """
-    prepstring(input_path::AbstractString; kwargs...) -> StringDocument
+    prep_string(input_path::AbstractString; kwargs...) -> StringDocument
 
 Prepare and preprocess text from various sources into a `StringDocument`.
 
@@ -89,7 +89,7 @@ Prepare and preprocess text from various sources into a `StringDocument`.
 # Returns
 A preprocessed `StringDocument` object suitable for downstream corpus analysis.
 """
-function prepstring(input_path::AbstractString;
+function prep_string(input_path::AbstractString;
     # Keep your original keywords for compatibility:
     strip_punctuation::Bool=true,
     strip_whitespace::Bool=false,   # IMPORTANT: do NOT delete spaces by default
@@ -183,11 +183,11 @@ tostringvector(doc::StringDocument) = tokens(doc)
 tostringvector(vec::Vector{String}) = vec
 
 """
-    createvocab(input::Union{StringDocument,Vector{String}}) -> OrderedDict
+    build_vocab(input::Union{StringDocument,Vector{String}}) -> OrderedDict
 
 Create vocabulary dictionary from text input.
 """
-function createvocab(input::Union{StringDocument,Vector{String}})
+function build_vocab(input::Union{StringDocument,Vector{String}})
     string_vector = unique(tostringvector(input))
     vocab = OrderedDict{String,Int}()
     sizehint!(vocab, length(string_vector))

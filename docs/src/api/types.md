@@ -87,7 +87,7 @@ Modern data science relies heavily on big data technologies.
 ct = ContingencyTable(text, "data", 3, 1)
 
 # The table is computed lazily when first accessed
-results = evalassoc(PMI, ct)
+results = assoc_score(PMI, ct)
 println("Found $(nrow(results)) collocates for 'data'")
 ```
 
@@ -428,7 +428,7 @@ doc = StringDocument("your text")
 ct = ContingencyTable(text(doc), "word", 5)
 
 # Extract DataFrame from results
-df = evalassoc(PMI, ct)
+df = assoc_score(PMI, ct)
 ```
 
 ### Type Checking

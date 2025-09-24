@@ -15,7 +15,7 @@ Compute Lexical Gravity measure based on Daudaravičius & Marcinkevičienė (200
 
 # Arguments
 - `data`: AssociationDataFormat with co-occurrence data
-- `tokens`: Required tokenized text (provided by evalassoc when called through API)
+- `tokens`: Required tokenized text (provided by assoc_score when called through API)
 - `formula`: Which formula to use:
   - `:original` - The main formula from the paper: G→(w1,w2) = log(f→×n+/f1) + log(f←×n-/f2)
   - `:simplified` - Simplified version: G = log₂((f²×span)/(f1×f2))
@@ -32,7 +32,7 @@ Where:
 - f(w1), f(w2) = total frequencies of words
 
 # Note
-This function expects tokens to be provided. When called through evalassoc(),
+This function expects tokens to be provided. When called through assoc_score(),
 tokens are automatically fetched based on the NeedsTokens trait.
 """
 function eval_lexicalgravity(data::AssociationDataFormat;
@@ -220,10 +220,10 @@ function lexical_gravity_analysis(data::AssociationDataFormat;
         end
     end
 
-    # Calculate all three formulas (calling through evalassoc to ensure proper token handling)
-    results[:gravity_original] = evalassoc(LexicalGravity, data, formula=:original, tokens=tokens, scores_only=true)
-    results[:gravity_simplified] = evalassoc(LexicalGravity, data, formula=:simplified, tokens=tokens, scores_only=true)
-    results[:gravity_pmi_weighted] = evalassoc(LexicalGravity, data, formula=:pmi_weighted, tokens=tokens, scores_only=true)
+    # Calculate all three formulas (calling through assoc_score to ensure proper token handling)
+    results[:gravity_original] = assoc_score(LexicalGravity, data, formula=:original, tokens=tokens, scores_only=true)
+    results[:gravity_simplified] = assoc_score(LexicalGravity, data, formula=:simplified, tokens=tokens, scores_only=true)
+    results[:gravity_pmi_weighted] = assoc_score(LexicalGravity, data, formula=:pmi_weighted, tokens=tokens, scores_only=true)
 
     # Add directional analysis
     results[:directional] = _gravity_directional_analysis(data, tokens)

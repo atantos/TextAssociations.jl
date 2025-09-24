@@ -54,7 +54,7 @@ end
 # Cramér's V
 function eval_cramersv(data::AssociationDataFormat)
     chi2 = eval_chisquare(data)
-    con_tbl = extract_cached_data(data.con_tbl)
+    con_tbl = cached_data(data.con_tbl)
     N = con_tbl.N[1]  # N is constant for all rows
     sqrt.(chi2 ./ (N * (2 - 1)))
 end
@@ -62,7 +62,7 @@ end
 # Tschuprow's T
 function eval_tschuprowt(data::AssociationDataFormat)
     chi2 = eval_chisquare(data)
-    con_tbl = extract_cached_data(data.con_tbl)
+    con_tbl = cached_data(data.con_tbl)
     N = con_tbl.N[1]
     sqrt.(chi2 ./ N)
 end
@@ -70,7 +70,7 @@ end
 # Contingency Coefficient
 function eval_contcoef(data::AssociationDataFormat)
     chi2 = eval_chisquare(data)
-    con_tbl = extract_cached_data(data.con_tbl)
+    con_tbl = cached_data(data.con_tbl)
     N = con_tbl.N[1]
     sqrt.(chi2 ./ (chi2 .+ N))
 end

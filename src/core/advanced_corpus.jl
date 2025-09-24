@@ -58,7 +58,7 @@ end
 # =====================================
 
 """
-    temporal_corpus_analysis(corpus::Corpus,
+    analyze_temporal(corpus::Corpus,
                             nodes::Vector{String},
                             time_field::Symbol,
                             metric::Type{<:AssociationMetric};
@@ -68,7 +68,7 @@ end
 
 Analyze how word associations change over time.
 """
-function temporal_corpus_analysis(corpus::Corpus,
+function analyze_temporal(corpus::Corpus,
     nodes::Vector{String},
     time_field::Symbol,
     metric::Type{<:AssociationMetric};
@@ -167,8 +167,8 @@ function temporal_corpus_analysis(corpus::Corpus,
             end
             period_corpus = Corpus(period_docs, metadata=period_metadata)
 
-            # Analyze this period (nodes will be normalized inside analyze_multiple_nodes)
-            period_analysis = analyze_multiple_nodes(
+            # Analyze this period (nodes will be normalized inside analyze_nodes)
+            period_analysis = analyze_nodes(
                 period_corpus, nodes, [metric],
                 windowsize=windowsize, minfreq=minfreq
             )
@@ -485,7 +485,7 @@ end
 # =====================================
 
 """
-    extract_keywords(corpus::Corpus;
+    keyterms(corpus::Corpus;
                     method::Symbol=:tfidf,
                     num_keywords::Int=50,
                     min_doc_freq::Int=3,
@@ -493,7 +493,7 @@ end
 
 Extract keywords from corpus using various methods.
 """
-function extract_keywords(corpus::Corpus;
+function keyterms(corpus::Corpus;
     method::Symbol=:tfidf,
     num_keywords::Int=50,
     min_doc_freq::Int=3,
@@ -638,7 +638,7 @@ struct CollocationNetwork
 end
 
 """
-    build_collocation_network(corpus::Corpus,
+    colloc_graph(corpus::Corpus,
                             seed_words::Vector{String};
                             metric::Type{<:AssociationMetric}=PMI,
                             depth::Int=2,
@@ -647,7 +647,7 @@ end
 
 Build a collocation network starting from seed words.
 """
-function build_collocation_network(corpus::Corpus,
+function colloc_graph(corpus::Corpus,
     seed_words::Vector{String};
     metric::Type{<:AssociationMetric}=PMI,
     depth::Int=2,
@@ -745,13 +745,13 @@ end
 
 
 """
-    export_network_to_gephi(network::CollocationNetwork,
+    gephi_graph(network::CollocationNetwork,
                            nodes_file::String,
                            edges_file::String)
 
 Export network for visualization in Gephi or similar tools.
 """
-function export_network_to_gephi(network::CollocationNetwork,
+function gephi_graph(network::CollocationNetwork,
     nodes_file::String,
     edges_file::String)
 
@@ -791,14 +791,14 @@ struct Concordance
 end
 
 """
-    concord(corpus::Corpus,
+    kwic(corpus::Corpus,
                         node::String;
                         context_size::Int=50,
                         max_lines::Int=1000) -> Concordance
 
 Generate KWIC concordance for a node word.
 """
-function concord(corpus::Corpus,
+function kwic(corpus::Corpus,
     node::String;
     context_size::Int=50,
     max_lines::Int=1000)
@@ -870,12 +870,12 @@ end
 
 function demonstrate_advanced_features()
     # Load corpus with metadata
-    corpus = load_corpus("research_papers.csv",
+    corpus = read_corpus("research_papers.csv",
         text_column=:abstract,
         metadata_columns=[:year, :field, :journal])
 
     # 1. Temporal Analysis
-    temporal_results = temporal_corpus_analysis(
+    temporal_results = analyze_temporal(
         corpus,
         ["innovation", "technology", "research"],
         :year,
@@ -899,12 +899,12 @@ function demonstrate_advanced_features()
     println(first(field_comparison.statistical_tests, 10))
 
     # 3. Keyword Extraction
-    keywords = extract_keywords(corpus, method=:tfidf, num_keywords=30)
+    keywords = keyterms(corpus, method=:tfidf, num_keywords=30)
     println("\nTop keywords:")
     println(first(keywords, 10))
 
     # 4. Collocation Network
-    network = build_collocation_network(
+    network = colloc_graph(
         corpus,
         ["innovation", "technology"],
         metric=PMI,
@@ -912,10 +912,10 @@ function demonstrate_advanced_features()
         min_score=3.0
     )
 
-    export_network_to_gephi(network, "nodes.csv", "edges.csv")
+    gephi_graph(network, "nodes.csv", "edges.csv")
 
     # 5. Concordance
-    concordance = concord(corpus, "innovation", context_size=30)
+    concordance = kwic(corpus, "innovation", context_size=30)
     println("\nConcordance lines:")
     println(first(concordance.lines, 5))
 
