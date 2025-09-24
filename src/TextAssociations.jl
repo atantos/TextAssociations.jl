@@ -71,7 +71,7 @@ export
     export_network_to_gephi, concord,
 
     # Utility functions
-    prepstring,
+    normalize_node, prepstring,
     createvocab,
     conttbl,
 

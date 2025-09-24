@@ -28,6 +28,38 @@ function strip_diacritics(s::AbstractString; target_form::Symbol=:NFC)
 end
 
 
+"""
+    normalize_node(node::AbstractString; 
+                   strip_case::Bool=true,
+                   strip_accents::Bool=true,
+                   unicode_form::Symbol=:NFC) -> String
+
+Normalize a node word to ensure it matches preprocessed corpus text.
+This should match the preprocessing applied to the corpus.
+"""
+function normalize_node(node::AbstractString;
+    strip_case::Bool=true,
+    strip_accents::Bool=true,
+    unicode_form::Symbol=:NFC)
+    # Start with unicode normalization
+    normalized = Unicode.normalize(node, unicode_form)
+
+    # Strip whitespace
+    normalized = strip(normalized)
+
+    # Convert to lowercase if requested (usually true)
+    if strip_case
+        normalized = lowercase(normalized)
+    end
+
+    # Strip accents/diacritics if requested
+    if strip_accents
+        normalized = strip_diacritics(normalized; target_form=unicode_form)
+    end
+
+    return normalized
+end
+
 
 """
     prepstring(input_path::AbstractString; kwargs...) -> StringDocument

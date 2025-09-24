@@ -91,7 +91,6 @@ function temporal_corpus_analysis(corpus::Corpus,
         throw(ArgumentError("No documents have the specified time field: $time_field"))
     end
 
-
     # Create time bins
     parsed_dates = nothing
     is_numeric = eltype(time_values) <: Number
@@ -161,9 +160,14 @@ function temporal_corpus_analysis(corpus::Corpus,
         end
 
         if !isempty(period_docs)
-            period_corpus = Corpus(period_docs)
+            # Create period corpus, preserving preprocessing options
+            period_metadata = Dict{String,Any}()
+            if haskey(corpus.metadata, "_preprocessing_options")
+                period_metadata["_preprocessing_options"] = corpus.metadata["_preprocessing_options"]
+            end
+            period_corpus = Corpus(period_docs, metadata=period_metadata)
 
-            # Analyze this period
+            # Analyze this period (nodes will be normalized inside analyze_multiple_nodes)
             period_analysis = analyze_multiple_nodes(
                 period_corpus, nodes, [metric],
                 windowsize=windowsize, minfreq=minfreq
@@ -173,8 +177,18 @@ function temporal_corpus_analysis(corpus::Corpus,
         end
     end
 
-    # Compute trends
-    trend_analysis = compute_association_trends(results_by_period, nodes, metric)
+    # For trend analysis, we need to use the normalized nodes from the results
+    # Get the actual normalized nodes from the first period that has results
+    normalized_nodes = String[]
+    for (period, analysis) in results_by_period
+        if !isempty(analysis.nodes)
+            normalized_nodes = analysis.nodes
+            break
+        end
+    end
+
+    # Compute trends using normalized nodes
+    trend_analysis = compute_association_trends(results_by_period, normalized_nodes, metric)
 
     return TemporalCorpusAnalysis(
         collect(keys(results_by_period)),
@@ -285,20 +299,41 @@ function compare_subcorpora(corpus::Corpus,
         end
     end
 
-    # Create subcorpora
+    # Create subcorpora, preserving preprocessing options
     for (group, docs) in doc_groups
-        subcorpora[group] = Corpus(docs)
+        group_metadata = Dict{String,Any}()
+        if haskey(corpus.metadata, "_preprocessing_options")
+            group_metadata["_preprocessing_options"] = corpus.metadata["_preprocessing_options"]
+        end
+        subcorpora[group] = Corpus(docs, metadata=group_metadata)
     end
 
     println("Split corpus into $(length(subcorpora)) subcorpora")
 
     # Analyze each subcorpus
     results = Dict{String,DataFrame}()
+    normalized_node = ""  # Will be set from first successful analysis
 
     @showprogress desc = "Analyzing subcorpora..." for (group, subcorpus) in subcorpora
+        # analyze_corpus will normalize the node internally
         group_results = analyze_corpus(subcorpus, node, metric,
             windowsize=windowsize, minfreq=minfreq)
+
+        # Extract the normalized node from the results if not yet set
+        if !isempty(group_results) && normalized_node == ""
+            normalized_node = group_results[1, :Node]  # Get from Node column
+        end
+
         results[group] = group_results
+    end
+
+    # If we never found a normalized node (all results empty), normalize it ourselves
+    if normalized_node == ""
+        prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
+        normalized_node = normalize_node(node;
+            strip_case=get(prep_opts, "strip_case", true),
+            strip_accents=get(prep_opts, "strip_accents", false),
+            unicode_form=Symbol(get(prep_opts, "unicode_form", :NFC)))
     end
 
     # Statistical comparison
@@ -307,12 +342,13 @@ function compare_subcorpora(corpus::Corpus,
 
     return SubcorpusComparison(
         subcorpora,
-        node,
+        normalized_node,  # Use normalized node
         results,
         statistical_tests,
         effect_sizes
     )
 end
+
 
 """
     perform_statistical_tests(results, metric) -> DataFrame
@@ -620,45 +656,64 @@ function build_collocation_network(corpus::Corpus,
     windowsize::Int=5,
     minfreq::Int=5)
 
-    nodes = Set{String}(seed_words)
+    # Get preprocessing options and normalize seed words
+    prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
+    normalized_seeds = [normalize_node(word;
+        strip_case=get(prep_opts, "strip_case", true),
+        strip_accents=get(prep_opts, "strip_accents", false),
+        unicode_form=Symbol(get(prep_opts, "unicode_form", :NFC)))
+                        for word in seed_words]
+
+    nodes = Set{String}(normalized_seeds)
     edges = NamedTuple{(:Source, :Target, :Weight, :Metric),Tuple{String,String,Float64,String}}[]
     node_metrics_data = NamedTuple{(:Node, :Degree, :AvgScore, :MaxScore, :Layer),
         Tuple{String,Int,Float64,Float64,Int}}[]
 
-    current_layer = Set(seed_words)
+    current_layer = Set(normalized_seeds)
 
     for layer in 1:depth
         next_layer = Set{String}()
 
         @showprogress desc = "Building layer $layer..." for node in current_layer
+            # analyze_corpus will handle any further normalization
             results = analyze_corpus(corpus, node, metric; windowsize=windowsize, minfreq=minfreq)
 
             if results isa DataFrame && nrow(results) > 0
+                # The node in results is already normalized
+                actual_node = nrow(results) > 0 ? results[1, :Node] : node
+
                 # keep only rows above threshold
                 filtered = view(results, results.Score .>= min_score, :)
                 if nrow(filtered) > 0
                     k = min(max_neighbors, nrow(filtered))
-                    top_neighbors = first(filtered, k)  # DataFrames.first(df, k)
+                    top_neighbors = first(filtered, k)
 
                     for row in eachrow(top_neighbors)
                         collocate = String(row.Collocate)
-                        push!(edges, (Source=node,
-                            Target=collocate,
+                        # Normalize the collocate as well since it might become a node
+                        normalized_collocate = normalize_node(collocate;
+                            strip_case=get(prep_opts, "strip_case", true),
+                            strip_accents=get(prep_opts, "strip_accents", false),
+                            unicode_form=Symbol(get(prep_opts, "unicode_form", :NFC)))
+
+                        push!(edges, (Source=actual_node,
+                            Target=normalized_collocate,
                             Weight=Float64(row.Score),
                             Metric=string(metric)))
-                        if !(collocate in nodes)
-                            push!(next_layer, collocate)
-                            push!(nodes, collocate)
+
+                        if !(normalized_collocate in nodes)
+                            push!(next_layer, normalized_collocate)
+                            push!(nodes, normalized_collocate)
                         end
                     end
 
-                    push!(node_metrics_data, (Node=node,
+                    push!(node_metrics_data, (Node=actual_node,
                         Degree=nrow(top_neighbors),
                         AvgScore=mean(top_neighbors.Score),
                         MaxScore=maximum(top_neighbors.Score),
                         Layer=layer - 1))
                 else
-                    push!(node_metrics_data, (Node=node, Degree=0, AvgScore=NaN, MaxScore=NaN, Layer=layer - 1))
+                    push!(node_metrics_data, (Node=actual_node, Degree=0, AvgScore=NaN, MaxScore=NaN, Layer=layer - 1))
                 end
             else
                 @info "No collocations found for node: $node"
@@ -680,12 +735,13 @@ function build_collocation_network(corpus::Corpus,
     )
 
     return CollocationNetwork(
-        collect(nodes),          # Vector{String}
-        DataFrame(edges),        # edges table
+        collect(nodes),          # Vector{String} - all normalized
+        DataFrame(edges),        # edges table with normalized nodes
         DataFrame(node_metrics_data),  # per-node metrics
         parameters
     )
 end
+
 
 
 """
@@ -747,6 +803,13 @@ function concord(corpus::Corpus,
     context_size::Int=50,
     max_lines::Int=1000)
 
+    # Normalize the node to match corpus preprocessing
+    prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
+    normalized_node = normalize_node(node;
+        strip_case=get(prep_opts, "strip_case", true),
+        strip_accents=get(prep_opts, "strip_accents", false),
+        unicode_form=Symbol(get(prep_opts, "unicode_form", :NFC)))
+
     concordance_lines = []
     total_occurrences = 0
 
@@ -754,8 +817,8 @@ function concord(corpus::Corpus,
         doc_text = text(doc)
         tokens = TextAnalysis.tokenize(language(doc), doc_text)
 
-        # Find occurrences
-        positions = findall(==(node), tokens)
+        # Find occurrences of normalized node
+        positions = findall(==(normalized_node), tokens)
         total_occurrences += length(positions)
 
         for pos in positions
@@ -770,7 +833,7 @@ function concord(corpus::Corpus,
 
             push!(concordance_lines, (
                 LeftContext=left_context,
-                Node=node,
+                Node=normalized_node,  # Use normalized version
                 RightContext=right_context,
                 DocId=doc_idx,
                 Position=pos
@@ -790,12 +853,12 @@ function concord(corpus::Corpus,
     # Calculate statistics
     statistics = Dict(
         :total_occurrences => total_occurrences,
-        :documents_with_node => count(doc -> node in tokens(doc), corpus.documents),
+        :documents_with_node => count(doc -> normalized_node in tokens(doc), corpus.documents),
         :lines_generated => length(concordance_lines)
     )
 
     return Concordance(
-        node,
+        normalized_node,  # Store normalized node
         DataFrame(concordance_lines),
         statistics
     )

@@ -36,13 +36,19 @@ struct ContingencyTable{T} <: AssociationDataFormat
         minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
         !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
 
+        # NORMALIZE THE NODE WORD to match corpus preprocessing
+        normalized_node = normalize_node(node;
+            strip_case=true,  # matches prepstring default
+            strip_accents=strip_accents,
+            unicode_form=:NFC)
+
         prepared_string = auto_prep ? prepstring(inputstring; strip_accents=strip_accents) : StringDocument(inputstring)
         input_ref = LazyInput(prepared_string)
 
-        f = () -> conttbl(prepared_string, node, windowsize, minfreq)
+        f = () -> conttbl(prepared_string, normalized_node, windowsize, minfreq)
         con_tbl = LazyProcess(f)
 
-        return new{typeof(f)}(con_tbl, node, windowsize, minfreq, input_ref)
+        return new{typeof(f)}(con_tbl, normalized_node, windowsize, minfreq, input_ref)
     end
 
 
@@ -56,7 +62,13 @@ struct ContingencyTable{T} <: AssociationDataFormat
         minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
         !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
 
-        return new{T}(con_tbl, node, windowsize, minfreq, input_ref)
+        # Normalize the node here too - WITH unicode_form=:NFC
+        normalized_node = normalize_node(node;
+            strip_case=true,
+            strip_accents=true,
+            unicode_form=:NFC)
+
+        return new{T}(con_tbl, normalized_node, windowsize, minfreq, input_ref)
     end
 end
 

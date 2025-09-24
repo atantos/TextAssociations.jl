@@ -62,14 +62,26 @@ struct CorpusContingencyTable <: AssociationDataFormat
         node::AbstractString,
         windowsize::Int,
         minfreq::Int64=5;
-        strip_accents::Bool=false)  # <-- NEW
+        strip_accents::Bool=false)
+
+        # NORMALIZE THE NODE WORD
+        # Check if corpus has preprocessing options stored
+        prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
+        node_strip_case = get(prep_opts, "strip_case", true)
+        node_strip_accents = strip_accents || get(prep_opts, "strip_accents", false)
+        node_unicode_form = Symbol(get(prep_opts, "unicode_form", :NFC))
+
+        normalized_node = normalize_node(node;
+            strip_case=node_strip_case,
+            strip_accents=node_strip_accents,
+            unicode_form=node_unicode_form)
 
         # Create contingency tables for each document
         tables = ContingencyTable[]
         @showprogress desc = "Processing documents..." for doc in corpus.documents
             try
                 # Always go through ContingencyTable’s string path so we can apply the toggle
-                ct = ContingencyTable(text(doc), node, windowsize, 1;
+                ct = ContingencyTable(text(doc), normalized_node, windowsize, 1;
                     auto_prep=true, strip_accents=strip_accents)
                 push!(tables, ct)
             catch e
@@ -81,7 +93,7 @@ struct CorpusContingencyTable <: AssociationDataFormat
         f = () -> aggregate_contingency_tables(tables, minfreq)
         aggregated = LazyProcess(f)
 
-        new(tables, aggregated, node, windowsize, minfreq, corpus)
+        new(tables, aggregated, normalized_node, windowsize, minfreq, corpus)
     end
 end
 
@@ -437,8 +449,13 @@ function analyze_corpus(corpus::Corpus,
     windowsize::Int=5,
     minfreq::Int=5)
 
+    # Get preprocessing options from corpus
+    prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
+    strip_accents = get(prep_opts, "strip_accents", false)
+
     # Create corpus contingency table
-    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq;
+        strip_accents=strip_accents)
 
     # Evaluate metric on aggregated data - now returns DataFrame by default
     scores_df = evalassoc(metric, cct)
@@ -508,6 +525,10 @@ function analyze_multiple_nodes(corpus::Corpus,
     top_n::Int=100,
     parallel::Bool=false)
 
+    # Get preprocessing options from corpus metadata
+    prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
+    strip_accents = get(prep_opts, "strip_accents", false)
+
     results = Dict{String,DataFrame}()
 
     if parallel && nworkers() > 1
@@ -516,8 +537,9 @@ function analyze_multiple_nodes(corpus::Corpus,
     else
         # Sequential processing
         @showprogress desc = "Analyzing nodes..." for node in nodes
-            # Create corpus contingency table
-            cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+            # Create corpus contingency table (node will be normalized inside)
+            cct = CorpusContingencyTable(corpus, node, windowsize, minfreq;
+                strip_accents=strip_accents)
 
             # Get aggregated table
             agg_table = extract_cached_data(cct.aggregated_table)
@@ -536,17 +558,17 @@ function analyze_multiple_nodes(corpus::Corpus,
                     # Add metadata about the metrics used
                     metric_names = join(string.(metrics), ", ")
                     metadata!(result, "metrics", metric_names, style=:note)
-                    metadata!(result, "node", node, style=:note)
+                    metadata!(result, "node", cct.node, style=:note)  # Use normalized node
                     metadata!(result, "windowsize", windowsize, style=:note)
                     metadata!(result, "minfreq", minfreq, style=:note)
                     metadata!(result, "top_n", top_n, style=:note)
 
-                    results[node] = result
+                    results[cct.node] = result  # Use normalized node as key
                 else
-                    results[node] = DataFrame()
+                    results[cct.node] = DataFrame()  # Use normalized node as key
                 end
             else
-                results[node] = DataFrame()
+                results[cct.node] = DataFrame()  # Use normalized node as key
             end
         end
     end
@@ -558,7 +580,10 @@ function analyze_multiple_nodes(corpus::Corpus,
         :top_n => top_n
     )
 
-    return MultiNodeAnalysis(nodes, results, corpus, parameters)
+    # Use the normalized nodes from results keys for consistency
+    normalized_nodes = collect(keys(results))
+
+    return MultiNodeAnalysis(normalized_nodes, results, corpus, parameters)
 end
 
 """
