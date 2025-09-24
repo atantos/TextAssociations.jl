@@ -23,10 +23,12 @@ struct Corpus <: AssociationDataFormat
     metadata::Dict{String,Any}
     vocabulary::OrderedDict{String,Int}
     doc_term_matrix::Union{Nothing,SparseMatrixCSC}
+    norm_config::TextNorm  # Single normalization config for entire corpus
 
     function Corpus(docs::Vector{StringDocument{String}};
         build_dtm::Bool=false,
-        metadata::Dict{String,Any}=Dict{String,Any}())
+        metadata::Dict{String,Any}=Dict{String,Any}(),
+        norm_config::TextNorm=TextNorm())
 
         # Build vocabulary
         all_tokens = String[]
@@ -41,7 +43,7 @@ struct Corpus <: AssociationDataFormat
             dtm = build_document_term_matrix(docs, vocabulary)
         end
 
-        new(docs, metadata, vocabulary, dtm)
+        new(docs, metadata, vocabulary, dtm, norm_config)
     end
 end
 
@@ -49,6 +51,7 @@ end
     CorpusContingencyTable
 
 Aggregated contingency table across an entire corpus.
+Uses the corpus's normalization configuration.
 """
 struct CorpusContingencyTable <: AssociationDataFormat
     tables::Vector{ContingencyTable}
@@ -57,43 +60,34 @@ struct CorpusContingencyTable <: AssociationDataFormat
     windowsize::Int
     minfreq::Int64
     corpus_ref::Corpus
+    norm_config::TextNorm
 
     function CorpusContingencyTable(corpus::Corpus,
         node::AbstractString,
         windowsize::Int,
-        minfreq::Int64=5;
-        strip_accents::Bool=false)
+        minfreq::Int64=5)
 
-        # NORMALIZE THE NODE WORD
-        # Check if corpus has preprocessing options stored
-        prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
-        node_strip_case = get(prep_opts, "strip_case", true)
-        node_strip_accents = strip_accents || get(prep_opts, "strip_accents", false)
-        node_unicode_form = Symbol(get(prep_opts, "unicode_form", :NFC))
+        # Use corpus's normalization config
+        norm_config = corpus.norm_config
+        normalized_node = normalize_node(node, norm_config)
 
-        normalized_node = normalize_node(node;
-            strip_case=node_strip_case,
-            strip_accents=node_strip_accents,
-            unicode_form=node_unicode_form)
-
-        # Create contingency tables for each document
+        # Create contingency tables for each document using same config
         tables = ContingencyTable[]
         @showprogress desc = "Processing documents..." for doc in corpus.documents
             try
-                # Always go through ContingencyTable’s string path so we can apply the toggle
                 ct = ContingencyTable(text(doc), normalized_node, windowsize, 1;
-                    auto_prep=true, strip_accents=strip_accents)
+                    norm_config=norm_config)
                 push!(tables, ct)
             catch e
                 @warn "Skipping document due to error: $e"
             end
         end
 
-        # Lazy aggregation as before
+        # Lazy aggregation
         f = () -> aggregate_contingency_tables(tables, minfreq)
         aggregated = LazyProcess(f)
 
-        new(tables, aggregated, normalized_node, windowsize, minfreq, corpus)
+        new(tables, aggregated, normalized_node, windowsize, minfreq, corpus, norm_config)
     end
 end
 
@@ -116,61 +110,15 @@ end
 """
     read_corpus(path::AbstractString; kwargs...) -> Corpus
 
-Load a corpus from various sources.
-
-# Arguments
-- `path`: Directory path, CSV file, or JSON file containing documents
-- `text_column`: Column name for text (for CSV/JSON)
-- `metadata_columns`: Columns to include as metadata
-- `preprocess`: Apply preprocessing (default: true)
-- `preprocess_options`: Dict or NamedTuple of preprocessing options
-- `min_doc_length`: Minimum document length in tokens (default: 10)
-- `max_doc_length`: Maximum document length in tokens (default: nothing)
-
-# Preprocessing Options
-Pass preprocessing options as a Dict or NamedTuple:
-```julia
-read_corpus("path/", preprocess_options=(strip_accents=true, strip_case=false))
-# or
-read_corpus("path/", preprocess_options=Dict(:strip_accents => true))
-```
-
-Available options (see prep_string for details):
-- strip_punctuation (default: true)
-- punctuation_to_space (default: true) 
-- normalize_whitespace (default: true)
-- strip_case (default: true)
-- strip_accents (default: false)
-- unicode_form (default: :NFC)
-- use_prepare (default: false)
+Load a corpus from various sources with consistent normalization.
 """
 function read_corpus(path::AbstractString;
     text_column::Symbol=:text,
     metadata_columns::Vector{Symbol}=Symbol[],
     preprocess::Bool=true,
-    preprocess_options::Union{Dict,NamedTuple,Nothing}=nothing,
+    norm_config::TextNorm=TextNorm(),  # Direct TextNorm config
     min_doc_length::Int=10,
     max_doc_length::Union{Nothing,Int}=nothing)
-
-    # Set up default preprocessing options
-    default_prep_opts = (
-        strip_punctuation=true,
-        punctuation_to_space=true,
-        normalize_whitespace=true,
-        strip_case=true,
-        strip_accents=false,
-        unicode_form=:NFC,
-        use_prepare=false
-    )
-
-    # Merge user options with defaults
-    prep_opts = if preprocess_options === nothing
-        default_prep_opts
-    elseif isa(preprocess_options, Dict)
-        merge(default_prep_opts, NamedTuple(preprocess_options))
-    else
-        merge(default_prep_opts, preprocess_options)
-    end
 
     documents = StringDocument{String}[]
     metadata = Dict{String,Any}()
@@ -181,15 +129,13 @@ function read_corpus(path::AbstractString;
         @showprogress desc = "Loading files..." for file in files
             content = read_text_smart(file)
 
-            # Apply preprocessing with options
             if preprocess
-                doc = prep_string(content; prep_opts...)
+                doc = prep_string(content, norm_config)
                 typed_doc = StringDocument(text(doc))
             else
                 typed_doc = StringDocument(content)
             end
 
-            # Check document length
             doc_tokens = tokens(typed_doc)
             if length(doc_tokens) >= min_doc_length &&
                (max_doc_length === nothing || length(doc_tokens) <= max_doc_length)
@@ -205,21 +151,18 @@ function read_corpus(path::AbstractString;
         @showprogress desc = "Processing CSV rows..." for row in eachrow(df)
             text_content = string(row[text_column])
 
-            # Apply preprocessing with options
             if preprocess
-                doc = prep_string(text_content; prep_opts...)
+                doc = prep_string(text_content, norm_config)
                 typed_doc = StringDocument(text(doc))
             else
                 typed_doc = StringDocument(text_content)
             end
 
-            # Check document length
             doc_tokens = tokens(typed_doc)
             if length(doc_tokens) >= min_doc_length &&
                (max_doc_length === nothing || length(doc_tokens) <= max_doc_length)
                 push!(documents, typed_doc)
 
-                # Store metadata
                 row_metadata = Dict{Symbol,Any}()
                 for col in metadata_columns
                     if col in names(df)
@@ -238,15 +181,13 @@ function read_corpus(path::AbstractString;
             @showprogress desc = "Processing JSON entries..." for (i, entry) in enumerate(json_data)
                 text_content = string(get(entry, string(text_column), ""))
                 if !isempty(text_content)
-                    # Apply preprocessing with options
                     if preprocess
-                        doc = prep_string(text_content; prep_opts...)
+                        doc = prep_string(text_content, norm_config)
                         typed_doc = StringDocument(text(doc))
                     else
                         typed_doc = StringDocument(text_content)
                     end
 
-                    # Check document length
                     doc_tokens = tokens(typed_doc)
                     if length(doc_tokens) >= min_doc_length &&
                        (max_doc_length === nothing || length(doc_tokens) <= max_doc_length)
@@ -262,63 +203,20 @@ function read_corpus(path::AbstractString;
 
     println("Loaded $(length(documents)) documents")
 
-    # Store preprocessing options in corpus metadata for reproducibility
-    corpus = Corpus(documents, metadata=metadata)
-
-    # You might want to store prep options in the corpus somehow
-    # For example, add to the metadata dict:
-    corpus.metadata["_preprocessing_options"] = Dict(pairs(prep_opts))
-
-    return corpus
+    # Create corpus with normalization config
+    return Corpus(documents, metadata=metadata, norm_config=norm_config)
 end
 
 """
     read_corpus_df(df::DataFrame; kwargs...) -> Corpus
 
-Load corpus directly from a DataFrame.
-
-# Arguments  
-- `df`: DataFrame containing documents
-- `text_column`: Column containing text (default: :text)
-- `metadata_columns`: Columns to preserve as metadata
-- `preprocess`: Whether to preprocess (default: true)
-- `preprocess_options`: Dict or NamedTuple of preprocessing options
-
-# Example
-```julia
-corpus = read_corpus_df(
-    df,
-    text_column=:content,
-    metadata_columns=[:author, :date],
-    preprocess_options=(strip_accents=true, strip_case=false)
-)
-```
+Load corpus directly from a DataFrame with consistent normalization.
 """
 function read_corpus_df(df::DataFrame;
     text_column::Symbol=:text,
     metadata_columns::Vector{Symbol}=Symbol[],
     preprocess::Bool=true,
-    preprocess_options::Union{Dict,NamedTuple,Nothing}=nothing)
-
-    # Set up default preprocessing options
-    default_prep_opts = (
-        strip_punctuation=true,
-        punctuation_to_space=true,
-        normalize_whitespace=true,
-        strip_case=true,
-        strip_accents=false,
-        unicode_form=:NFC,
-        use_prepare=false
-    )
-
-    # Merge user options with defaults
-    prep_opts = if preprocess_options === nothing
-        default_prep_opts
-    elseif isa(preprocess_options, Dict)
-        merge(default_prep_opts, NamedTuple(preprocess_options))
-    else
-        merge(default_prep_opts, preprocess_options)
-    end
+    norm_config::TextNorm=TextNorm())
 
     documents = StringDocument{String}[]
     metadata = Dict{String,Any}()
@@ -326,9 +224,8 @@ function read_corpus_df(df::DataFrame;
     @showprogress desc = "Processing DataFrame..." for (idx, row) in enumerate(eachrow(df))
         text_content = string(row[text_column])
 
-        # Apply preprocessing with options
         if preprocess
-            doc = prep_string(text_content; prep_opts...)
+            doc = prep_string(text_content, norm_config)
             typed_doc = StringDocument(text(doc))
         else
             typed_doc = StringDocument(text_content)
@@ -336,7 +233,6 @@ function read_corpus_df(df::DataFrame;
 
         push!(documents, typed_doc)
 
-        # Store metadata
         row_metadata = Dict{Symbol,Any}()
         for col in metadata_columns
             if col in names(df)
@@ -346,12 +242,7 @@ function read_corpus_df(df::DataFrame;
         metadata["doc_$idx"] = row_metadata
     end
 
-    corpus = Corpus(documents, metadata=metadata)
-
-    # Store preprocessing options for reproducibility
-    corpus.metadata["_preprocessing_options"] = Dict(pairs(prep_opts))
-
-    return corpus
+    return Corpus(documents, metadata=metadata, norm_config=norm_config)
 end
 
 # =====================================
@@ -440,7 +331,7 @@ end
     analyze_corpus(corpus::Corpus, node::AbstractString, metric::Type{<:AssociationMetric};
                   windowsize::Int=5, minfreq::Int=5) -> DataFrame
 
-Analyze a single node word across the entire corpus.
+Analyze a single node word across the entire corpus using corpus's normalization.
 Returns DataFrame with Node, Collocate, Score, Frequency, and DocFrequency columns.
 """
 function analyze_corpus(corpus::Corpus,
@@ -449,18 +340,12 @@ function analyze_corpus(corpus::Corpus,
     windowsize::Int=5,
     minfreq::Int=5)
 
-    # Get preprocessing options from corpus
-    prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
-    strip_accents = get(prep_opts, "strip_accents", false)
+    # Create corpus contingency table (will use corpus's norm_config)
+    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
 
-    # Create corpus contingency table
-    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq;
-        strip_accents=strip_accents)
-
-    # Evaluate metric on aggregated data - now returns DataFrame by default
+    # Evaluate metric
     scores_df = assoc_score(metric, cct)
 
-    # If no results, return empty DataFrame
     if nrow(scores_df) == 0
         return DataFrame(
             Node=String[],
@@ -471,33 +356,26 @@ function analyze_corpus(corpus::Corpus,
         )
     end
 
-    # Get aggregated table for additional info
-    agg_table = cached_data(cct.aggregated_table)
-
-    # The assoc_score already returns DataFrame with Node, Collocate, Frequency, and metric column
-    # We just need to add DocFrequency and rename the metric column to Score
-
-    # Calculate document frequency for each collocate
+    # Calculate document frequency
     doc_freq = [count(t -> begin
             ct = cached_data(t.con_tbl)
             !isempty(ct) && col in ct.Collocate
         end, cct.tables) for col in scores_df.Collocate]
 
-    # Build final result DataFrame
+    # Build result DataFrame
     result = DataFrame(
         Node=scores_df.Node,
         Collocate=scores_df.Collocate,
-        Score=scores_df[!, Symbol(string(metric))],  # Extract the metric column as Score
+        Score=scores_df[!, Symbol(string(metric))],
         Frequency=scores_df.Frequency,
         DocFrequency=doc_freq
     )
 
-    # Sort by Score column (descending)
     sort!(result, :Score, rev=true)
 
-    # Add metadata about the analysis
+    # Add metadata
     metadata!(result, "metric", string(metric), style=:note)
-    metadata!(result, "node", node, style=:note)
+    metadata!(result, "node", cct.node, style=:note)  # Use normalized node
     metadata!(result, "windowsize", windowsize, style=:note)
     metadata!(result, "minfreq", minfreq, style=:note)
     metadata!(result, "analysis_type", "corpus_analysis", style=:note)
@@ -506,15 +384,11 @@ function analyze_corpus(corpus::Corpus,
 end
 
 """
-    analyze_nodes(corpus::Corpus,
-                          nodes::Vector{String},
-                          metrics::Vector{DataType};
-                          windowsize::Int=5,
-                          minfreq::Int=5,
-                          top_n::Int=100,
-                          parallel::Bool=false) -> MultiNodeAnalysis
+    analyze_nodes(corpus::Corpus, nodes::Vector{String}, metrics::Vector{DataType};
+                 windowsize::Int=5, minfreq::Int=5, top_n::Int=100,
+                 parallel::Bool=false) -> MultiNodeAnalysis
 
-Analyze multiple node words with multiple metrics across a corpus.
+Analyze multiple nodes with consistent normalization.
 Each result DataFrame now includes the Node column and metadata.
 """
 function analyze_nodes(corpus::Corpus,
@@ -525,50 +399,39 @@ function analyze_nodes(corpus::Corpus,
     top_n::Int=100,
     parallel::Bool=false)
 
-    # Get preprocessing options from corpus metadata
-    prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
-    strip_accents = get(prep_opts, "strip_accents", false)
-
     results = Dict{String,DataFrame}()
 
     if parallel && nworkers() > 1
-        # Parallel processing implementation would go here
-        # (omitted for brevity)
+        # Parallel processing (implementation omitted for brevity)
     else
-        # Sequential processing
         @showprogress desc = "Analyzing nodes..." for node in nodes
-            # Create corpus contingency table (node will be normalized inside)
-            cct = CorpusContingencyTable(corpus, node, windowsize, minfreq;
-                strip_accents=strip_accents)
+            # Create corpus contingency table (node normalized inside)
+            cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
 
-            # Get aggregated table
             agg_table = cached_data(cct.aggregated_table)
 
             if !isempty(agg_table)
-                # Evaluate all metrics using the new API
                 metric_results = assoc_score(metrics, cct)
 
                 if !isempty(metric_results)
-                    # The assoc_score with multiple metrics returns DataFrame with all metric columns
-                    # Keep top N by first metric
                     first_metric = Symbol(string(metrics[1]))
                     sort!(metric_results, first_metric, rev=true)
                     result = first(metric_results, min(top_n, nrow(metric_results)))
 
-                    # Add metadata about the metrics used
+                    # Add metadata
                     metric_names = join(string.(metrics), ", ")
                     metadata!(result, "metrics", metric_names, style=:note)
-                    metadata!(result, "node", cct.node, style=:note)  # Use normalized node
+                    metadata!(result, "node", cct.node, style=:note)
                     metadata!(result, "windowsize", windowsize, style=:note)
                     metadata!(result, "minfreq", minfreq, style=:note)
                     metadata!(result, "top_n", top_n, style=:note)
 
                     results[cct.node] = result  # Use normalized node as key
                 else
-                    results[cct.node] = DataFrame()  # Use normalized node as key
+                    results[cct.node] = DataFrame()
                 end
             else
-                results[cct.node] = DataFrame()  # Use normalized node as key
+                results[cct.node] = DataFrame()
             end
         end
     end
@@ -580,7 +443,6 @@ function analyze_nodes(corpus::Corpus,
         :top_n => top_n
     )
 
-    # Use the normalized nodes from results keys for consistency
     normalized_nodes = collect(keys(results))
 
     return MultiNodeAnalysis(normalized_nodes, results, corpus, parameters)

@@ -27,42 +27,32 @@ function strip_diacritics(s::AbstractString; target_form::Symbol=:NFC)
     return Unicode.normalize(s_nomark, target_form)
 end
 
-
 """
-    normalize_node(node::AbstractString; 
-                   strip_case::Bool=true,
-                   strip_accents::Bool=true,
-                   unicode_form::Symbol=:NFC) -> String
+    normalize_node(node::AbstractString, config::TextNorm) -> String
 
-Normalize a node word to ensure it matches preprocessed corpus text.
-This should match the preprocessing applied to the corpus.
+Normalize a node word according to the given TextNorm configuration.
+This is the single source of truth for node normalization.
 """
-function normalize_node(node::AbstractString;
-    strip_case::Bool=true,
-    strip_accents::Bool=true,
-    unicode_form::Symbol=:NFC)
+function normalize_node(node::AbstractString, config::TextNorm)
     # Start with unicode normalization
-    normalized = Unicode.normalize(node, unicode_form)
+    normalized = Unicode.normalize(strip(node), config.unicode_form)
 
-    # Strip whitespace
-    normalized = strip(normalized)
-
-    # Convert to lowercase if requested (usually true)
-    if strip_case
+    # Apply transformations in consistent order
+    if config.strip_case
         normalized = lowercase(normalized)
     end
 
-    # Strip accents/diacritics if requested
-    if strip_accents
-        normalized = strip_diacritics(normalized; target_form=unicode_form)
+    if config.strip_accents
+        normalized = strip_diacritics(normalized; target_form=config.unicode_form)
     end
 
     return normalized
 end
 
 
+
 """
-    prep_string(input_path::AbstractString; kwargs...) -> StringDocument
+    prep_string(input_path::AbstractString, config::TextNorm) -> StringDocument
 
 Prepare and preprocess text from various sources into a `StringDocument`.
 
@@ -70,111 +60,70 @@ Prepare and preprocess text from various sources into a `StringDocument`.
 - `input_path`: File path, directory path, or raw text string.
 
 ## Preprocessing options
-- `strip_punctuation::Bool=true`: Remove punctuation.  
-- `punctuation_to_space::Bool=true`: Replace punctuation with spaces (avoids glued words).  
-- `strip_whitespace::Bool=false`: Remove whitespace entirely (not recommended).  
-- `normalize_whitespace::Bool=true`: Collapse multiple spaces to one.  
-- `strip_case::Bool=true`: Convert to lowercase (Unicode-aware).  
-- `strip_accents::Bool=false`: Remove diacritics (tonos, dialytika) using Unicode normalization.  
-- `unicode_form::Symbol=:NFC`: Unicode normalization form to apply (`:NFC` by default).  
-- `use_prepare::Bool=false`: Apply TextAnalysis `prepare!` pipeline (disabled by default to protect tonos).
-
-# Behavior
-- Text can be provided as a file, directory of `.txt` files, or raw string.  
-- For directories, all `.txt` files are concatenated before preprocessing.  
-- Unicode normalization (`unicode_form`) is applied first.  
-- If `strip_accents=true`, diacritics are removed after normalization.  
-- Output is wrapped in a `StringDocument`.
+Uses `TextNorm` configuration for all preprocessing options.
 
 # Returns
 A preprocessed `StringDocument` object suitable for downstream corpus analysis.
 """
-function prep_string(input_path::AbstractString;
-    # Keep your original keywords for compatibility:
-    strip_punctuation::Bool=true,
-    strip_whitespace::Bool=false,   # IMPORTANT: do NOT delete spaces by default
-    strip_case::Bool=true,
+function prep_string(input_path::AbstractString, config::TextNorm)
 
-    # New, safer controls (as you had them):
-    punctuation_to_space::Bool=true,       # map punctuation → spaces (prevents "glued" words)
-    normalize_whitespace::Bool=true,       # collapse multiple spaces
-    unicode_form::Symbol=:NFC,             # NFC preserves tonos
-    use_prepare::Bool=false,               # set true only if you’re sure your pipeline is tonos-safe
+    function prepare_document(content::String, config::TextNorm)
+        # 1) Unicode normalization
+        s = Unicode.normalize(content, config.unicode_form)
 
-    # NEW toggle (defaults off to preserve current behaviour):
-    strip_accents::Bool=false
-)
-
-    # --- helper to prepare one string (TONOS-SAFE) ---
-    function prepare_document(content::String)
-        # 1) Unicode normalization (preserves tonos in Greek by default)
-        s = Base.Unicode.normalize(content, unicode_form)
-
-        # 2) Punctuation handling (prefer mapping → spaces to keep boundaries)
-        if strip_punctuation && punctuation_to_space
+        # 2) Punctuation handling
+        if config.strip_punctuation && config.punctuation_to_space
             s = replace(s, r"\p{P}+" => " ")
-        elseif strip_punctuation
-            # WARNING: deleting punctuation may glue words; only do this if you really want it
+        elseif config.strip_punctuation
             s = replace(s, r"\p{P}+" => "")
         end
 
         # 3) Whitespace handling
-        if normalize_whitespace
-            # Normalize all whitespace runs to a single space
+        if config.normalize_whitespace
             s = replace(s, r"\s+" => " ")
-        elseif strip_whitespace
-            # If caller explicitly wants to delete whitespace entirely (not recommended)
+        elseif config.strip_whitespace
             s = replace(s, r"\s+" => "")
         end
 
-        # 4) Case folding (Unicode-aware; keeps tonos)
-        if strip_case
+        # 4) Case folding
+        if config.strip_case
             s = lowercase(s)
         end
 
-        # 4.5) OPTIONAL: strip diacritics/tonos/dialytika if requested
-        if strip_accents
-            s = strip_diacritics(s; target_form=unicode_form)
+        # 5) Strip diacritics if requested
+        if config.strip_accents
+            s = strip_diacritics(s; target_form=config.unicode_form)
         end
 
-        # 5) Create the document
+        # 6) Create document
         doc = StringDocument(s)
 
-        # 6) Optional TextAnalysis pipeline (disabled by default to protect tonos)
-        if use_prepare
-            pipeline = 0x00
-            # If you already handled punctuation/whitespace/case above,
-            # *do not* also set those flags here (to avoid double-processing).
-            pipeline != 0x00 && prepare!(doc, pipeline)
+        # 7) Optional TextAnalysis pipeline
+        if config.use_prepare
+            prepare!(doc, 0x00)
         end
 
         return doc
     end
 
-    # --- detect input kind (path / dir / raw string) ---
+    # Detect input type and process
     if length(input_path) < 256 && isfile(input_path)
-        return prepare_document(read(input_path, String))
+        return prepare_document(read(input_path, String), config)
     elseif length(input_path) < 256 && isdir(input_path)
         texts = String[]
         for (root, _, files) in walkdir(input_path)
             for file in files
                 endswith(file, ".txt") || continue
                 file_path = joinpath(root, file)
-                # your environment already has a tonos-safe reader; keep as-is:
-                push!(texts, read_text_smart(file_path))  # unchanged call
+                push!(texts, read_text_smart(file_path))
             end
         end
-        return prepare_document(join(texts, " "))
+        return prepare_document(join(texts, " "), config)
     else
         # Treat as raw string
-        return prepare_document(input_path)
+        return prepare_document(input_path, config)
     end
 end
-
-
-
-
-
 
 """
 Convert input to string vector for vocabulary creation.

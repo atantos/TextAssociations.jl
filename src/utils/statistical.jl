@@ -9,11 +9,11 @@ log_safe(x::Real) = log(max(x, eps()))
 log2_safe(x::Real) = log2(max(x, eps()))
 
 """
-    listmetrics() -> Vector{Symbol}
+    available_metrics() -> Vector{Symbol}
 
 Returns a list of all supported association metrics.
 """
-listmetrics() = METRIC_TYPES
+available_metrics() = METRIC_TYPES
 
 """
     cached_data(z::LazyProcess{T,R}) -> R

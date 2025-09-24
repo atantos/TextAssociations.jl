@@ -1,6 +1,6 @@
 # =====================================
 # File: src/core/contingency_table.jl
-# ContingencyTable implementation
+# ContingencyTable implementation for word co-occurrence analysis
 # =====================================
 
 using FreqTables: freqtable
@@ -12,10 +12,11 @@ Represents a contingency table for word co-occurrence analysis.
 
 # Fields
 - `con_tbl`: Lazy-loaded contingency table data
-- `node`: Target word
+- `node`: Target word (normalized)
 - `windowsize`: Context window size
 - `minfreq`: Minimum frequency threshold
 - `input_ref`: Reference to the processed input document
+- `norm_config`: Text normalization configuration
 """
 struct ContingencyTable{T} <: AssociationDataFormat
     con_tbl::LazyProcess{T,DataFrame}
@@ -23,70 +24,66 @@ struct ContingencyTable{T} <: AssociationDataFormat
     windowsize::Int
     minfreq::Int64
     input_ref::LazyInput
+    norm_config::TextNorm
 
-    # Build from raw text (existing constructor)
+    # Main constructor from raw text
     function ContingencyTable(inputstring::AbstractString,
         node::AbstractString,
         windowsize::Int,
         minfreq::Int64=5;
-        auto_prep::Bool=true,
-        strip_accents::Bool=true) # for stripping accent (e.g., Greek tonos) for downstream analysis
+        norm_config::TextNorm=TextNorm())
 
         windowsize > 0 || throw(ArgumentError("Window size must be positive"))
         minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
         !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
 
-        # NORMALIZE THE NODE WORD to match corpus preprocessing
-        normalized_node = normalize_node(node;
-            strip_case=true,  # matches prep_string default
-            strip_accents=strip_accents,
-            unicode_form=:NFC)
+        # Normalize node using config
+        normalized_node = normalize_node(node, norm_config)
 
-        prepared_string = auto_prep ? prep_string(inputstring; strip_accents=strip_accents) : StringDocument(inputstring)
+        # Preprocess text using same config
+        prepared_string = prep_string(inputstring, norm_config)
         input_ref = LazyInput(prepared_string)
 
         f = () -> cont_table(prepared_string, normalized_node, windowsize, minfreq)
         con_tbl = LazyProcess(f)
 
-        return new{typeof(f)}(con_tbl, normalized_node, windowsize, minfreq, input_ref)
+        return new{typeof(f)}(con_tbl, normalized_node, windowsize, minfreq,
+            input_ref, norm_config)
     end
 
-
-    # NEW: Build from an existing LazyProcess that yields a DataFrame (keeps laziness)
+    # Constructor from LazyProcess (for corpus aggregation)
     function ContingencyTable(con_tbl::LazyProcess{T,DataFrame},
         node::AbstractString,
         windowsize::Int,
         minfreq::Int64,
-        input_ref::LazyInput) where {T}
+        input_ref::LazyInput,
+        norm_config::TextNorm) where {T}
+
         windowsize > 0 || throw(ArgumentError("Window size must be positive"))
         minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
         !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
 
-        # Normalize the node here too - WITH unicode_form=:NFC
-        normalized_node = normalize_node(node;
-            strip_case=true,
-            strip_accents=true,
-            unicode_form=:NFC)
-
-        return new{T}(con_tbl, normalized_node, windowsize, minfreq, input_ref)
+        # Node should already be normalized when passed here
+        return new{T}(con_tbl, node, windowsize, minfreq, input_ref, norm_config)
     end
 end
 
-
-# NEW: convenience outer constructor from a *plain* DataFrame
+# Convenience constructor from DataFrame
 ContingencyTable(df::DataFrame,
     node::AbstractString,
     windowsize::Int,
     minfreq::Int64;
+    norm_config::TextNorm=TextNorm(),
     input_ref::LazyInput=LazyInput(StringDocument(""))) =
-    ContingencyTable(LazyProcess(() -> df, DataFrame), node, windowsize, minfreq, input_ref)
-
+    ContingencyTable(LazyProcess(() -> df, DataFrame), node, windowsize,
+        minfreq, input_ref, norm_config)
 
 """
     cont_table(input_doc::StringDocument, target_word::AbstractString,
-            windowsize::Int64=5, minfreq::Int64=3) -> DataFrame
+              windowsize::Int64=5, minfreq::Int64=3) -> DataFrame
 
 Compute the contingency table for a target word in a document.
+Note: target_word should already be normalized before calling this function.
 """
 function cont_table(input_doc::StringDocument, target_word::AbstractString,
     windowsize::Int64=5, minfreq::Int64=3)
@@ -189,4 +186,5 @@ function Base.show(io::IO, con_tbl::ContingencyTable)
     println(io, "* Node word: $(con_tbl.node)")
     println(io, "* Window size: $(con_tbl.windowsize)")
     println(io, "* Minimum collocation frequency: $(con_tbl.minfreq)")
+    println(io, "* Normalization config: $(con_tbl.norm_config)")
 end

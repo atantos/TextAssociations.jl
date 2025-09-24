@@ -43,6 +43,7 @@ export
     ContingencyTable,
     LazyProcess,
     LazyInput,
+    TextNorm,
     # Corpus-related types
     Corpus,
     CorpusContingencyTable,
@@ -55,7 +56,7 @@ export
 
     # Main API functions
     assoc_score,
-    listmetrics,
+    available_metrics,
     cached_data,
     document,
     # corpus-related API functions

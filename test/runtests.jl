@@ -502,7 +502,7 @@ Random.seed!(42)
             @test TextAssociations.log2_safe(-1) == log2(eps())
             @test TextAssociations.log2_safe(2) == log2(2)
 
-            metrics = listmetrics()
+            metrics = available_metrics()
             @test isa(metrics, Vector{Symbol})
             @test :PMI in metrics
             @test :Dice in metrics
@@ -843,7 +843,7 @@ Random.seed!(42)
         text = "Test text for metric functions"
         ct = ContingencyTable(text, "test", 3, 1)
 
-        for metric in listmetrics()
+        for metric in available_metrics()
             func_name = Symbol("eval_", lowercase(string(metric)))
             @test isdefined(TextAssociations, func_name)
 

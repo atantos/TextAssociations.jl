@@ -150,7 +150,6 @@ function analyze_temporal(corpus::Corpus,
     results_by_period = Dict{String,MultiNodeAnalysis}()
 
     @showprogress desc = "Analyzing time periods..." for (period_idx, period_label) in enumerate(bin_labels)
-        # Get documents for this period
         period_docs = StringDocument[]
 
         for (i, idx) in enumerate(doc_indices)
@@ -160,14 +159,11 @@ function analyze_temporal(corpus::Corpus,
         end
 
         if !isempty(period_docs)
-            # Create period corpus, preserving preprocessing options
-            period_metadata = Dict{String,Any}()
-            if haskey(corpus.metadata, "_preprocessing_options")
-                period_metadata["_preprocessing_options"] = corpus.metadata["_preprocessing_options"]
-            end
-            period_corpus = Corpus(period_docs, metadata=period_metadata)
+            # Create period corpus with SAME normalization config
+            period_corpus = Corpus(period_docs,
+                metadata=Dict{String,Any}(),
+                norm_config=corpus.norm_config)
 
-            # Analyze this period (nodes will be normalized inside analyze_nodes)
             period_analysis = analyze_nodes(
                 period_corpus, nodes, [metric],
                 windowsize=windowsize, minfreq=minfreq
@@ -301,11 +297,9 @@ function compare_subcorpora(corpus::Corpus,
 
     # Create subcorpora, preserving preprocessing options
     for (group, docs) in doc_groups
-        group_metadata = Dict{String,Any}()
-        if haskey(corpus.metadata, "_preprocessing_options")
-            group_metadata["_preprocessing_options"] = corpus.metadata["_preprocessing_options"]
-        end
-        subcorpora[group] = Corpus(docs, metadata=group_metadata)
+        subcorpora[group] = Corpus(docs,
+            metadata=Dict{String,Any}(),
+            norm_config=corpus.norm_config)
     end
 
     println("Split corpus into $(length(subcorpora)) subcorpora")
@@ -658,11 +652,7 @@ function colloc_graph(corpus::Corpus,
 
     # Get preprocessing options and normalize seed words
     prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
-    normalized_seeds = [normalize_node(word;
-        strip_case=get(prep_opts, "strip_case", true),
-        strip_accents=get(prep_opts, "strip_accents", false),
-        unicode_form=Symbol(get(prep_opts, "unicode_form", :NFC)))
-                        for word in seed_words]
+    normalized_seeds = [normalize_node(word, corpus.norm_config) for word in seed_words]
 
     nodes = Set{String}(normalized_seeds)
     edges = NamedTuple{(:Source, :Target, :Weight, :Metric),Tuple{String,String,Float64,String}}[]
@@ -803,12 +793,8 @@ function kwic(corpus::Corpus,
     context_size::Int=50,
     max_lines::Int=1000)
 
-    # Normalize the node to match corpus preprocessing
-    prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
-    normalized_node = normalize_node(node;
-        strip_case=get(prep_opts, "strip_case", true),
-        strip_accents=get(prep_opts, "strip_accents", false),
-        unicode_form=Symbol(get(prep_opts, "unicode_form", :NFC)))
+    # Normalize node using corpus config
+    normalized_node = normalize_node(node, corpus.norm_config)
 
     concordance_lines = []
     total_occurrences = 0

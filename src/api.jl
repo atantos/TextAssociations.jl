@@ -603,6 +603,7 @@ end
               windowsize::Int,
               minfreq::Int=5;
               scores_only::Bool=false,
+              norm_config::TextNorm=TextNorm(),
               tokens::Union{Nothing,Vector{String}}=nothing,
               strip_accents::Bool=false,
               kwargs...)
@@ -615,15 +616,13 @@ function assoc_score(::Type{T},
     windowsize::Int,
     minfreq::Int=5;
     scores_only::Bool=false,
+    norm_config::TextNorm=TextNorm(),
     tokens::Union{Nothing,Vector{String}}=nothing,
-    strip_accents::Bool=false,  # For preprocessing
     kwargs...) where {T<:AssociationMetric}
 
-    # Pass strip_accents to ContingencyTable constructor
     ct = ContingencyTable(inputstring, node, windowsize, minfreq;
-        strip_accents=strip_accents)
+        norm_config=norm_config)
 
-    # Don't pass strip_accents to assoc_score - it's not needed there
     return assoc_score(T, ct; scores_only=scores_only, tokens=tokens, kwargs...)
 end
 
@@ -634,6 +633,7 @@ end
               windowsize::Int,
               minfreq::Int=5;
               scores_only::Bool=false,
+              norm_config::TextNorm=TextNorm(),
               tokens::Union{Nothing,Vector{String}}=nothing,
               strip_accents::Bool=false,
               kwargs...)
@@ -646,15 +646,13 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     windowsize::Int,
     minfreq::Int=5;
     scores_only::Bool=false,
+    norm_config::TextNorm=TextNorm(),
     tokens::Union{Nothing,Vector{String}}=nothing,
-    strip_accents::Bool=false,  # For preprocessing
     kwargs...)
 
-    # Pass strip_accents to ContingencyTable constructor
     ct = ContingencyTable(inputstring, node, windowsize, minfreq;
-        strip_accents=strip_accents)
+        norm_config=norm_config)
 
-    # Don't pass strip_accents to assoc_score
     return assoc_score(metrics, ct; scores_only=scores_only, tokens=tokens, kwargs...)
 end
 

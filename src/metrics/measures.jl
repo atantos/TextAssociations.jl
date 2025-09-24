@@ -966,7 +966,7 @@ Evaluate an association metric based on the provided metric type and a contingen
 result = assoc_score(MetricType, cont_tbl)
 ```
 
-Replace `MetricType` with the desired association metric type (e.g., `PMI`, `Dice`) and cont_tbl with your contingency table. You can see all supported metrics through `listmetrics()`.
+Replace `MetricType` with the desired association metric type (e.g., `PMI`, `Dice`) and cont_tbl with your contingency table. You can see all supported metrics through `available_metrics()`.
 
 # Examples
 **PMI (Pointwise Mutual Information)**:
@@ -1015,7 +1015,7 @@ Evaluate an array of association metrics on the given contingency table.
 result = assoc_score([MetricType1, MetricType2, MetricType3, ...], cont_tbl)
 ```
 
-Replace `MetricType\$` with the desired association metric types (e.g., `PMI`, `Dice`) and cont_tbl with your contingency table. You can see all supported metrics through `listmetrics()`.
+Replace `MetricType\$` with the desired association metric types (e.g., `PMI`, `Dice`) and cont_tbl with your contingency table. You can see all supported metrics through `available_metrics()`.
 
 
 # Examples

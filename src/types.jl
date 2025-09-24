@@ -12,6 +12,29 @@ Abstract type for data formats used in association computations.
 """
 abstract type AssociationDataFormat end
 
+
+"""
+    TextNorm
+
+Single source of truth for text normalization/preprocessing configuration.
+All text processing in the package uses this configuration.
+"""
+Base.@kwdef struct TextNorm
+    strip_case::Bool = true
+    strip_accents::Bool = false
+    unicode_form::Symbol = :NFC
+    strip_punctuation::Bool = true
+    punctuation_to_space::Bool = true
+    normalize_whitespace::Bool = true
+    strip_whitespace::Bool = false
+    use_prepare::Bool = false
+end
+
+# Convenience constructors
+TextNorm(d::Dict) = TextNorm(; pairs(d)...)
+TextNorm(nt::NamedTuple) = TextNorm(; pairs(nt)...)
+
+
 # Define metric types programmatically
 const METRIC_TYPES = [
     :PMI, :PMI², :PMI³, :PPMI,
