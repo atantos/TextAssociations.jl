@@ -57,8 +57,7 @@ const METRIC_TYPES = [
     :MountfordCoef, :MountfordCoef2,
     :SokalSneathIdx, :SokalMichenerCoef,
     :LexicalGravity,
-    :Tscore, :Zscore, :ChiSquare,
-    :LexicalGravity
+    :Tscore, :Zscore, :ChiSquare
 ]
 
 # Generate abstract types for each metric

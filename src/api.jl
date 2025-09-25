@@ -571,7 +571,7 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
         out[!, :Frequency] = df.a
 
         for T in metrics
-            out[!, Symbol(nameof(T))] = assoc_score(T, x; scores_only=true, tokens=tokens, kwargs...)
+            out[!, Symbol(nameof(T))] = assoc_score(T, x; scores_only=true, tokens, kwargs...)
         end
         return out
     end
@@ -588,7 +588,7 @@ function assoc_score(metrics::Vector{DataType},
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...)
     return assoc_score(Vector{Type{<:AssociationMetric}}(metrics), x;
-        scores_only=scores_only, tokens=tokens, kwargs...)
+        scores_only, tokens, kwargs...)
 end
 
 # ----------------------------
@@ -599,75 +599,72 @@ end
 """
     assoc_score(metricType::Type{<:AssociationMetric},
               inputstring::AbstractString,
-              node::AbstractString,
+              node::AbstractString;
               windowsize::Int,
               minfreq::Int=5;
               scores_only::Bool=false,
               norm_config::TextNorm=TextNorm(),
               tokens::Union{Nothing,Vector{String}}=nothing,
-              strip_accents::Bool=false,
               kwargs...)
 
 Convenience overload to compute a metric directly from a raw string.
 """
 function assoc_score(::Type{T},
     inputstring::AbstractString,
-    node::AbstractString,
+    node::AbstractString;
     windowsize::Int,
-    minfreq::Int=5;
+    minfreq::Int=5,
     scores_only::Bool=false,
     norm_config::TextNorm=TextNorm(),
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...) where {T<:AssociationMetric}
 
-    ct = ContingencyTable(inputstring, node, windowsize, minfreq;
-        norm_config=norm_config)
+    ct = ContingencyTable(inputstring, node; windowsize, minfreq,
+        norm_config)
 
-    return assoc_score(T, ct; scores_only=scores_only, tokens=tokens, kwargs...)
+    return assoc_score(T, ct; scores_only, tokens, kwargs...)
 end
 
 """
     assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
               inputstring::AbstractString,
-              node::AbstractString,
+              node::AbstractString;
               windowsize::Int,
               minfreq::Int=5;
               scores_only::Bool=false,
               norm_config::TextNorm=TextNorm(),
               tokens::Union{Nothing,Vector{String}}=nothing,
-              strip_accents::Bool=false,
               kwargs...)
 
 Convenience overload to compute multiple metrics directly from raw text.
 """
 function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     inputstring::AbstractString,
-    node::AbstractString,
+    node::AbstractString;
     windowsize::Int,
-    minfreq::Int=5;
+    minfreq::Int=5,
     scores_only::Bool=false,
     norm_config::TextNorm=TextNorm(),
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...)
 
-    ct = ContingencyTable(inputstring, node, windowsize, minfreq;
-        norm_config=norm_config)
+    ct = ContingencyTable(inputstring, node; windowsize, minfreq,
+        norm_config)
 
-    return assoc_score(metrics, ct; scores_only=scores_only, tokens=tokens, kwargs...)
+    return assoc_score(metrics, ct; scores_only, tokens, kwargs...)
 end
 
 # Keep compatibility with Vector{DataType} call sites
 function assoc_score(metrics::Vector{DataType},
     inputstring::AbstractString,
-    node::AbstractString,
+    node::AbstractString;
     windowsize::Int,
-    minfreq::Int=5;
+    minfreq::Int=5,
     scores_only::Bool=false,
     tokens::Union{Nothing,Vector{String}}=nothing,
-    strip_accents::Bool=false,  # For preprocessing
     kwargs...)
 
     return assoc_score(Vector{Type{<:AssociationMetric}}(metrics),
-        inputstring, node, windowsize, minfreq;
-        scores_only=scores_only, tokens=tokens, strip_accents=strip_accents, kwargs...)
+        inputstring, node; windowsize, minfreq,
+        scores_only, tokens, kwargs...)
 end

@@ -22,15 +22,15 @@ struct ContingencyTable{T} <: AssociationDataFormat
     con_tbl::LazyProcess{T,DataFrame}
     node::AbstractString
     windowsize::Int
-    minfreq::Int64
+    minfreq::Int
     input_ref::LazyInput
     norm_config::TextNorm
 
-    # Main constructor from raw text
+    # Main constructor from raw text / Main constructor from raw text (PUBLIC - uses keyword args)
     function ContingencyTable(inputstring::AbstractString,
-        node::AbstractString,
+        node::AbstractString;
         windowsize::Int,
-        minfreq::Int64=5;
+        minfreq::Int=5,
         norm_config::TextNorm=TextNorm())
 
         windowsize > 0 || throw(ArgumentError("Window size must be positive"))
@@ -44,18 +44,18 @@ struct ContingencyTable{T} <: AssociationDataFormat
         prepared_string = prep_string(inputstring, norm_config)
         input_ref = LazyInput(prepared_string)
 
-        f = () -> cont_table(prepared_string, normalized_node, windowsize, minfreq)
+        f = () -> cont_table(prepared_string, normalized_node; windowsize, minfreq)
         con_tbl = LazyProcess(f)
 
         return new{typeof(f)}(con_tbl, normalized_node, windowsize, minfreq,
             input_ref, norm_config)
     end
 
-    # Constructor from LazyProcess (for corpus aggregation)
+    # Constructor from LazyProcess (for corpus aggregation) / Constructor from LazyProcess (INTERNAL - all positional)
     function ContingencyTable(con_tbl::LazyProcess{T,DataFrame},
         node::AbstractString,
         windowsize::Int,
-        minfreq::Int64,
+        minfreq::Int,
         input_ref::LazyInput,
         norm_config::TextNorm) where {T}
 
@@ -69,10 +69,10 @@ struct ContingencyTable{T} <: AssociationDataFormat
 end
 
 # Convenience constructor from DataFrame
-ContingencyTable(df::DataFrame,
-    node::AbstractString,
+function ContingencyTable(df::DataFrame,
+    node::AbstractString;
     windowsize::Int,
-    minfreq::Int64;
+    minfreq::Int,
     norm_config::TextNorm=TextNorm(),
     input_ref::LazyInput=LazyInput(StringDocument(""))) =
     ContingencyTable(LazyProcess(() -> df, DataFrame), node, windowsize,
@@ -80,13 +80,13 @@ ContingencyTable(df::DataFrame,
 
 """
     cont_table(input_doc::StringDocument, target_word::AbstractString,
-              windowsize::Int64=5, minfreq::Int64=3) -> DataFrame
+              windowsize::Int=5, minfreq::Int=3) -> DataFrame
 
 Compute the contingency table for a target word in a document.
 Note: target_word should already be normalized before calling this function.
 """
-function cont_table(input_doc::StringDocument, target_word::AbstractString,
-    windowsize::Int64=5, minfreq::Int64=3)
+function cont_table(input_doc::StringDocument, target_word::AbstractString;
+    windowsize::Int=5, minfreq::Int=3)
 
     input_tokens = TextAnalysis.tokenize(language(input_doc), text(input_doc))
 

@@ -58,14 +58,14 @@ struct CorpusContingencyTable <: AssociationDataFormat
     aggregated_table::LazyProcess{T,DataFrame} where T
     node::AbstractString
     windowsize::Int
-    minfreq::Int64
+    minfreq::Int
     corpus_ref::Corpus
     norm_config::TextNorm
 
     function CorpusContingencyTable(corpus::Corpus,
-        node::AbstractString,
+        node::AbstractString;
         windowsize::Int,
-        minfreq::Int64=5)
+        minfreq::Int=5)
 
         # Use corpus's normalization config
         norm_config = corpus.norm_config
@@ -75,8 +75,9 @@ struct CorpusContingencyTable <: AssociationDataFormat
         tables = ContingencyTable[]
         @showprogress desc = "Processing documents..." for doc in corpus.documents
             try
-                ct = ContingencyTable(text(doc), normalized_node, windowsize, 1;
-                    norm_config=norm_config)
+                ct = ContingencyTable(text(doc), normalized_node; windowsize, minfreq=1,
+                    # # per-doc minfreq (different from corpus minfreq). I need to keep minfreq=1 here to aggregate properly later for the whole corpus. 
+                    norm_config)
                 push!(tables, ct)
             catch e
                 @warn "Skipping document due to error: $e"
@@ -329,7 +330,7 @@ end
 
 """
     analyze_corpus(corpus::Corpus, node::AbstractString, metric::Type{<:AssociationMetric};
-                  windowsize::Int=5, minfreq::Int=5) -> DataFrame
+                  windowsize::Int, minfreq::Int=5) -> DataFrame
 
 Analyze a single node word across the entire corpus using corpus's normalization.
 Returns DataFrame with Node, Collocate, Score, Frequency, and DocFrequency columns.
@@ -337,11 +338,11 @@ Returns DataFrame with Node, Collocate, Score, Frequency, and DocFrequency colum
 function analyze_corpus(corpus::Corpus,
     node::AbstractString,
     metric::Type{<:AssociationMetric};
-    windowsize::Int=5,
+    windowsize::Int,
     minfreq::Int=5)
 
     # Create corpus contingency table (will use corpus's norm_config)
-    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+    cct = CorpusContingencyTable(corpus, node; windowsize, minfreq)
 
     # Evaluate metric
     scores_df = assoc_score(metric, cct)
@@ -385,7 +386,7 @@ end
 
 """
     analyze_nodes(corpus::Corpus, nodes::Vector{String}, metrics::Vector{DataType};
-                 windowsize::Int=5, minfreq::Int=5, top_n::Int=100,
+                 windowsize::Int, minfreq::Int=5, top_n::Int=100,
                  parallel::Bool=false) -> MultiNodeAnalysis
 
 Analyze multiple nodes with consistent normalization.
@@ -394,7 +395,7 @@ Each result DataFrame now includes the Node column and metadata.
 function analyze_nodes(corpus::Corpus,
     nodes::Vector{String},
     metrics::Vector{DataType};
-    windowsize::Int=5,
+    windowsize::Int,
     minfreq::Int=5,
     top_n::Int=100,
     parallel::Bool=false)
@@ -406,7 +407,7 @@ function analyze_nodes(corpus::Corpus,
     else
         @showprogress desc = "Analyzing nodes..." for node in nodes
             # Create corpus contingency table (node normalized inside)
-            cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+            cct = CorpusContingencyTable(corpus, node; windowsize, minfreq)
 
             agg_table = cached_data(cct.aggregated_table)
 
@@ -790,7 +791,8 @@ function assoc_score(::Type{T}, cct::CorpusContingencyTable) where {T<:Associati
         cct.node,
         cct.windowsize,
         cct.minfreq,
-        LazyInput(StringDocument(""))    # dummy input; fine for corpus-level metrics
+        LazyInput(StringDocument("")),
+        cct.norm_config   # Use the corpus's normalization config
     )
 
     return assoc_score(T, temp_ct)
@@ -810,7 +812,7 @@ function demonstrate_corpus_analysis()
     println("Corpus contains $(stats[:num_documents]) documents with $(stats[:total_tokens]) tokens")
 
     # Example 2: Analyze single node word - NOW WITH NODE COLUMN
-    results = analyze_corpus(corpus, "important", PMI, windowsize=5, minfreq=10)
+    results = analyze_corpus(corpus, "important", PMI; windowsize=5, minfreq=10)
     println("Top collocates for 'important':")
     println(first(results, 10))
     # Output now shows: Node | Collocate | Score | Frequency | DocFrequency
@@ -820,7 +822,7 @@ function demonstrate_corpus_analysis()
     metrics = [PMI, LogDice, LLR]
 
     multi_analysis = analyze_nodes(
-        corpus, nodes, metrics,
+        corpus, nodes, metrics;
         windowsize=5, minfreq=10, top_n=50
     )
 
@@ -865,7 +867,7 @@ end
                         node_file::AbstractString,
                         output_dir::AbstractString;
                         metrics::Vector{DataType}=[PMI, LogDice],
-                        windowsize::Int=5,
+                        windowsize::Int,
                         minfreq::Int=5,
                         batch_size::Int=100)
 
@@ -874,8 +876,8 @@ Process a large list of node words in batches. Results include Node column.
 function batch_process_corpus(corpus::Corpus,
     node_file::AbstractString,
     output_dir::AbstractString;
-    metrics::Vector{DataType}=[PMI, LogDice],
-    windowsize::Int=5,
+    metrics::Vector{DataType},
+    windowsize::Int,
     minfreq::Int=5,
     batch_size::Int=100)
 
@@ -903,8 +905,8 @@ function batch_process_corpus(corpus::Corpus,
 
         # Analyze batch
         analysis = analyze_nodes(
-            corpus, batch_nodes, metrics,
-            windowsize=windowsize, minfreq=minfreq
+            corpus, batch_nodes, metrics;
+            windowsize, minfreq
         )
 
         # Save batch results
@@ -938,7 +940,7 @@ end
     stream_corpus_analysis(file_pattern::AbstractString,
                           node::AbstractString,
                           metric::Type{<:AssociationMetric};
-                          windowsize::Int=5,
+                          windowsize::Int,
                           chunk_size::Int=1000)
 
 Stream-process large corpora without loading everything into memory.
@@ -946,7 +948,7 @@ Stream-process large corpora without loading everything into memory.
 function stream_corpus_analysis(file_pattern::AbstractString,
     node::AbstractString,
     metric::Type{<:AssociationMetric};
-    windowsize::Int=5,
+    windowsize::Int,
     chunk_size::Int=1000)
 
     files = glob(file_pattern)
@@ -965,7 +967,7 @@ function stream_corpus_analysis(file_pattern::AbstractString,
         temp_corpus = Corpus(chunk_docs)
 
         # Analyze chunk
-        cct = CorpusContingencyTable(temp_corpus, node, windowsize, 1)
+        cct = CorpusContingencyTable(temp_corpus, node; windowsize, minfreq=1)
         chunk_table = cached_data(cct.aggregated_table)
 
         # Aggregate with previous chunks
