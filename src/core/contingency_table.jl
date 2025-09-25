@@ -74,9 +74,11 @@ function ContingencyTable(df::DataFrame,
     windowsize::Int,
     minfreq::Int,
     norm_config::TextNorm=TextNorm(),
-    input_ref::LazyInput=LazyInput(StringDocument(""))) =
+    input_ref::LazyInput=LazyInput(StringDocument("")))
+
     ContingencyTable(LazyProcess(() -> df, DataFrame), node, windowsize,
         minfreq, input_ref, norm_config)
+end
 
 """
     cont_table(input_doc::StringDocument, target_word::AbstractString,

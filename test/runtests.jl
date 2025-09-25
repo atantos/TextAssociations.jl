@@ -804,6 +804,7 @@ Random.seed!(42)
             @test "Frequency" in names(dist)
             @test "DocFrequency" in names(dist)
             @test "DocFrequencyRatio" in names(dist)
+            @test "RelativeFrequency" in names(dist)
             @test "IDF" in names(dist)
             @test "TFIDF" in names(dist)
         end
@@ -870,7 +871,7 @@ Random.seed!(42)
             E₂₂=[7.3, 8.1]
         )
 
-        ct = ContingencyTable(df, "test", 5, 2)
+        ct = ContingencyTable(df, "test", windowsize=5, minfreq=2)
         @test ct.node == "test"
         @test ct.windowsize == 5
         @test ct.minfreq == 2

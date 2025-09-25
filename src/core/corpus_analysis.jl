@@ -601,17 +601,57 @@ function token_distribution(corpus::Corpus)
 
     # Create DataFrame with token statistics
     word_tokens = collect(keys(token_frequencies))
+    total_tokens = sum(values(token_frequencies))
+    n_docs = length(corpus.documents)
+    relative_freqs = total_tokens == 0 ? zeros(Float64, length(word_tokens)) :
+                     [token_frequencies[t] / total_tokens for t in word_tokens]
+    doc_freq_ratio = n_docs == 0 ? zeros(Float64, length(word_tokens)) :
+                     [get(doc_frequencies, t, 0) / n_docs for t in word_tokens]
     df = DataFrame(
         Token=word_tokens,
         Frequency=[token_frequencies[t] for t in word_tokens],
-        DocFrequency=[doc_frequencies[t] for t in word_tokens],
-        DocFrequencyRatio=[doc_frequencies[t] / length(corpus.documents) for t in word_tokens]
+        DocFrequency=[get(doc_frequencies, t, 0) for t in word_tokens],
+        DocFrequencyRatio=doc_freq_ratio,
+        RelativeFrequency=relative_freqs
     )
 
     # Calculate TF-IDF scores
-    n_docs = length(corpus.documents)
     df.IDF = log.(n_docs ./ df.DocFrequency)
     df.TFIDF = df.Frequency .* df.IDF
+
+    # Sort by frequency
+    sort!(df, :Frequency, rev=true)
+
+    return df
+end
+
+# Alternative: Separate function for detailed token analysis
+"""
+    token_distribution(text::AbstractString) -> DataFrame
+
+Analyze the distribution of tokens in a string and return a DataFrame with info about absolute and relative token frequencies.
+"""
+function token_distribution(text::AbstractString)
+    token_frequencies = Dict{String,Int}()
+
+    doc = StringDocument(text)
+    text_tokens = tokens(doc)
+
+    # Count total frequencies
+    for token in text_tokens
+        token_frequencies[token] = get(token_frequencies, token, 0) + 1
+    end
+
+    # Create DataFrame with token statistics
+    word_tokens = collect(keys(token_frequencies))
+    total_tokens = sum(values(token_frequencies))
+    relative_freqs = total_tokens == 0 ? zeros(Float64, length(word_tokens)) :
+                     [token_frequencies[t] / total_tokens for t in word_tokens]
+    df = DataFrame(
+        Token=word_tokens,
+        Frequency=[token_frequencies[t] for t in word_tokens],
+        RelativeFrequency=relative_freqs
+    )
 
     # Sort by frequency
     sort!(df, :Frequency, rev=true)
