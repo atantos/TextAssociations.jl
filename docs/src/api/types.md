@@ -163,7 +163,7 @@ Aggregates contingency tables across an entire corpus for comprehensive analysis
 
 ```julia
 CorpusContingencyTable(corpus::Corpus,
-                       node::AbstractString,
+                       node::AbstractString;
                        windowsize::Int,
                        minfreq::Int64=5;
                        strip_accents::Bool=false)
