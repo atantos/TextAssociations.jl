@@ -324,10 +324,7 @@ function compare_subcorpora(corpus::Corpus,
     # If we never found a normalized node (all results empty), normalize it ourselves
     if normalized_node == ""
         prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
-        normalized_node = normalize_node(node;
-            strip_case=get(prep_opts, "strip_case", true),
-            strip_accents=get(prep_opts, "strip_accents", false),
-            unicode_form=Symbol(get(prep_opts, "unicode_form", :NFC)))
+        normalized_node = normalize_node(node, corpus.norm_config)
     end
 
     # Statistical comparison
@@ -681,10 +678,7 @@ function colloc_graph(corpus::Corpus,
                     for row in eachrow(top_neighbors)
                         collocate = String(row.Collocate)
                         # Normalize the collocate as well since it might become a node
-                        normalized_collocate = normalize_node(collocate;
-                            strip_case=get(prep_opts, "strip_case", true),
-                            strip_accents=get(prep_opts, "strip_accents", false),
-                            unicode_form=Symbol(get(prep_opts, "unicode_form", :NFC)))
+                        normalized_collocate = normalize_node(collocate, corpus.norm_config)
 
                         push!(edges, (Source=actual_node,
                             Target=normalized_collocate,
