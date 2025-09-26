@@ -15,14 +15,14 @@ using TextAssociations
 using BenchmarkTools
 
 # Create test data of different sizes
-small_text = "The quick brown fox jumps over the lazy dog"
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
 medium_text = repeat(small_text * " ", 100)
 large_text = repeat(small_text * " ", 1000)
 
 # Benchmark contingency table creation
 println("Contingency Table Creation:")
 for (name, text) in [("Small", small_text), ("Medium", medium_text), ("Large", large_text)]
-    time = @elapsed ContingencyTable(text, "the", 5, 2)
+    time = @elapsed ContingencyTable(text, "the", windowsize=5, minfreq=2)
     println("  $name ($(length(split(text))) words): $(round(time*1000, digits=2))ms")
 end
 ```
@@ -32,7 +32,13 @@ end
 ```@example metric_benchmark
 using TextAssociations
 
-ct = ContingencyTable(medium_text, "the", 5, 2)
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
+
+ct = ContingencyTable(medium_text, "the", windowsize=5, minfreq=2)
 
 # Benchmark different metrics
 metrics = [PMI, LogDice, LLR, Dice, JaccardIdx, ChiSquare]
@@ -51,7 +57,13 @@ end
 ```@example memory_opt
 using TextAssociations
 
-ct = ContingencyTable(large_text, "the", 5, 2)
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
+
+ct = ContingencyTable(large_text, "the", windowsize=5, minfreq=2)
 
 # Memory-efficient: returns only vector
 @time scores_vector = assoc_score(PMI, ct; scores_only=true)
@@ -69,9 +81,15 @@ println("  Vector: $(sizeof(scores_vector)) bytes")
 ```@example lazy_eval
 using TextAssociations
 
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
+
 # Lazy evaluation delays computation
 println("Creating ContingencyTable (lazy)...")
-@time ct = ContingencyTable(large_text, "fox", 5, 2)
+@time ct = ContingencyTable(large_text, "fox", windowsize=5, minfreq=2)
 
 println("\nFirst evaluation (computes):")
 @time results1 = assoc_score(PMI, ct)
@@ -86,6 +104,12 @@ println("\nSecond evaluation (uses cache):")
 
 ```@example parallel
 using TextAssociations
+
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
 using Base.Threads
 
 # Check available threads
@@ -96,7 +120,7 @@ function parallel_analyze(text::String, nodes::Vector{String})
     results = Vector{Any}(undef, length(nodes))
 
     Threads.@threads for i in 1:length(nodes)
-        ct = ContingencyTable(text, nodes[i], 5, 2)
+        ct = ContingencyTable(text, nodes[i], windowsize=5, minfreq=2)
         results[i] = assoc_score(PMI, ct; scores_only=true)
     end
 
@@ -122,7 +146,7 @@ addprocs(4)
 function distributed_analyze(corpus_files::Vector{String}, node::String)
     results = @distributed vcat for file in corpus_files
         text = read(file, String)
-        ct = ContingencyTable(text, node, 5, 5)
+        ct = ContingencyTable(text, node; windowsize=5, minfreq=5)
         assoc_score(PMI, ct)
     end
     return results
@@ -155,8 +179,8 @@ full_config = TextNorm(
 text = "Sample text with punctuation!!! And CAPITALS... "
 
 println("Preprocessing performance:")
-@time fast_doc = prep_string(text; norm_config=fast_config)
-@time full_doc = prep_string(text; norm_config=full_config)
+@time fast_doc = prep_string(text, fast_config)
+@time full_doc = prep_string(text, full_config)
 ```
 
 ### 2. Window Size Impact
@@ -164,12 +188,18 @@ println("Preprocessing performance:")
 ```@example window_impact
 using TextAssociations
 
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
+
 # Window size affects performance
 window_sizes = [2, 5, 10, 20]
 
 println("Window size impact:")
 for ws in window_sizes
-    time = @elapsed ContingencyTable(medium_text, "the", ws, 2)
+    time = @elapsed ContingencyTable(medium_text, "the"; windowsize=ws, minfreq=2)
     println("  Window $ws: $(round(time*1000, digits=2))ms")
 end
 ```
@@ -177,14 +207,20 @@ end
 ### 3. Minimum Frequency Filtering
 
 ```@example minfreq_impact
-using TextAssociations
+using TextAssociations, DataFrames
+
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
 
 # Higher minfreq = fewer calculations
 minfreqs = [1, 5, 10, 20]
 
 println("Minimum frequency impact:")
 for mf in minfreqs
-    ct = ContingencyTable(large_text, "the", 5, mf)
+    ct = ContingencyTable(large_text, "the"; windowsize=5, minfreq=mf)
     results = assoc_score(PMI, ct)
     println("  minfreq=$mf: $(nrow(results)) collocates")
 end
@@ -207,7 +243,7 @@ function stream_process(file_pattern::String, node::String, chunk_size::Int=1000
 
         for file in file_batch
             text = read(file, String)
-            ct = ContingencyTable(text, node, 5, 5)
+            ct = ContingencyTable(text, node; windowsize=5, minfreq=5)
             results = assoc_score(PMI, ct; scores_only=false)
 
             for row in eachrow(results)
@@ -240,7 +276,13 @@ println("Stream processing function defined")
 ### Batch Processing
 
 ```@example batch_process
-using TextAssociations
+using TextAssociations, DataFrames
+
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
 
 function batch_process_nodes(text::String, nodes::Vector{String}, batch_size::Int=10)
     all_results = DataFrame()
@@ -252,7 +294,7 @@ function batch_process_nodes(text::String, nodes::Vector{String}, batch_size::In
         println("Processing batch $batch_start-$batch_end...")
 
         for node in batch
-            ct = ContingencyTable(text, node, 5, 5)
+            ct = ContingencyTable(text, node; windowsize=5, minfreq=5)
             results = assoc_score(PMI, ct)
             results[!, :QueryNode] .= node
             all_results = vcat(all_results, results, cols=:union)
@@ -281,7 +323,7 @@ using TextAssociations
 
 # Profile a function
 function analyze_text(text, word)
-    ct = ContingencyTable(text, word, 5, 5)
+    ct = ContingencyTable(text, word; windowsize=5, minfreq=5)
     return assoc_score([PMI, LogDice, LLR], ct)
 end
 
@@ -304,7 +346,7 @@ using Profile.Allocs
 
 # Profile memory allocations
 Profile.Allocs.@profile sample_rate=1 begin
-    ct = ContingencyTable(large_text, "the", 5, 5)
+    ct = ContingencyTable(large_text, "the"; windowsize=5, minfreq=5)
     results = assoc_score([PMI, LogDice], ct)
 end
 
@@ -365,6 +407,12 @@ const LARGE_CORPUS_CONFIG = (
 ```@example caching
 using TextAssociations
 
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
+
 # Cache for reused computations
 mutable struct CachedAnalyzer
     cache::Dict{Tuple{String, String, Int, Int}, ContingencyTable}
@@ -381,7 +429,7 @@ function analyze_with_cache(analyzer::CachedAnalyzer, text::String,
         return analyzer.cache[key]
     else
         analyzer.misses += 1
-        ct = ContingencyTable(text, node, windowsize, minfreq)
+        ct = ContingencyTable(text, node; windowsize=windowsize, minfreq=minfreq)
         analyzer.cache[key] = ct
         return ct
     end
@@ -428,6 +476,13 @@ println("Hit rate: $(round(analyzer.hits / (analyzer.hits + analyzer.misses) * 1
 
 ```@example slow_fix
 using TextAssociations
+using TextAnalysis: tokens
+
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
 
 function diagnose_performance(text::String, node::String)
     println("Performance Diagnosis:")
@@ -442,7 +497,8 @@ function diagnose_performance(text::String, node::String)
     end
 
     # Check vocabulary size after preprocessing
-    doc = prep_string(text)
+    cfg = TextNorm()
+    doc = prep_string(text, cfg)
     vocab_size = length(unique(tokens(doc)))
     println("Vocabulary size: $vocab_size unique tokens")
 
@@ -459,7 +515,7 @@ function diagnose_performance(text::String, node::String)
 
     println("\nConfiguration impact:")
     for config in configs
-        time = @elapsed ContingencyTable(text, node, config.window, config.minfreq)
+        time = @elapsed ContingencyTable(text, node; windowsize=config.window, minfreq=config.minfreq)
         println("  w=$(config.window), mf=$(config.minfreq): $(round(time*1000, digits=2))ms")
     end
 end
@@ -479,7 +535,7 @@ function memory_safe_analysis(corpus_files::Vector{String}, node::String)
         text = read(file, String)
 
         # Use aggressive filtering
-        ct = ContingencyTable(text, node, 3, 20)  # Small window, high minfreq
+        ct = ContingencyTable(text, node, windowsize=3, minfreq=20)  # Small window, high minfreq
 
         # Get scores only
         scores = assoc_score(PMI, ct; scores_only=true)
@@ -501,6 +557,12 @@ end
 
 ```@example benchmark_suite
 using TextAssociations
+
+# Define sample texts for examples
+small_text = repeat("The quick brown fox jumps over the lazy dog. ", 10)
+medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
+large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
+
 using BenchmarkTools
 
 function benchmark_suite(text::String)
@@ -508,19 +570,17 @@ function benchmark_suite(text::String)
 
     # Preprocessing benchmarks
     suite["preprocessing"] = BenchmarkGroup()
-    suite["preprocessing"]["minimal"] = @benchmarkable prep_string($text;
-        norm_config=TextNorm(strip_case=true))
-    suite["preprocessing"]["full"] = @benchmarkable prep_string($text;
-        norm_config=TextNorm())
+    suite["preprocessing"]["minimal"] = @benchmarkable prep_string($text, TextNorm(strip_case=true))
+    suite["preprocessing"]["full"] = @benchmarkable prep_string($text, TextNorm())
 
     # Contingency table benchmarks
     suite["contingency"] = BenchmarkGroup()
     for ws in [2, 5, 10]
-        suite["contingency"]["window_$ws"] = @benchmarkable ContingencyTable($text, "the", $ws, 5)
+        suite["contingency"]["window_$ws"] = @benchmarkable ContingencyTable($text, "the", windowsize=$ws, minfreq=5)
     end
 
     # Metric benchmarks
-    ct = ContingencyTable(text, "the", 5, 5)
+    ct = ContingencyTable(text, "the", windowsize=5, minfreq=5)
     suite["metrics"] = BenchmarkGroup()
     for metric in [PMI, LogDice, LLR]
         suite["metrics"]["$metric"] = @benchmarkable assoc_score($metric, $ct; scores_only=true)

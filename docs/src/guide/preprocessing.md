@@ -44,12 +44,16 @@ using TextAssociations
 text = "The IBM CEO visited NASA headquarters."
 
 # Keep original case
-ct_case = ContingencyTable(text, "IBM", 5, 1;
+ct_case = ContingencyTable(text, "IBM";
+    windowsize=5,
+    minfreq=1,
     norm_config=TextNorm(strip_case=false))
 results_case = assoc_score(PMI, ct_case)
 
 # Normalize to lowercase
-ct_lower = ContingencyTable(text, "ibm", 5, 1;
+ct_lower = ContingencyTable(text, "IBM";
+    windowsize=5,
+    minfreq=1,
     norm_config=TextNorm(strip_case=true))
 results_lower = assoc_score(PMI, ct_lower)
 
@@ -72,7 +76,7 @@ configs = [
 ]
 
 for (name, config) in configs
-    doc = prep_string(text; config.config)
+    doc = prep_string(text; config)
     println("$name: '$(text(doc))'")
 end
 ```
@@ -180,7 +184,7 @@ greek_config = TextNorm(
     strip_punctuation=true
 )
 
-ct = ContingencyTable(greek_text, "φιλοσοφία", 5, 1;
+ct = ContingencyTable(greek_text, "φιλοσοφία"; windowsize=5, minfreq=1;
     norm_config=greek_config)
 results = assoc_score(PMI, ct)
 
@@ -285,7 +289,7 @@ println("Processed: $processed")
 ```@example special_chars
 using TextAssociations
 
-text_with_special = "Price: $99.99 | Temperature: 25°C | Math: x² + y² = r²"
+text_with_special = "Price: \$99.99 | Temperature: 25°C | Math: x² + y² = r²"
 
 # Different strategies for special characters
 configs = [
@@ -295,7 +299,7 @@ configs = [
 ]
 
 for (name, config) in configs
-    doc = prep_string(text_with_special; norm_config=config)
+    doc = prep_string(text_with_special; config)
     println("$name: '$(text(doc))'")
 end
 ```
@@ -337,7 +341,7 @@ configs = [
 ]
 
 for (name, config) in configs
-    time = @elapsed prep_string(text; norm_config=config)
+    time = @elapsed prep_string(text; config)
     println("$name: $(round(time*1000, digits=2))ms")
 end
 ```

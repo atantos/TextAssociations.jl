@@ -48,7 +48,7 @@ end
 
 # 3. Add tests in test/metrics_test.jl
 @testset "MyMetric" begin
-    ct = ContingencyTable("test text", "test", 3, 1)
+    ct = ContingencyTable("test text", "test", windowsize=3, minfreq=1)
     results = assoc_score(MyMetric, ct)
     @test !isempty(results)
     @test all(isfinite.(results.MyMetric))

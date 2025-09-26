@@ -27,7 +27,7 @@ Statistical significance indicates statistical relationships.
 Random patterns show no statistical correlation.
 """
 
-ct = ContingencyTable(text, "statistical", 4, 1)
+ct = ContingencyTable(text, "statistical"; windowsize=4, minfreq=1)
 results = assoc_score([ChiSquare, Tscore, Zscore], ct)
 
 println("Statistical Tests for 'statistical':")
@@ -192,8 +192,8 @@ using TextAssociations
 text_large = repeat("word1 word2 ", 1000)  # Large sample
 text_small = "word1 word2 word1 word2"     # Small sample
 
-ct_large = ContingencyTable(text_large, "word1", 2, 1)
-ct_small = ContingencyTable(text_small, "word1", 2, 1)
+ct_large = ContingencyTable(text_large, "word1"; windowsize=2, minfreq=1)
+ct_small = ContingencyTable(text_small, "word1"; windowsize=2, minfreq=1)
 
 println("Statistical Significance vs Effect Size:")
 
@@ -256,6 +256,12 @@ bonferroni_correction(p_values)
 ```@example combining
 using TextAssociations
 
+# Create a sample contingency table first
+text = "Statistical analysis requires careful statistical methods"
+ct = ContingencyTable(text, "statistical"; windowsize=3, minfreq=1)
+
+using TextAssociations
+
 function comprehensive_statistical_test(ct::ContingencyTable)
     # Use multiple tests
     results = assoc_score([ChiSquare, LLR, Tscore, Zscore], ct)
@@ -301,7 +307,12 @@ const MIN_SAMPLES = Dict(
 ### 3. Reporting Guidelines
 
 ```@example reporting
-using TextAssociations
+using TextAssociations, DataFrames
+
+# Create contingency table for analysis
+text = "Statistical significance requires proper statistical testing methods"
+ct = ContingencyTable(text, "statistical"; windowsize=3, minfreq=1)
+
 
 function report_statistical_results(results::DataFrame)
     println("Statistical Analysis Report")

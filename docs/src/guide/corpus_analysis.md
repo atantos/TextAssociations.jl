@@ -77,6 +77,7 @@ println("  Metadata fields: $(keys(corpus.metadata))")
 
 ```@example stats
 using TextAssociations
+using TextAnalysis: StringDocument
 
 # Create a sample corpus
 texts = [
@@ -146,6 +147,17 @@ end
 
 ```@example multi_node
 using TextAssociations
+using TextAnalysis: StringDocument
+
+# First create a corpus
+texts = [
+    "Machine learning algorithms learn from data patterns.",
+    "Deep learning is a subset of machine learning.",
+    "Data science combines statistics and machine learning.",
+    "Neural networks power deep learning systems."
+]
+docs = [StringDocument(t) for t in texts]
+corpus = Corpus(docs)
 
 # Analyze multiple nodes
 nodes = ["machine", "learning", "neural"]
@@ -177,7 +189,7 @@ end
 ### Temporal Analysis
 
 ```@example temporal
-using TextAssociations, Dates
+using TextAssociations, Dates, DataFrames
 
 # Create corpus with temporal metadata
 df = DataFrame(
@@ -364,7 +376,7 @@ function stream_analyze(file_pattern::String, node::String)
         text = read(file, String)
 
         # Analyze
-        ct = ContingencyTable(text, node, 5, 1)
+        ct = ContingencyTable(text, node; windowsize=5, minfreq=1)
         results = assoc_score(PMI, ct; scores_only=false)
 
         # Aggregate results

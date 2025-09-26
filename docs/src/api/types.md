@@ -47,12 +47,11 @@ The `ContingencyTable` is the fundamental data structure for word co-occurrence 
 #### Constructor
 
 ```julia
-ContingencyTable(inputstring::AbstractString,
-                 node::AbstractString,
-                 windowsize::Int,
-                 minfreq::Int64=5;
-                 auto_prep::Bool=true,
-                 strip_accents::Bool=false)
+function ContingencyTable(inputstring::AbstractString,
+    node::AbstractString;
+    windowsize::Int,
+    minfreq::Int=5,
+    norm_config::TextNorm=TextNorm())
 ```
 
 #### Parameters
@@ -84,7 +83,7 @@ Modern data science relies heavily on big data technologies.
 """
 
 # Create contingency table for "data" (use positional args)
-ct = ContingencyTable(text, "data", 3, 1)
+ct = ContingencyTable(text, "data"; windowsize=3, minfreq=1)
 
 # The table is computed lazily when first accessed
 results = assoc_score(PMI, ct)
@@ -165,8 +164,7 @@ Aggregates contingency tables across an entire corpus for comprehensive analysis
 CorpusContingencyTable(corpus::Corpus,
                        node::AbstractString;
                        windowsize::Int,
-                       minfreq::Int64=5;
-                       strip_accents::Bool=false)
+                       minfreq::Int64=5)
 ```
 
 #### Fields
@@ -425,7 +423,7 @@ end
 doc = StringDocument("your text")
 
 # Convert to ContingencyTable
-ct = ContingencyTable(text(doc), "word", 5)
+ct = ContingencyTable(text(doc), "word", windowsize=5, minfreq=1)
 
 # Extract DataFrame from results
 df = assoc_score(PMI, ct)

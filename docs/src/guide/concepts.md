@@ -58,7 +58,7 @@ using TextAssociations, DataFrames
 
 # Create a simple example
 text = "big data and data science require data analysis"
-ct = ContingencyTable(text, "data", 2, 1)
+ct = ContingencyTable(text, "data"; windowsize=2, minfreq=1)
 
 # Access the internal table
 internal = cached_data(ct.con_tbl)
@@ -103,7 +103,7 @@ Financial analysis requires careful consideration.
 The bank offers investment opportunities.
 """
 
-ct = ContingencyTable(text, "bank", 3, 1)
+ct = ContingencyTable(text, "bank"; windowsize=3, minfreq=1)
 
 # Calculate different metric types
 info_metrics = assoc_score([PMI, PPMI], ct)
@@ -127,6 +127,7 @@ println("  High when: Words share contexts")
 
 ```@example interpret
 using TextAssociations
+using DataFrames
 
 # Score interpretation guidelines
 function interpret_scores(results::DataFrame)
@@ -160,7 +161,7 @@ function interpret_scores(results::DataFrame)
 end
 
 # Example
-ct = ContingencyTable("machine learning uses learning algorithms", "learning", 2, 1)
+ct = ContingencyTable("machine learning uses learning algorithms", "learning"; windowsize=2, minfreq=1)
 results = assoc_score([PMI, LogDice], ct)
 interpret_scores(results)
 ```
@@ -188,7 +189,7 @@ configs = [
 test_text = "Hello, WORLD! Café résumé... Multiple   spaces."
 
 for (name, config) in configs
-    doc = prep_string(test_text; config.config)
+    doc = prep_string(test_text, config)
     println("$name: '$(text(doc))'")
 end
 ```
@@ -199,6 +200,7 @@ Important for multilingual text:
 
 ```@example unicode
 using TextAssociations
+using Unicode
 
 # Different Unicode forms can affect matching
 text1 = "café"  # é as single character
@@ -229,7 +231,7 @@ The xyzabc appeared only once.
 
 # Compare different thresholds
 for minfreq in [1, 2, 3]
-    ct = ContingencyTable(text, "the", 3, minfreq)
+    ct = ContingencyTable(text, "the"; windowsize=3, minfreq=minfreq)
     results = assoc_score(PMI, ct)
     println("minfreq=$minfreq: $(nrow(results)) collocates")
 end
@@ -257,7 +259,7 @@ using TextAssociations
 
 # Contingency tables are computed lazily
 println("Creating ContingencyTable...")
-ct = ContingencyTable("sample text here", "text", 3, 1)
+ct = ContingencyTable("sample text here", "text"; windowsize=3, minfreq=1)
 println("Created (not computed yet)")
 
 # Computation happens on first use
@@ -289,7 +291,7 @@ The statistical approach yields statistical significance.
 Random words appear randomly without pattern.
 """
 
-ct = ContingencyTable(text, "statistical", 3, 1)
+ct = ContingencyTable(text, "statistical"; windowsize=3, minfreq=1)
 results = assoc_score([LLR, ChiSquare], ct)
 
 # Interpret statistical significance

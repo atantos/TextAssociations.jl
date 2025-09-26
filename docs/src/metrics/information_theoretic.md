@@ -27,7 +27,7 @@ Computational methods analyze natural language data.
 Language models process natural text efficiently.
 """
 
-ct = ContingencyTable(text, "language", 3, 1)
+ct = ContingencyTable(text, "language"; windowsize=3, minfreq=1)
 results = assoc_score(PMI, ct)
 
 println("PMI scores for 'language':")
@@ -212,7 +212,7 @@ low_freq_text = "rare unique special extraordinary unusual"
 println("Frequency effects on PMI:")
 
 # High frequency
-ct_high = ContingencyTable(high_freq_text, "the", 2, 1)
+ct_high = ContingencyTable(high_freq_text, "the"; windowsize=2, minfreq=1)
 pmi_high = assoc_score(PMI, ct_high)
 if !isempty(pmi_high)
     println("\nHigh frequency word 'the':")
@@ -220,7 +220,7 @@ if !isempty(pmi_high)
 end
 
 # Low frequency
-ct_low = ContingencyTable(low_freq_text, "rare", 3, 1)
+ct_low = ContingencyTable(low_freq_text, "rare"; windowsize=3, minfreq=1)
 pmi_low = assoc_score(PMI, ct_low)
 if !isempty(pmi_low)
     println("\nLow frequency word 'rare':")
@@ -237,11 +237,11 @@ using TextAssociations
 
 # Small corpus - sparse data
 small_text = "word1 word2 word3"
-ct_small = ContingencyTable(small_text, "word1", 2, 1)
+ct_small = ContingencyTable(small_text, "word1"; windowsize=2, minfreq=1)
 
 # Large corpus - more reliable
 large_text = repeat("word1 word2 word3 word4 word5 ", 100)
-ct_large = ContingencyTable(large_text, "word1", 2, 1)
+ct_large = ContingencyTable(large_text, "word1"; windowsize=2, minfreq=1)
 
 println("Sparse data effects:")
 println("  Small corpus: $(length(split(small_text))) tokens")
@@ -294,8 +294,8 @@ using TextAssociations
 # Use PMI for semantic similarity
 function semantic_similarity(corpus_text::String, word1::String, word2::String)
     # Get PMI profiles for both words
-    ct1 = ContingencyTable(corpus_text, word1, 5, 1)
-    ct2 = ContingencyTable(corpus_text, word2, 5, 1)
+    ct1 = ContingencyTable(corpus_text, word1; windowsize=5, minfreq=1)
+    ct2 = ContingencyTable(corpus_text, word2; windowsize=5, minfreq=1)
 
     pmi1 = assoc_score(PPMI, ct1)
     pmi2 = assoc_score(PPMI, ct2)
@@ -331,7 +331,7 @@ function extract_features(corpus_text::String, target_words::Vector{String}, top
     features = Dict{String, Vector{Symbol}}()
 
     for word in target_words
-        ct = ContingencyTable(corpus_text, word, 5, 1)
+        ct = ContingencyTable(corpus_text, word; windowsize=5, minfreq=1)
         ppmi = assoc_score(PPMI, ct)
 
         if !isempty(ppmi)

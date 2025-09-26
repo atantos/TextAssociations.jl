@@ -18,6 +18,8 @@ This guide helps you diagnose and solve common issues with TextAssociations.jl.
 
 ```@example empty_results
 using TextAssociations
+using TextAnalysis: tokens
+using DataFrames
 
 # Debug empty results
 function debug_empty_results(text::String, node::String, windowsize::Int, minfreq::Int)
@@ -31,7 +33,7 @@ function debug_empty_results(text::String, node::String, windowsize::Int, minfre
     println("Normalized node: '$normalized_node'")
 
     # Step 2: Check if word exists in text
-    doc = prep_string(text; norm_config=config)
+    doc = prep_string(text, config)
     doc_tokens = tokens(doc)
     node_count = count(==(normalized_node), doc_tokens)
     println("\nNode frequency in text: $node_count")
@@ -53,14 +55,14 @@ function debug_empty_results(text::String, node::String, windowsize::Int, minfre
     println("Minimum frequency: $minfreq")
 
     # Step 4: Create contingency table
-    ct = ContingencyTable(text(doc), normalized_node, windowsize, minfreq)
+    ct = ContingencyTable(text(doc), normalized_node; windowsize=windowsize, minfreq=minfreq)
     ct_data = cached_data(ct.con_tbl)
 
     if isempty(ct_data)
         println("❌ No collocates meet minfreq=$minfreq threshold")
 
         # Try with minfreq=1 to see what's available
-        ct_low = ContingencyTable(text(doc), normalized_node, windowsize, 1)
+        ct_low = ContingencyTable(text(doc), normalized_node; windowsize=windowsize, minfreq=1)
         ct_low_data = cached_data(ct_low.con_tbl)
 
         if !isempty(ct_low_data)
@@ -74,30 +76,30 @@ function debug_empty_results(text::String, node::String, windowsize::Int, minfre
 end
 
 # Test with problematic case
-text = "The Quick Brown Fox Jumps Over The Lazy Dog"
-debug_empty_results(text, "quick", 3, 5)  # Case mismatch, high minfreq
+sample_text = "The Quick Brown Fox Jumps Over The Lazy Dog"
+debug_empty_results(sample_text, "quick", 3, 5)  # Case mismatch, high minfreq
 ```
 
 #### Solutions
 
 ```@example empty_solutions
-using TextAssociations
+using TextAssociations, DataFrames
 
 # Solution 1: Fix case sensitivity
 text = "The Quick Brown Fox"
 config_case = TextNorm(strip_case=true)  # Enable case normalization
 
-ct = ContingencyTable(text, "quick", 3, 1; norm_config=config_case)
+ct = ContingencyTable(text, "quick"; windowsize=3, minfreq=1, norm_config=config_case)
 results = assoc_score(PMI, ct)
 println("With case normalization: $(nrow(results)) results")
 
 # Solution 2: Adjust minfreq
-ct_low_freq = ContingencyTable(text, "quick", 3, 1)  # Lower minfreq
+ct_low_freq = ContingencyTable(text, "quick"; windowsize=3, minfreq=1)  # Lower minfreq
 results_low = assoc_score(PMI, ct_low_freq)
 println("With minfreq=1: $(nrow(results_low)) results")
 
 # Solution 3: Increase window size
-ct_large_window = ContingencyTable(text, "the", 10, 1)  # Larger window
+ct_large_window = ContingencyTable(text, "the"; windowsize=10, minfreq=1)  # Larger window
 results_large = assoc_score(PMI, ct_large_window)
 println("With windowsize=10: $(nrow(results_large)) results")
 ```
@@ -118,7 +120,7 @@ function check_memory_usage(text::String)
     initial_memory = Base.gc_live_bytes() / 1024^2  # MB
 
     # Create objects
-    ct = ContingencyTable(text, "the", 5, 1)
+    ct = ContingencyTable(text, "the"; windowsize=5, minfreq=1)
     results = assoc_score([PMI, LogDice, LLR], ct)
 
     current_memory = Base.gc_live_bytes() / 1024^2
@@ -140,7 +142,7 @@ end
 # Solutions for memory issues
 function memory_efficient_analysis(text::String, node::String)
     # 1. Use scores_only
-    ct = ContingencyTable(text, node, 5, 10)  # Higher minfreq
+    ct = ContingencyTable(text, node; windowsize=5, minfreq=10)  # Higher minfreq
     scores = assoc_score(PMI, ct; scores_only=true)  # Just vector
 
     # 2. Process in chunks
@@ -172,6 +174,7 @@ Strange characters, encoding errors, or text not matching.
 
 ```@example unicode_issues
 using TextAssociations
+using Unicode
 
 # Diagnose Unicode issues
 function diagnose_unicode(text::String)
@@ -218,7 +221,7 @@ diagnose_unicode(problematic)
 
 # Solution
 config = TextNorm(unicode_form=:NFC)  # Normalize to NFC
-ct = ContingencyTable(problematic, "café", 2, 1; norm_config=config)
+ct = ContingencyTable(problematic, "café"; windowsize=2, minfreq=1, norm_config=config)
 println("\nWith Unicode normalization: works correctly")
 ```
 
@@ -235,7 +238,7 @@ using TextAssociations
 
 # Debug metric calculations
 function debug_metrics(text::String, node::String, collocate::String)
-    ct = ContingencyTable(text, node, 3, 1)
+    ct = ContingencyTable(text, node; windowsize=3, minfreq=1)
     ct_data = cached_data(ct.con_tbl)
 
     if !isempty(ct_data)
@@ -302,7 +305,7 @@ function performance_diagnostic(text::String, node::String)
 
     for config in configs
         time = @elapsed begin
-            ct = ContingencyTable(text, node, config.window, config.minfreq)
+            ct = ContingencyTable(text, node; windowsize=config.window, minfreq=config.minfreq)
             results = assoc_score(PMI, ct; scores_only=true)
         end
 
@@ -361,6 +364,9 @@ end
 
 ```@example debugger
 using TextAssociations
+using TextAnalysis: tokens, text
+using DataFrames
+using TextAnalysis
 
 function comprehensive_debug(text::String, node::String, config::TextNorm,
                            windowsize::Int, minfreq::Int)
@@ -377,8 +383,8 @@ function comprehensive_debug(text::String, node::String, config::TextNorm,
 
     # Preprocessing check
     println("\n2. PREPROCESSING")
-    doc = prep_string(text; norm_config=config)
-    processed_text = text(doc)
+    doc = prep_string(text, config)
+    processed_text = TextAnalysis.text(doc)
     normalized_node = normalize_node(node, config)
 
     println("   Original text sample: '$(first(text, min(50, length(text))))...'")
@@ -397,14 +403,14 @@ function comprehensive_debug(text::String, node::String, config::TextNorm,
     # Contingency table
     println("\n4. CONTINGENCY TABLE")
     try
-        ct = ContingencyTable(processed_text, normalized_node, windowsize, minfreq)
+        ct = ContingencyTable(processed_text, normalized_node; windowsize, minfreq)
         ct_data = cached_data(ct.con_tbl)
 
         if isempty(ct_data)
             println("   ❌ Empty contingency table")
 
             # Try with minfreq=1
-            ct_test = ContingencyTable(processed_text, normalized_node, windowsize, 1)
+            ct_test = ContingencyTable(processed_text, normalized_node; windowsize, minfreq=1)
             ct_test_data = cached_data(ct_test.con_tbl)
 
             if !isempty(ct_test_data)
@@ -462,7 +468,7 @@ function create_mre()
 
     # 3. Show the error
     try
-        ct = ContingencyTable(text, node, windowsize, minfreq; norm_config=config)
+        ct = ContingencyTable(text, node; windowsize, minfreq, norm_config=config)
         results = assoc_score(PMI, ct)
         println("Results: ", results)
     catch e

@@ -86,7 +86,7 @@ Data analysis helps extract insights from data.
 """
 
 # Create contingency table
-ct = ContingencyTable(text, "data", windowsize=3, minfreq=1)
+ct = ContingencyTable(text, "data"; windowsize=3, minfreq=1)
 
 # Single metric evaluation
 pmi_results = assoc_score(PMI, ct)
@@ -135,7 +135,7 @@ println("\nScore dictionary keys: ", keys(score_dict))
 ```@example assoc_score_advanced
 # Evaluate and filter in one pipeline
 function analyze_with_thresholds(text, word, thresholds)
-    ct = ContingencyTable(text, word, 5, 2)
+    ct = ContingencyTable(text, word; windowsize=5, minfreq=2)
     results = assoc_score([PMI, LogDice, LLR], ct)
 
     # Apply multiple thresholds
@@ -317,7 +317,7 @@ Extracts data from a `LazyProcess`, computing it if necessary.
 using TextAssociations
 
 # ContingencyTable uses lazy evaluation internally
-ct = ContingencyTable("sample text", "text", 3, 1)
+ct = ContingencyTable("sample text", "text"; windowsize=3, minfreq=1)
 
 # First access computes the table
 println("First access...")
@@ -364,7 +364,7 @@ nodes = ["learning", "machine", "neural", "data"]
 results = Dict{String, DataFrame}()
 
 for node in nodes
-    ct = ContingencyTable(text, node, windowsize=3, minfreq=1)
+    ct = ContingencyTable(text, node; windowsize=3, minfreq=1)
     results[node] = assoc_score(PMI, ct)
 end
 
@@ -390,7 +390,7 @@ function compare_parameters(text, word)
 
     comparison = DataFrame()
     for p in params
-        ct = ContingencyTable(text, word, p.window, p.minfreq)
+        ct = ContingencyTable(text, word; windowsize=p.window, minfreq=p.minfreq)
         df = assoc_score(PMI, ct)
         df.WindowSize .= p.window
         append!(comparison, df)
@@ -422,7 +422,7 @@ function process_many_nodes(text, nodes)
     scores = Dict{String, Vector{Float64}}()
 
     for node in nodes
-        ct = ContingencyTable(text, node, 5, 1)
+        ct = ContingencyTable(text, node; windowsize=5, minfreq=1)
         # Get only scores to save memory
         scores[node] = assoc_score(PMI, ct, scores_only=true)
     end
@@ -449,7 +449,7 @@ function parallel_evaluate(texts, word, metrics)
 
     # In practice, use @distributed or Threads.@threads
     for text in texts
-        ct = ContingencyTable(text, word, 5, 2)
+        ct = ContingencyTable(text, word; windowsize=5, minfreq=2)
         push!(results, assoc_score(metrics, ct))
     end
 
@@ -481,7 +481,7 @@ function safe_evaluate(text, word, metric)
         isempty(text) && throw(ArgumentError("Text cannot be empty"))
         isempty(word) && throw(ArgumentError("Word cannot be empty"))
 
-        ct = ContingencyTable(text, word, 5, 1)
+        ct = ContingencyTable(text, word; windowsize=5, minfreq=1)
         results = assoc_score(metric, ct)
 
         if isempty(results)
@@ -527,7 +527,7 @@ function validated_analysis(text, word, windowsize, minfreq)
         @warn "High minimum frequency may exclude valid collocates" minfreq
     end
 
-    ct = ContingencyTable(text, word, windowsize, minfreq)
+    ct = ContingencyTable(text, word; windowsize, minfreq)
     return assoc_score(PMI, ct)
 end
 
@@ -559,7 +559,7 @@ function comprehensive_analysis(text, target_word)
     )
 
     # Step 2: Create contingency table
-    ct = ContingencyTable(text(doc), target_word, windowsize=5, minfreq=1)
+    ct = ContingencyTable(text(doc), target_word; windowsize=5, minfreq=1)
 
     # Step 3: Evaluate multiple metrics
     metrics = [PMI, LogDice, LLR, Dice, JaccardIdx]
@@ -594,7 +594,7 @@ using TextAssociations
 using CSV
 
 # Prepare results for export
-ct = ContingencyTable(text, "intelligence", 5, 1)
+ct = ContingencyTable(text, "intelligence"; windowsize=5, minfreq=1)
 results = assoc_score([PMI, LogDice, LLR], ct)
 
 # Add metadata
@@ -625,7 +625,7 @@ using DataFrames
 result = @chain text begin
     prep_string(strip_accents=false)
     text
-    ContingencyTable("learning", 4, 1)
+    ContingencyTable("learning"; windowsize=4, minfreq=1)
     assoc_score([PMI, LogDice], _)
     filter(row -> row.PMI > 2 && row.LogDice > 5, _)
     sort(:PMI, rev=true)
@@ -641,7 +641,7 @@ println(result)
 ```@example compose
 # Compose functions for reusable pipelines
 preprocess = text -> prep_string(text, strip_case=true, strip_punctuation=true)
-analyze = (text, word) -> ContingencyTable(text, word, 5, 2)
+analyze = (text, word) -> ContingencyTable(text, word; windowsize=5, minfreq=2)
 evaluate = ct -> assoc_score([PMI, LogDice, LLR], ct)
 filter_strong = df -> filter(row -> row.PMI > 3 && row.LLR > 10.83, df)
 
@@ -700,7 +700,7 @@ function optimized_processing(corpus, nodes, metrics)
     results = Dict()
     for node in nodes
         if !haskey(cache, node)
-            cache[node] = ContingencyTable(corpus, node, 5, 10)
+            cache[node] = ContingencyTable(corpus, node; windowsize=5, minfreq=10)
         end
         results[node] = assoc_score(metrics, cache[node], scores_only=true)
     end
@@ -735,7 +735,7 @@ function debug_analysis(text, word, windowsize, minfreq)
     println("Word frequency: ", count(==(lowercase(word)), tokens))
 
     # Check contingency table
-    ct = ContingencyTable(text(doc), word, windowsize, minfreq)
+    ct = ContingencyTable(text(doc), word; windowsize, minfreq)
     data = cached_data(ct.con_tbl)
     println("Contingency table rows: ", nrow(data))
 

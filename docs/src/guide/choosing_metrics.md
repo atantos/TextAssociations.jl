@@ -52,7 +52,7 @@ end
 ### Information-Theoretic Metrics
 
 ```@example info_metrics
-using TextAssociations
+using TextAssociations, DataFrames
 
 text = """
 Quantum computing revolutionizes computational power.
@@ -60,7 +60,7 @@ Classical computing cannot match quantum supremacy.
 Quantum algorithms solve complex problems efficiently.
 """
 
-ct = ContingencyTable(text, "quantum", 3, 1)
+ct = ContingencyTable(text, "quantum"; windowsize=3, minfreq=1)
 results = assoc_score([PMI, PMI², PMI³, PPMI], ct)
 
 println("PMI Family Comparison:")
@@ -76,7 +76,7 @@ end
 ### Statistical Significance Metrics
 
 ```@example stat_metrics
-using TextAssociations
+using TextAssociations, DataFrames
 
 # Text with clear patterns
 text = """
@@ -85,7 +85,7 @@ Random words appear randomly without random patterns.
 Data analysis needs careful analysis of data patterns.
 """
 
-ct = ContingencyTable(text, "statistical", 4, 1)
+ct = ContingencyTable(text, "statistical"; windowsize=4, minfreq=1)
 results = assoc_score([LLR, ChiSquare, Tscore, Zscore], ct)
 
 println("Statistical Tests Comparison:")
@@ -104,7 +104,7 @@ end
 ### Similarity Metrics
 
 ```@example sim_metrics
-using TextAssociations
+using TextAssociations, DataFrames
 
 text = """
 Machine learning and deep learning share similar foundations.
@@ -112,7 +112,7 @@ Neural networks enable deep learning applications.
 Learning algorithms power machine learning systems.
 """
 
-ct = ContingencyTable(text, "learning", 3, 1)
+ct = ContingencyTable(text, "learning"; windowsize=3, minfreq=1)
 results = assoc_score([Dice, LogDice, JaccardIdx, CosineSim], ct)
 
 println("Similarity Metrics Comparison:")
@@ -130,14 +130,14 @@ end
 ### Frequency Sensitivity
 
 ```@example freq_sensitivity
-using TextAssociations
+using TextAssociations, DataFrames
 
 # Create texts with different frequency patterns
 high_freq = "the the the word the the the"
 low_freq = "rare unique word special unusual"
 
 function analyze_frequency_sensitivity(text::String, node::String)
-    ct = ContingencyTable(text, node, 2, 1)
+    ct = ContingencyTable(text, node; windowsize=2, minfreq=1)
 
     metrics = [PMI, LogDice, LLR, Dice]
     results = assoc_score(metrics, ct)
@@ -161,7 +161,7 @@ end
 ### Corpus Size Stability
 
 ```@example corpus_stability
-using TextAssociations
+using TextAssociations, DataFrames
 
 # Simulate different corpus sizes
 small_corpus = "machine learning uses algorithms"
@@ -178,7 +178,7 @@ function compare_corpus_sizes(node::String)
     println("\nAnalyzing '$node' across corpus sizes:")
 
     for (size_name, corpus) in sizes
-        ct = ContingencyTable(corpus, node, 3, 1)
+        ct = ContingencyTable(corpus, node; windowsize=3, minfreq=1)
         results = assoc_score([PMI, LogDice, LLR], ct)
 
         if nrow(results) > 0
@@ -225,7 +225,7 @@ end
 ### For Data Characteristics
 
 ```@example data_characteristics
-using TextAssociations
+using TextAssociations, DataFrames
 
 function recommend_by_data(corpus_size::Symbol, frequency::Symbol, goal::Symbol)
     # Rule-based recommendations
@@ -301,7 +301,7 @@ end
 ### Practical Examples
 
 ```@example practical
-using TextAssociations
+using TextAssociations, DataFrames
 
 # Different types of word relationships
 texts = Dict(
@@ -312,7 +312,7 @@ texts = Dict(
 )
 
 function analyze_relationship_type(text::String, node::String, collocate::String)
-    ct = ContingencyTable(text, node, 5, 1)
+    ct = ContingencyTable(text, node; windowsize=3, minfreq=1)
     results = assoc_score([PMI, LogDice, Dice, LLR], ct)
 
     # Find specific collocate
@@ -344,7 +344,7 @@ analyze_relationship_type(texts["Semantic relation"], "doctor", "patient")
 ### Combining Multiple Metrics
 
 ```@example combining
-using TextAssociations, Statistics
+using TextAssociations, DataFrames, Statistics
 
 function combined_score_analysis(ct::ContingencyTable)
     # Calculate multiple metrics
@@ -378,7 +378,7 @@ function combined_score_analysis(ct::ContingencyTable)
 end
 
 text = "Data science requires data analysis and data visualization"
-ct = ContingencyTable(text, "data", 3, 1)
+ct = ContingencyTable(text, "data"; windowsize=3, minfreq=1)
 combined = combined_score_analysis(ct)
 
 println("Combined Metric Analysis:")
@@ -390,7 +390,7 @@ end
 ### Metric Stability Analysis
 
 ```@example stability
-using TextAssociations, Statistics
+using TextAssociations, DataFrames, Statistics
 
 function metric_stability_test(base_text::String, node::String, iterations::Int=10)
     metric_scores = Dict{Symbol,Vector{Float64}}()
@@ -399,7 +399,7 @@ function metric_stability_test(base_text::String, node::String, iterations::Int=
         # Add noise to simulate variation
         noisy_text = base_text * " " * join(rand(split(base_text), 5), " ")
 
-        ct = ContingencyTable(noisy_text, node, 3, 1)
+        ct = ContingencyTable(noisy_text, node; windowsize=3, minfreq=1)
         results = assoc_score([PMI, LogDice, LLR], ct)
 
         if nrow(results) > 0

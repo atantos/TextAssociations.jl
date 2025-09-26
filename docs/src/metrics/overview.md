@@ -54,7 +54,7 @@ println("\nTotal implemented: $(length(metrics)) metrics")
 using TextAssociations
 
 text = "Data science uses data analysis and data visualization techniques"
-ct = ContingencyTable(text, "data", 3, 1)
+ct = ContingencyTable(text, "data"; windowsize=3, minfreq=1)
 
 # Compare PMI variants
 pmi_variants = assoc_score([PMI, PMI², PMI³, PPMI], ct)
@@ -144,7 +144,7 @@ end
 
 # Create test data
 text = repeat("test word pattern ", 100)
-ct = ContingencyTable(text, "test", 5, 1)
+ct = ContingencyTable(text, "test"; windowsize=5, minfreq=1)
 
 times = benchmark_metrics(ct)
 println("\nComputation times:")
@@ -200,7 +200,7 @@ Deep learning is a subset of machine learning.
 Algorithms process data to extract patterns.
 """
 
-ct = ContingencyTable(text, "learning", 4, 1)
+ct = ContingencyTable(text, "learning"; windowsize=4, minfreq=1)
 results = assoc_score([PMI, LogDice, LLR, Dice, OddsRatio], ct)
 
 # Calculate pairwise correlations
@@ -241,8 +241,8 @@ using TextAssociations
 text = "The conference on machine learning featured talks on deep learning and neural networks"
 
 # This metric needs the full token sequence
-ct = ContingencyTable(text, "learning", 5, 1)
-tokens = split(lowercase(text))
+ct = ContingencyTable(text, "learning"; windowsize=5, minfreq=1)
+tokens = String.(split(lowercase(text)))
 
 # Calculate with different formulas
 lg_original = assoc_score(LexicalGravity, ct;
@@ -267,7 +267,7 @@ using TextAssociations
 
 # Delta P measures directional association
 text = "cause leads to effect, but effect rarely leads to cause"
-ct = ContingencyTable(text, "cause", 3, 1)
+ct = ContingencyTable(text, "cause"; windowsize=3, minfreq=1)
 
 deltap = assoc_score(DeltaPi, ct)
 println("\nDelta P (directional association):")

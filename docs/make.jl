@@ -1,5 +1,8 @@
 using Documenter
 using TextAssociations
+using DataFrames
+using CSV
+using Dates
 
 makedocs(
     sitename="TextAssociations.jl",

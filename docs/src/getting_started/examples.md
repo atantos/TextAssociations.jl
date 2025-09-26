@@ -31,7 +31,7 @@ are key tasks in computer vision research.
 """
 
 # Find technical terminology
-ct = ContingencyTable(abstracts, "learning", windowsize=5, minfreq=2;
+ct = ContingencyTable(abstracts, "learning"; windowsize=5, minfreq=2,
     norm_config=TextNorm(strip_case=true, strip_punctuation=true))
 
 # Calculate multiple metrics for validation
@@ -67,7 +67,7 @@ Quantum algorithms solve problems classical computers cannot handle.
 """
 
 # Analyze with larger window for social media
-ct = ContingencyTable(tweets, "quantum", windowsize=7, minfreq=1)
+ct = ContingencyTable(tweets, "quantum"; windowsize=7, minfreq=1)
 
 # Use LogDice for stable results across different sample sizes
 results = assoc_score(LogDice, ct)
@@ -101,12 +101,12 @@ Plot twists keep readers engaged throughout the journey.
 # Analyze same word in different contexts
 function compare_genres(word::String)
     # Technical context
-    ct_tech = ContingencyTable(technical, word, 3, 1)
+    ct_tech = ContingencyTable(technical, word; windowsize=3, minfreq=1)
     tech_results = assoc_score(PMI, ct_tech; scores_only=false)
     tech_results[!, :Genre] .= "Technical"
 
     # Narrative context
-    ct_narr = ContingencyTable(narrative, word, 3, 1)
+    ct_narr = ContingencyTable(narrative, word; windowsize=3, minfreq=1)
     narr_results = assoc_score(PMI, ct_narr; scores_only=false)
     narr_results[!, :Genre] .= "Narrative"
 
@@ -197,12 +197,12 @@ Memory is measured in terabytes.
 
 function temporal_comparison(word::String)
     # Early period
-    ct_early = ContingencyTable(early_docs, word, 4, 1)
+    ct_early = ContingencyTable(early_docs, word; windowsize=4, minfreq=1)
     early = assoc_score(PMI, ct_early)
     early[!, :Period] .= "Early"
 
     # Modern period
-    ct_modern = ContingencyTable(modern_docs, word, 4, 1)
+    ct_modern = ContingencyTable(modern_docs, word; windowsize=4, minfreq=1)
     modern = assoc_score(PMI, ct_modern)
     modern[!, :Period] .= "Modern"
 
@@ -243,7 +243,7 @@ greek_config = TextNorm(
 )
 
 # Analyze Greek text
-ct = ContingencyTable(greek_text, "τεχνητής", 3, 1;
+ct = ContingencyTable(greek_text, "τεχνητής"; windowsize=3, minfreq=1,
     norm_config=greek_config)
 
 results = assoc_score(PMI, ct)
@@ -272,7 +272,7 @@ function build_collocation_dict(text::String, min_pmi::Float64=3.0)
             continue
         end
 
-        ct = ContingencyTable(text, keyword, 5, 2)
+        ct = ContingencyTable(text, keyword; windowsize=5, minfreq=2)
         results = assoc_score([PMI, LogDice, LLR], ct)
 
         # Strong collocations only
@@ -330,7 +330,7 @@ function benchmark_configs()
     println("Configuration benchmarks:")
     for config in configs
         time = @elapsed begin
-            ct = ContingencyTable(text, "the", config.window, config.minfreq)
+            ct = ContingencyTable(text, "the"; windowsize=config.window, minfreq=config.minfreq)
             results = assoc_score(PMI, ct; scores_only=true)
         end
 
@@ -341,7 +341,7 @@ end
 
 # Benchmark metrics
 function benchmark_metrics()
-    ct = ContingencyTable(text, "quick", 5, 1)
+    ct = ContingencyTable(text, "quick"; windowsize=5, minfreq=1)
 
     metrics = [PMI, LogDice, LLR, Dice]
     println("\nMetric benchmarks:")

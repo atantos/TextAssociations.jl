@@ -27,7 +27,7 @@ Data scientists use various tools for data analysis and data visualization.
 # Create a contingency table for the word "data"
 ct = ContingencyTable(
     text,           # Input text
-    "data",         # Node word (target)
+    "data";         # Node word (target)
     windowsize=3,   # Look 3 words left/right
     minfreq=1       # Minimum frequency
 )
@@ -139,7 +139,7 @@ Apply filters to find the most relevant collocations:
 
 ```@example tutorial
 # Recreate results for filtering example
-ct = ContingencyTable(text, "science", 4, 1)
+ct = ContingencyTable(text, "science"; windowsize=4, minfreq=1)
 results = assoc_score([PMI, LogDice, LLR], ct)
 
 # Filter for strong collocations
@@ -210,7 +210,7 @@ function analyze_text(text::String, target_word::String)
     doc = prep_string(text, strip_case=true, strip_punctuation=true)
 
     # 2. Create contingency table
-    ct = ContingencyTable(text(doc), target_word, windowsize=5, minfreq=2)
+    ct = ContingencyTable(text(doc), target_word; windowsize=5, minfreq=2)
 
     # 3. Calculate multiple metrics
     results = assoc_score([PMI, LogDice, LLR], ct)
