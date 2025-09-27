@@ -585,7 +585,7 @@ end
 
 Build a document-term matrix from documents.
 """
-function build_document_term_matrix(documents::Vector{StringDocument},
+function build_document_term_matrix(documents::Vector{<:StringDocument},
     vocabulary::OrderedDict{String,Int})
 
     n_docs = length(documents)
