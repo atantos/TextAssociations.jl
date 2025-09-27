@@ -22,7 +22,7 @@ large_text = repeat(small_text * " ", 1000)
 # Benchmark contingency table creation
 println("Contingency Table Creation:")
 for (name, text) in [("Small", small_text), ("Medium", medium_text), ("Large", large_text)]
-    time = @elapsed ContingencyTable(text, "the", windowsize=5, minfreq=2)
+    time = @elapsed ContingencyTable(text, "the"; windowsize=5, minfreq=2)
     println("  $name ($(length(split(text))) words): $(round(time*1000, digits=2))ms")
 end
 ```
@@ -38,7 +38,7 @@ medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
 large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
 
 
-ct = ContingencyTable(medium_text, "the", windowsize=5, minfreq=2)
+ct = ContingencyTable(medium_text, "the"; windowsize=5, minfreq=2)
 
 # Benchmark different metrics
 metrics = [PMI, LogDice, LLR, Dice, JaccardIdx, ChiSquare]
@@ -63,7 +63,7 @@ medium_text = repeat("The quick brown fox jumps over the lazy dog. ", 100)
 large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
 
 
-ct = ContingencyTable(large_text, "the", windowsize=5, minfreq=2)
+ct = ContingencyTable(large_text, "the"; windowsize=5, minfreq=2)
 
 # Memory-efficient: returns only vector
 @time scores_vector = assoc_score(PMI, ct; scores_only=true)
@@ -89,7 +89,7 @@ large_text = repeat("The quick brown fox jumps over the lazy dog. ", 1000)
 
 # Lazy evaluation delays computation
 println("Creating ContingencyTable (lazy)...")
-@time ct = ContingencyTable(large_text, "fox", windowsize=5, minfreq=2)
+@time ct = ContingencyTable(large_text, "fox"; windowsize=5, minfreq=2)
 
 println("\nFirst evaluation (computes):")
 @time results1 = assoc_score(PMI, ct)
@@ -120,7 +120,7 @@ function parallel_analyze(text::String, nodes::Vector{String})
     results = Vector{Any}(undef, length(nodes))
 
     Threads.@threads for i in 1:length(nodes)
-        ct = ContingencyTable(text, nodes[i], windowsize=5, minfreq=2)
+        ct = ContingencyTable(text, nodes[i]; windowsize=5, minfreq=2)
         results[i] = assoc_score(PMI, ct; scores_only=true)
     end
 
@@ -535,7 +535,7 @@ function memory_safe_analysis(corpus_files::Vector{String}, node::String)
         text = read(file, String)
 
         # Use aggressive filtering
-        ct = ContingencyTable(text, node, windowsize=3, minfreq=20)  # Small window, high minfreq
+        ct = ContingencyTable(text, node; windowsize=3, minfreq=20)  # Small window, high minfreq
 
         # Get scores only
         scores = assoc_score(PMI, ct; scores_only=true)
@@ -576,11 +576,11 @@ function benchmark_suite(text::String)
     # Contingency table benchmarks
     suite["contingency"] = BenchmarkGroup()
     for ws in [2, 5, 10]
-        suite["contingency"]["window_$ws"] = @benchmarkable ContingencyTable($text, "the", windowsize=$ws, minfreq=5)
+        suite["contingency"]["window_$ws"] = @benchmarkable ContingencyTable($text, "the"; windowsize=$ws, minfreq=5)
     end
 
     # Metric benchmarks
-    ct = ContingencyTable(text, "the", windowsize=5, minfreq=5)
+    ct = ContingencyTable(text, "the"; windowsize=5, minfreq=5)
     suite["metrics"] = BenchmarkGroup()
     for metric in [PMI, LogDice, LLR]
         suite["metrics"]["$metric"] = @benchmarkable assoc_score($metric, $ct; scores_only=true)

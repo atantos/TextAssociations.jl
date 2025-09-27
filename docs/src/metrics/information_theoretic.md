@@ -4,7 +4,23 @@
 CurrentModule = TextAssociations
 ```
 
-Information-theoretic metrics measure the amount of information shared between words based on their co-occurrence patterns.
+Information-theoretic metrics measure the amount of information shared between words based on their co-occurrence patterns. Let's create a `ContingencyTable` that will be used later in this documentation.
+
+```@example setup
+using TextAssociations
+
+text = """
+Natural language processing uses computational linguistics.
+Computational methods analyze natural language data.
+Language models process natural text efficiently.
+"""
+
+ct = ContingencyTable(text, "language"; windowsize=3, minfreq=1)
+
+println("Contingency table created:")
+println("  node  : ", ct.node)
+println("  window: 3, minfreq: 1")
+```
 
 ## Pointwise Mutual Information (PMI)
 
@@ -18,16 +34,7 @@ PMI(x,y) = \log_2 \frac{P(x,y)}{P(x)P(y)}
 
 ### Implementation
 
-```@example pmi
-using TextAssociations
-
-text = """
-Natural language processing uses computational linguistics.
-Computational methods analyze natural language data.
-Language models process natural text efficiently.
-"""
-
-ct = ContingencyTable(text, "language"; windowsize=3, minfreq=1)
+```@example setup
 results = assoc_score(PMI, ct)
 
 println("PMI scores for 'language':")
@@ -48,7 +55,7 @@ end
 
 ### PMI Variants
 
-```@example pmi_variants
+```@example setup
 using TextAssociations
 
 # Compare PMI variants
@@ -81,7 +88,7 @@ LLR = 2 \sum_{ij} O_{ij} \log \frac{O_{ij}}{E_{ij}}
 
 ### Implementation
 
-```@example llr
+```@example setup
 using TextAssociations
 
 # LLR for statistical significance
@@ -143,7 +150,7 @@ explain_mi_pmi_relationship()
 
 Information gain measures how much knowing one word reduces uncertainty about another:
 
-```@example info_gain
+```@example setup
 using TextAssociations
 
 # Demonstrate information gain concept
@@ -168,7 +175,7 @@ information_gain_example(ct)
 
 PPMI addresses the issue that PMI can be negative for words that co-occur less than expected:
 
-```@example ppmi
+```@example setup
 using TextAssociations
 
 # Compare PMI and PPMI

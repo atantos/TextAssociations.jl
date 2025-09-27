@@ -516,7 +516,7 @@ function debug_preprocessing(text::String, word::String, config::TextNorm)
     println("Looking for: '$word'")
 
     # Process text
-    processed = prep_string(text; norm_config=config)
+    processed = prep_string(text. config)
     processed_text = text(processed)
     println("\nProcessed text: '$processed_text'")
 
