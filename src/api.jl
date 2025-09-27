@@ -682,7 +682,7 @@ function assoc_score(::Type{T}, corpus::Corpus, node::AbstractString;
     kwargs...) where {T<:AssociationMetric}
 
     # Create corpus contingency table
-    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+    cct = CorpusContingencyTable(corpus, node; windowsize, minfreq)
 
     # Call the unified assoc_score with the CCT
     return assoc_score(T, cct; kwargs...)
@@ -720,7 +720,7 @@ function assoc_score(::Type{T}, corpus::Corpus, nodes::Vector{String};
 
     @showprogress desc = "Processing nodes..." for node in nodes
         # Create corpus contingency table for this node
-        cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+        cct = CorpusContingencyTable(corpus, node; windowsize, minfreq)
 
         # Get results for this node
         node_results = assoc_score(T, cct; kwargs...)
@@ -759,7 +759,7 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
 
     @showprogress desc = "Processing nodes..." for node in nodes
         # Create corpus contingency table for this node
-        cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+        cct = CorpusContingencyTable(corpus, node; windowsize, minfreq)
 
         # Get results for all metrics
         node_results = assoc_score(metrics, cct; kwargs...)
