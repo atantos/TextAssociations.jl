@@ -69,7 +69,7 @@ export
     # Advanced features
     analyze_temporal, compare_subcorpora,
     keyterms, colloc_graph,
-    gephi_graph, concord,
+    gephi_graph, kwic,
 
     # Utility functions
     normalize_node, prep_string,
