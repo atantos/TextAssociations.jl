@@ -701,3 +701,98 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     # Call the unified assoc_score with the CCT
     return assoc_score(metrics, cct; kwargs...)
 end
+
+"""
+    assoc_score(metricType::Type{<:AssociationMetric}, corpus::Corpus, 
+                nodes::Vector{String}; windowsize::Int=5, minfreq::Int=5, 
+                top_n::Int=100, kwargs...)
+
+Evaluate a metric on multiple nodes in a corpus.
+Returns a Dict{String,DataFrame} with results for each node.
+"""
+function assoc_score(::Type{T}, corpus::Corpus, nodes::Vector{String};
+    windowsize::Int=5,
+    minfreq::Int=5,
+    top_n::Int=100,
+    kwargs...) where {T<:AssociationMetric}
+
+    results = Dict{String,DataFrame}()
+
+    @showprogress desc = "Processing nodes..." for node in nodes
+        # Create corpus contingency table for this node
+        cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+
+        # Get results for this node
+        node_results = assoc_score(T, cct; kwargs...)
+
+        # Apply top_n filtering if results exist
+        if !isempty(node_results)
+            # Sort by score and take top N
+            score_col = Symbol(string(T))
+            sort!(node_results, score_col, rev=true)
+            node_results = first(node_results, min(top_n, nrow(node_results)))
+        end
+
+        # Store with normalized node as key
+        results[cct.node] = node_results
+    end
+
+    return results
+end
+
+"""
+    assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}}, 
+                corpus::Corpus, nodes::Vector{String}; 
+                windowsize::Int=5, minfreq::Int=5, top_n::Int=100, kwargs...)
+
+Evaluate multiple metrics on multiple nodes in a corpus.
+Returns a Dict{String,DataFrame} with combined metric results for each node.
+"""
+function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+    corpus::Corpus, nodes::Vector{String};
+    windowsize::Int=5,
+    minfreq::Int=5,
+    top_n::Int=100,
+    kwargs...)
+
+    results = Dict{String,DataFrame}()
+
+    @showprogress desc = "Processing nodes..." for node in nodes
+        # Create corpus contingency table for this node
+        cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+
+        # Get results for all metrics
+        node_results = assoc_score(metrics, cct; kwargs...)
+
+        # Apply top_n filtering if results exist
+        if !isempty(node_results)
+            # Sort by first metric and take top N
+            first_metric = Symbol(string(metrics[1]))
+            sort!(node_results, first_metric, rev=true)
+            node_results = first(node_results, min(top_n, nrow(node_results)))
+        end
+
+        # Store with normalized node as key
+        results[cct.node] = node_results
+    end
+
+    return results
+end
+
+"""
+    assoc_score(metric::Type{<:AssociationMetric}, corpus::Corpus;
+                nodes::Vector{String}, windowsize::Int=5, minfreq::Int=5,
+                top_n::Int=100, kwargs...)
+
+Alternative syntax with nodes as keyword argument.
+"""
+function assoc_score(::Type{T}, corpus::Corpus;
+    nodes::Vector{String},
+    windowsize::Int=5,
+    minfreq::Int=5,
+    top_n::Int=100,
+    kwargs...) where {T<:AssociationMetric}
+
+    return assoc_score(T, corpus, nodes;
+        windowsize=windowsize, minfreq=minfreq, top_n=top_n, kwargs...)
+end
