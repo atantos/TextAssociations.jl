@@ -668,3 +668,36 @@ function assoc_score(metrics::Vector{DataType},
         inputstring, node; windowsize, minfreq,
         scores_only, tokens, kwargs...)
 end
+
+
+"""
+    assoc_score(metricType::Type{<:AssociationMetric}, corpus::Corpus, node::AbstractString;
+                windowsize::Int=5, minfreq::Int=5, kwargs...)
+
+Evaluate a metric on a corpus - convenience method that delegates to analyze_corpus.
+"""
+function assoc_score(::Type{T}, corpus::Corpus, node::AbstractString;
+    windowsize::Int=5,
+    minfreq::Int=5,
+    kwargs...) where {T<:AssociationMetric}
+
+    # Create corpus contingency table
+    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+
+    # Call the unified assoc_score with the CCT
+    return assoc_score(T, cct; kwargs...)
+end
+
+# Also support multiple metrics
+function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
+    corpus::Corpus, node::AbstractString;
+    windowsize::Int=5,
+    minfreq::Int=5,
+    kwargs...)
+
+    # Create corpus contingency table
+    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+
+    # Call the unified assoc_score with the CCT
+    return assoc_score(metrics, cct; kwargs...)
+end
