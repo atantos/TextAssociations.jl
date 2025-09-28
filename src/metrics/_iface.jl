@@ -22,10 +22,10 @@ assoc_ws(x::CorpusContingencyTable) = x.windowsize
 assoc_norm_config(x::CorpusContingencyTable) = x.norm_config
 # Extract all tokens from the corpus
 function assoc_tokens(x::CorpusContingencyTable)
-    all_tokens = String[]
-    for doc in x.corpus_ref.documents
-        append!(all_tokens, tokens(doc))
+    toks = String[]
+    for ct in x.tables
+        append!(toks, String.(tokens(document(ct.input_ref))))
     end
-    return all_tokens
+    return toks
 end
 
