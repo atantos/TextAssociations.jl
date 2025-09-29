@@ -76,7 +76,7 @@ configs = [
 ]
 
 for (name, config) in configs
-    doc = prep_string(text; config)
+    doc = prep_string(text, config)
     println("$name: '$(text(doc))'")
 end
 ```
@@ -89,13 +89,11 @@ using TextAssociations
 text = "Multiple   spaces    and\t\ttabs\n\neverywhere"
 
 # Normalize whitespace
-normalized = prep_string(text;
-    norm_config=TextNorm(normalize_whitespace=true))
+normalized = prep_string(text, TextNorm(normalize_whitespace=true))
 println("Normalized: '$(text(normalized))'")
 
 # Strip all whitespace (for certain languages)
-stripped = prep_string(text;
-    norm_config=TextNorm(strip_whitespace=true))
+stripped = prep_string(text, TextNorm(strip_whitespace=true))
 println("Stripped: '$(text(stripped))'")
 ```
 
@@ -120,12 +118,12 @@ function compare_accent_handling(text::String, lang::String)
 
     # With accents
     with_config = TextNorm(strip_accents=false)
-    with_doc = prep_string(text; norm_config=with_config)
+    with_doc = prep_string(text, with_config)
     println("  With accents: '$(text(with_doc))'")
 
     # Without accents
     without_config = TextNorm(strip_accents=true)
-    without_doc = prep_string(text; norm_config=without_config)
+    without_doc = prep_string(text, without_config)
     println("  Without accents: '$(text(without_doc))'")
 end
 
@@ -273,7 +271,7 @@ function custom_preprocess(text::String)
         normalize_whitespace=true
     )
 
-    doc = prep_string(text; norm_config=config)
+    doc = prep_string(text, config)
     return text(doc)
 end
 
@@ -299,7 +297,7 @@ configs = [
 ]
 
 for (name, config) in configs
-    doc = prep_string(text_with_special; config)
+    doc = prep_string(text_with_special, config)
     println("$name: '$(text(doc))'")
 end
 ```
@@ -341,7 +339,7 @@ configs = [
 ]
 
 for (name, config) in configs
-    time = @elapsed prep_string(text; config)
+    time = @elapsed prep_string(text, config)
     println("$name: $(round(time*1000, digits=2))ms")
 end
 ```
@@ -361,7 +359,7 @@ function stream_preprocess(file_path::String, chunk_size::Int=1024*1024)
             chunk_text = String(chunk)
 
             # Process chunk
-            doc = prep_string(chunk_text; norm_config=config)
+            doc = prep_string(chunk_text, config)
 
             # Yield processed chunk (in practice, write to output)
             # process_chunk(text(doc))
@@ -380,7 +378,7 @@ println("Stream processing implemented for large files")
 using TextAssociations
 
 function verify_preprocessing(original::String, config::TextNorm)
-    processed = prep_string(original; norm_config=config)
+    processed = prep_string(original, config)
     processed_text = text(processed)
 
     println("Original: '$original'")
@@ -488,7 +486,7 @@ test_cases = [
 
 function test_preprocessing(config::TextNorm)
     for test in test_cases
-        processed = text(prep_string(test; norm_config=config))
+        processed = text(prep_string(test, config))
         println("'$test' → '$processed'")
     end
 end
@@ -508,7 +506,7 @@ end
 ### Debug Helper
 
 ```@example debug_prep
-using TextAssociations
+using TextAssociations: text
 
 function debug_preprocessing(text::String, word::String, config::TextNorm)
     # Show original
@@ -516,7 +514,7 @@ function debug_preprocessing(text::String, word::String, config::TextNorm)
     println("Looking for: '$word'")
 
     # Process text
-    processed = prep_string(text. config)
+    processed = prep_string(text, config)
     processed_text = text(processed)
     println("\nProcessed text: '$processed_text'")
 
@@ -530,8 +528,9 @@ function debug_preprocessing(text::String, word::String, config::TextNorm)
     println("\nWord found: $found")
 
     if !found
+        prefix_len = min(3, length(normalized_word))
         # Find similar words
-        similar = filter(t -> startswith(t, normalized_word[1:min(3,length(normalized_word))]), tokens)
+        similar = filter(t -> startswith(t, normalized_word[1:prefix_len]), tokens)
         if !isempty(similar)
             println("Similar words: ", similar)
         end

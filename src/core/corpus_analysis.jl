@@ -1000,7 +1000,7 @@ function stream_corpus_analysis(file_pattern::AbstractString,
         chunk_docs = StringDocument[]
         for file in file_chunk
             content = read(file, String)
-            push!(chunk_docs, prep_string(content))
+            push!(chunk_docs, prep_string(content, TextNorm()))
         end
 
         # Create temporary corpus

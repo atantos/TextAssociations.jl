@@ -6,6 +6,19 @@ CurrentModule = TextAssociations
 
 TextAssociations.jl implements over 50 association metrics from various theoretical frameworks. This overview helps you understand the metrics landscape and choose appropriate measures for your analysis.
 
+```@example assoc_ct
+using TextAssociations, DataFrames
+
+text = """
+Machine learning uses algorithms to find patterns.
+Deep learning is a subset of machine learning.
+Algorithms process data to extract patterns.
+"""
+ct = ContingencyTable(text, "statistics"; windowsize=3, minfreq=1)
+
+nothing
+```
+
 ## Metric Categories
 
 ```@example categories
@@ -71,7 +84,7 @@ end
 
 ### Statistical Significance Family
 
-```@example stat_family
+```@example assoc_ct
 using TextAssociations
 
 # Statistical metrics for hypothesis testing
@@ -304,8 +317,8 @@ end
 
 ### Cross-validation with Multiple Metrics
 
-```@example validation
-using TextAssociations
+```@example assoc_ct
+using TextAssociations, DataFrames
 
 function validate_associations(ct::ContingencyTable, threshold_dict::Dict)
     # Use multiple metrics for validation

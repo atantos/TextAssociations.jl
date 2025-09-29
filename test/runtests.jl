@@ -45,7 +45,7 @@ Random.seed!(42)
             text = "Hello, World! This is a TEST."
 
             # Test without accent stripping (default)
-            doc = prep_string(text, strip_accents=false)
+            doc = prep_string(text, TextNorm(strip_accents=false))
             processed_text = TextAnalysis.text(doc)
             @test !occursin(",", processed_text)  # Punctuation removed
             @test !occursin("!", processed_text)
@@ -54,13 +54,13 @@ Random.seed!(42)
 
             # Test with accent stripping
             text_greek = "Ένα τεστ με τόνους και διαλυτικά"
-            doc_stripped = prep_string(text_greek, strip_accents=true)
+            doc_stripped = prep_string(text_greek, TextNorm(strip_accents=true))
             @test occursin("ενα", TextAnalysis.text(doc_stripped))
             @test !occursin("ένα", TextAnalysis.text(doc_stripped))
         end
 
         @testset "Vocabulary Creation" begin
-            doc = prep_string("word1 word2 word3 word1")
+            doc = prep_string("word1 word2 word3 word1", TextNorm())
             vocab = build_vocab(doc)
             # The actual number of unique tokens after tokenization
             # May be 4 if the tokenizer creates an empty token
@@ -479,7 +479,7 @@ Random.seed!(42)
 
     @testset "Utility Functions" begin
         @testset "Text Analysis Utilities" begin
-            doc = prep_string("The quick brown fox jumps over the lazy dog")
+            doc = prep_string("The quick brown fox jumps over the lazy dog", TextNorm())
 
             prior_words = TextAssociations.find_prior_words(doc, "fox", 2)
             @test isa(prior_words, Set{String})
@@ -610,8 +610,8 @@ Random.seed!(42)
             text = "Café naïve résumé"
 
             # Test different normalization forms
-            doc_nfc = prep_string(text, unicode_form=:NFC)
-            doc_nfd = prep_string(text, unicode_form=:NFD)
+            doc_nfc = prep_string(text, TextNorm(unicode_form=:NFC))
+            doc_nfd = prep_string(text, TextNorm(unicode_form=:NFD))
 
             @test isa(doc_nfc, TextAnalysis.StringDocument)
             @test isa(doc_nfd, TextAnalysis.StringDocument)

@@ -6,6 +6,19 @@ CurrentModule = TextAssociations
 
 Statistical metrics provide hypothesis testing and significance assessment for word associations.
 
+```@example assoc_ct
+using TextAssociations, DataFrames
+
+text = """
+Machine learning uses algorithms to find patterns.
+Deep learning is a subset of machine learning.
+Algorithms process data to extract patterns.
+"""
+ct = ContingencyTable(text, "statistics"; windowsize=3, minfreq=1)
+
+nothing
+```
+
 ## Chi-Square Test
 
 ### Theory
@@ -62,7 +75,7 @@ t = \frac{O - E}{\sqrt{O}}
 
 ### Application
 
-```@example tscore
+```@example assoc_ct
 using TextAssociations
 
 # T-score for collocation strength
@@ -96,7 +109,7 @@ z = \frac{O - E}{\sigma}
 
 ### Comparison with T-score
 
-```@example zscore_comparison
+```@example assoc_ct
 using TextAssociations
 
 # Compare T-score and Z-score
@@ -123,7 +136,7 @@ end
 
 While not directly implemented, Fisher's exact test is important for small samples:
 
-```@example fisher_concept
+```@example assoc_ct
 using TextAssociations
 
 function explain_fisher_test()
@@ -254,7 +267,7 @@ bonferroni_correction(p_values)
 ### 1. Combining Statistical Tests
 
 ```@example combining
-using TextAssociations
+using TextAssociations, DataFrames
 
 # Create a sample contingency table first
 text = "Statistical analysis requires careful statistical methods"

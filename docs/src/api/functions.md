@@ -191,11 +191,11 @@ doc = prep_string(text)
 println("Default: '", text(doc), "'")
 
 # Custom preprocessing
-doc_custom = prep_string(text,
-    strip_case=false,        # Keep original case
-    strip_punctuation=false, # Keep punctuation
-    normalize_whitespace=true # Fix spacing only
-)
+# doc_custom = prep_string(text,
+#     strip_case=false,        # Keep original case
+#     strip_punctuation=false, # Keep punctuation
+#     normalize_whitespace=true # Fix spacing only
+# )
 println("Custom: '", text(doc_custom), "'")
 ```
 

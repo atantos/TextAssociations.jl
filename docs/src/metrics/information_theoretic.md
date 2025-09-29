@@ -332,6 +332,7 @@ semantic_similarity(text, "dogs", "cats")
 
 ```@example features
 using TextAssociations
+using DataFrames
 
 # Use PPMI for feature extraction
 function extract_features(corpus_text::String, target_words::Vector{String}, top_n::Int=10)
