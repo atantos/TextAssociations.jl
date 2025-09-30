@@ -18,11 +18,11 @@ This guide helps you diagnose and solve common issues with TextAssociations.jl.
 
 ```@example empty_results
 using TextAssociations
-using TextAnalysis: tokens
-using DataFrames
+using TextAnalysis: tokens, text
+using DataFrames: nrow
 
 # Debug empty results
-function debug_empty_results(text::String, node::String, windowsize::Int, minfreq::Int)
+function debug_empty_results(s::String, node::String, windowsize::Int, minfreq::Int)
     println("Debugging empty results for '$node'")
     println("-" ^ 40)
 
@@ -33,7 +33,7 @@ function debug_empty_results(text::String, node::String, windowsize::Int, minfre
     println("Normalized node: '$normalized_node'")
 
     # Step 2: Check if word exists in text
-    doc = prep_string(text, config)
+    doc = prep_string(s, config)
     doc_tokens = tokens(doc)
     node_count = count(==(normalized_node), doc_tokens)
     println("\nNode frequency in text: $node_count")

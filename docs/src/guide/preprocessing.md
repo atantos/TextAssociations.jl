@@ -40,6 +40,7 @@ end
 
 ```@example case
 using TextAssociations
+using DataFrames
 
 text = "The IBM CEO visited NASA headquarters."
 
@@ -65,8 +66,9 @@ println("With lowercasing: $(nrow(results_lower)) collocates")
 
 ```@example punctuation
 using TextAssociations
+using TextAnalysis: text
 
-text = "Well-designed, user-friendly interface; however, performance issues..."
+text1 = "Well-designed, user-friendly interface; however, performance issues..."
 
 # Different punctuation strategies
 configs = [
@@ -76,7 +78,7 @@ configs = [
 ]
 
 for (name, config) in configs
-    doc = prep_string(text, config)
+    doc = prep_string(text1, config)
     println("$name: '$(text(doc))'")
 end
 ```
@@ -85,15 +87,16 @@ end
 
 ```@example whitespace
 using TextAssociations
+using TextAnalytics: text
 
-text = "Multiple   spaces    and\t\ttabs\n\neverywhere"
+text1 = "Multiple   spaces    and\t\ttabs\n\neverywhere"
 
 # Normalize whitespace
-normalized = prep_string(text, TextNorm(normalize_whitespace=true))
+normalized = prep_string(text1, TextNorm(normalize_whitespace=true))
 println("Normalized: '$(text(normalized))'")
 
 # Strip all whitespace (for certain languages)
-stripped = prep_string(text, TextNorm(strip_whitespace=true))
+stripped = prep_string(text1, TextNorm(strip_whitespace=true))
 println("Stripped: '$(text(stripped))'")
 ```
 
@@ -103,6 +106,7 @@ Critical for multilingual analysis:
 
 ```@example accents
 using TextAssociations
+using TextAnalysis: text
 
 # Greek text with tonos marks
 greek = "Η ανάλυση κειμένου είναι σημαντική"
@@ -113,17 +117,17 @@ french = "L'analyse détaillée révèle des résultats intéressants"
 # Spanish text
 spanish = "El análisis lingüístico computacional avanzó rápidamente"
 
-function compare_accent_handling(text::String, lang::String)
+function compare_accent_handling(s::String, lang::String)
     println("\n$lang text:")
 
     # With accents
     with_config = TextNorm(strip_accents=false)
-    with_doc = prep_string(text, with_config)
+    with_doc = prep_string(s, with_config)
     println("  With accents: '$(text(with_doc))'")
 
     # Without accents
     without_config = TextNorm(strip_accents=true)
-    without_doc = prep_string(text, without_config)
+    without_doc = prep_string(s, without_config)
     println("  Without accents: '$(text(without_doc))'")
 end
 
@@ -168,6 +172,8 @@ config_nfd = TextNorm(unicode_form=:NFD)
 
 ```@example greek_prep
 using TextAssociations
+using DataFrames: eachrow
+using TextAnalysis: text
 
 greek_text = """
 Η φιλοσοφία και η επιστήμη συνδέονται στενά.
@@ -182,7 +188,7 @@ greek_config = TextNorm(
     strip_punctuation=true
 )
 
-ct = ContingencyTable(greek_text, "φιλοσοφία"; windowsize=5, minfreq=1;
+ct = ContingencyTable(greek_text, "φιλοσοφία"; windowsize=5, minfreq=1,
     norm_config=greek_config)
 results = assoc_score(PMI, ct)
 
@@ -239,13 +245,14 @@ arabic_config = TextNorm(
 
 ```@example custom_pipeline
 using TextAssociations
+using TextAnalytics: text
 
-function custom_preprocess(text::String)
+function custom_preprocess(s::String)
     # Step 1: Remove URLs
-    text = replace(text, r"https?://[^\s]+" => "[URL]")
+    s = replace(text, r"https?://[^\s]+" => "[URL]")
 
     # Step 2: Remove email addresses
-    text = replace(text, r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b" => "[EMAIL]")
+    s = replace(text, r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b" => "[EMAIL]")
 
     # Step 3: Expand contractions
     contractions = Dict(
@@ -261,7 +268,7 @@ function custom_preprocess(text::String)
     )
 
     for (contraction, expansion) in contractions
-        text = replace(text, contraction => expansion)
+        s = replace(s, contraction => expansion)
     end
 
     # Step 4: Standard normalization
@@ -271,7 +278,7 @@ function custom_preprocess(text::String)
         normalize_whitespace=true
     )
 
-    doc = prep_string(text, config)
+    doc = prep_string(s, config)
     return text(doc)
 end
 
@@ -286,6 +293,7 @@ println("Processed: $processed")
 
 ```@example special_chars
 using TextAssociations
+using TextAnalysis: text
 
 text_with_special = "Price: \$99.99 | Temperature: 25°C | Math: x² + y² = r²"
 
@@ -327,8 +335,7 @@ heavy = TextNorm(
     strip_case=true,
     strip_accents=true,
     strip_punctuation=true,
-    normalize_whitespace=true,
-    use_prepare=true
+    normalize_whitespace=true
 )
 
 # Compare performance
@@ -376,6 +383,7 @@ println("Stream processing implemented for large files")
 
 ```@example verify_prep
 using TextAssociations
+using TextAnalysis: text
 
 function verify_preprocessing(original::String, config::TextNorm)
     processed = prep_string(original, config)
@@ -506,15 +514,16 @@ end
 ### Debug Helper
 
 ```@example debug_prep
-using TextAssociations: text
+using TextAssociations: TextNorm, prep_string, normalize_node
+using TextAnalysis: text
 
-function debug_preprocessing(text::String, word::String, config::TextNorm)
+function debug_preprocessing(s::String, word::String, config::TextNorm)
     # Show original
-    println("Original text: '$text'")
+    println("Original text: '$s'")
     println("Looking for: '$word'")
 
     # Process text
-    processed = prep_string(text, config)
+    processed = prep_string(s, config)
     processed_text = text(processed)
     println("\nProcessed text: '$processed_text'")
 

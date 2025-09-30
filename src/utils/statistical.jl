@@ -9,7 +9,7 @@ log_safe(x::Real) = log(max(x, eps()))
 log2_safe(x::Real) = log2(max(x, eps()))
 
 """
-    available_metrics() -> Vector{Symbol}
+    available_metrics() -> Vector{DataType}
 
 Returns a list of all supported association metrics.
 """

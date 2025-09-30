@@ -1,5 +1,9 @@
 # Quick Tutorial
 
+```
+@id getting_started_tutorial
+```
+
 ```@meta
 CurrentModule = TextAssociations
 DocTestSetup = quote

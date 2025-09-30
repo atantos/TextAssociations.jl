@@ -1,5 +1,9 @@
 # Metrics Overview
 
+```
+@id metrics_overview
+```
+
 ```@meta
 CurrentModule = TextAssociations
 ```

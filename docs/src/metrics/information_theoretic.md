@@ -336,7 +336,7 @@ using DataFrames
 
 # Use PPMI for feature extraction
 function extract_features(corpus_text::String, target_words::Vector{String}, top_n::Int=10)
-    features = Dict{String, Vector{Symbol}}()
+    features = Dict{String, Vector{String}}()
 
     for word in target_words
         ct = ContingencyTable(corpus_text, word; windowsize=5, minfreq=1)

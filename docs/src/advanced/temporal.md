@@ -1,5 +1,9 @@
 # Temporal Analysis
 
+```
+@id advanced_temporal
+```
+
 ```@meta
 CurrentModule = TextAssociations
 ```

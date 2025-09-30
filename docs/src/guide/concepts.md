@@ -1,5 +1,9 @@
 # Core Concepts
 
+```
+@id guide_concepts
+```
+
 ```@meta
 CurrentModule = TextAssociations
 ```

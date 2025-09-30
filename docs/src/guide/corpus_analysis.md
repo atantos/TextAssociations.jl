@@ -1,5 +1,9 @@
 # Working with Corpora
 
+```
+@id corpus_analysis_guide
+```
+
 ```@meta
 CurrentModule = TextAssociations
 ```
@@ -231,7 +235,7 @@ end
 ### Subcorpus Comparison
 
 ```@example subcorpus
-using TextAssociations
+using TextAssociations, DataFrames
 
 # Create corpus with categories
 df = DataFrame(
@@ -272,7 +276,7 @@ end
 
 ### Keyword Extraction
 
-```@example keywords
+```@example loading
 using TextAssociations
 
 # Extract keywords using TF-IDF
@@ -292,7 +296,7 @@ end
 
 ### Building Collocation Networks
 
-```@example network
+```@example loading
 using TextAssociations
 
 # Build collocation network
@@ -323,7 +327,7 @@ end
 
 ### Batch Processing
 
-```@example batch
+```@example loading
 using TextAssociations
 
 function batch_analyze_corpus(corpus::Corpus, nodes::Vector{String}, batch_size::Int=10)
@@ -402,7 +406,7 @@ println("Streaming analysis function defined for large corpora")
 
 ### Document Filtering
 
-```@example filtering
+```@example loading
 using TextAssociations
 
 function filter_corpus(corpus::Corpus, min_length::Int, max_length::Int)
@@ -425,8 +429,9 @@ println("Filtered corpus: $(length(filtered.documents)) documents")
 
 ### Vocabulary Filtering
 
-```@example vocab_filter
+```@example loading
 using TextAssociations
+using TextAnalysis: tokens
 
 function filter_vocabulary(corpus::Corpus, min_freq::Int, max_freq_ratio::Float64)
     # Count token frequencies
@@ -464,11 +469,11 @@ filtered_vocab = filter_vocabulary(corpus, 1, 0.8)
 
 ### Saving Results
 
-```@example export
+```@example loading
 using TextAssociations, CSV
 
 # Analyze and save results
-results = analyze_corpus(corpus, "learning", PMI)
+results = analyze_corpus(corpus, "learning", PMI, windowsize=3)
 
 # Save to CSV
 temp_file = tempname() * ".csv"
@@ -546,8 +551,9 @@ const OPTIMAL_WINDOW = Dict(
 
 ### Common Issues
 
-```@example troubleshoot
+```@example loading
 using TextAssociations
+using TextAnalysis: tokens
 
 function diagnose_corpus(corpus::Corpus)
     println("Corpus Diagnostics:")
