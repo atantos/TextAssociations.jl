@@ -1,4 +1,4 @@
-<!-- ```@meta
+```@meta
 CurrentModule = TextAssociations
 ```
 
@@ -10,7 +10,7 @@ Documentation for [TextAssociations](https://github.com/atantos/TextAssociations
 
 ```julia-repl
 julia> add https://github.com/atantos/TextAssociations.jl
-``` -->
+```
 
 # TextAssociations.jl
 
@@ -286,4 +286,8 @@ This package builds upon decades of research in computational linguistics:
 ```@autodocs
 Modules = [TextAssociations]
 Order   = [:function]
+```
+
+```
+
 ```
