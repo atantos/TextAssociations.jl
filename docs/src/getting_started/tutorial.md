@@ -19,9 +19,10 @@ Let's start with a simple example to find collocations of a word:
 
 ```@example tutorial
 using TextAssociations
+using TextAnalysis: text
 
 # Sample text (you can also load from a file)
-text = """
+s = """
 Data science is an interdisciplinary field that uses scientific methods,
 processes, algorithms and systems to extract knowledge from data.
 Machine learning is a key component of data science.
@@ -30,7 +31,7 @@ Data scientists use various tools for data analysis and data visualization.
 
 # Create a contingency table for the word "data"
 ct = ContingencyTable(
-    text,           # Input text
+    s,           # Input text
     "data";         # Node word (target)
     windowsize=3,   # Look 3 words left/right
     minfreq=1       # Minimum frequency
@@ -120,7 +121,6 @@ Analyze collocations across the entire corpus:
 
 ```@example tutorial
 # Create a simple corpus directly
-using TextAnalysis
 doc_objects = [StringDocument(d) for d in docs]
 corpus = Corpus(doc_objects)
 
@@ -143,7 +143,7 @@ Apply filters to find the most relevant collocations:
 
 ```@example tutorial
 # Recreate results for filtering example
-ct = ContingencyTable(text, "science"; windowsize=4, minfreq=1)
+ct = ContingencyTable(s, "science"; windowsize=4, minfreq=1)
 results = assoc_score([PMI, LogDice, LLR], ct)
 
 # Filter for strong collocations
@@ -209,9 +209,9 @@ end
 Here's everything together in a typical workflow:
 
 ```@example tutorial
-function analyze_text(text::String, target_word::String)
+function analyze_text(s::String, target_word::String)
     # 1. Preprocess text
-    doc = prep_string(text, strip_case=true, strip_punctuation=true)
+    doc = prep_string(s, TextNorm(strip_case=true, strip_punctuation=true))
 
     # 2. Create contingency table
     ct = ContingencyTable(text(doc), target_word; windowsize=5, minfreq=2)

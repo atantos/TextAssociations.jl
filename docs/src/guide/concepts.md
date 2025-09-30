@@ -178,6 +178,7 @@ Text preprocessing is controlled by the `TextNorm` struct:
 
 ```@example textnorm
 using TextAssociations
+using TextAnalysis: text
 
 # Different normalization strategies
 configs = [
@@ -226,6 +227,7 @@ The `minfreq` parameter filters noise:
 
 ```@example minfreq
 using TextAssociations
+using DataFrames: nrow
 
 text = """
 The main hypothesis was confirmed.

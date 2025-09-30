@@ -113,7 +113,7 @@ coverage_summary(stats)
 
 ### Token Distribution
 
-```@example token_dist
+```@example loading
 using TextAssociations
 
 # Analyze token distribution
@@ -129,7 +129,7 @@ end
 
 ### Single Node Analysis
 
-```@example single_node
+```@example loading
 using TextAssociations
 
 # Analyze a single word across the corpus
@@ -408,6 +408,7 @@ println("Streaming analysis function defined for large corpora")
 
 ```@example loading
 using TextAssociations
+using TextAnalysis
 
 function filter_corpus(corpus::Corpus, min_length::Int, max_length::Int)
     filtered_docs = StringDocument[]
@@ -432,6 +433,7 @@ println("Filtered corpus: $(length(filtered.documents)) documents")
 ```@example loading
 using TextAssociations
 using TextAnalysis: tokens
+using OrderedCollections
 
 function filter_vocabulary(corpus::Corpus, min_freq::Int, max_freq_ratio::Float64)
     # Count token frequencies

@@ -97,11 +97,12 @@ See [Installation](@ref) for detailed instructions and troubleshooting.
 
 ```@example basic
 using TextAssociations
+using TextAnalysis: texxt
 
 # Load and preprocess text
 doc = prep_string("Your text here...",
-    strip_punctuation=true,
-    strip_case=true
+    TextNorm(strip_punctuation=true,
+    strip_case=true)
 )
 
 # Create contingency table
@@ -116,8 +117,48 @@ pmi_scores = assoc_score(PMI, ct)
 ```@example corpus
 using TextAssociations
 
-# Load corpus from directory
-corpus = read_corpus("path/to/documents/")
+# Create a temporary mini-corpus with longer texts
+dir = mktempdir()
+
+files = Dict(
+    "doc1.txt" => """
+    Computational linguistics increasingly intersects with innovation practice.
+    Teams use data to evaluate hypotheses, prototype ideas quickly, and measure impact with reproducible pipelines.
+    In modern research workflows, small models are validated against well-defined tasks before scaling, ensuring that innovation is more than a buzzword—it is a methodical, testable process.
+    When AI systems are involved, documentation and transparent governance help peers replicate results and trust conclusions.
+    """,
+
+    "doc2.txt" => """
+    Successful innovation rarely happens in isolation.
+    It emerges from an ecosystem of universities, startups, industry labs, and public institutions that collaborate and share partial results early.
+    Well-run projects cultivate collaboration rituals—design reviews, error analyses, and postmortems—so ideas move from promising theory to usable tools.
+    Open exchange reduces duplication and accelerates learning across the ecosystem.
+    """,
+
+    "doc3.txt" => """
+    Prototyping is the bridge between research and deployment.
+    A minimal prototype clarifies the problem, surfaces risks, and reveals unknown edge cases.
+    From there, teams harden the system for scalability, add observability, and evaluate ethical trade-offs such as bias, privacy, and safety.
+    A principled evaluation plan is part of the prototype, not an afterthought.
+    """,
+
+    "doc4.txt" => """
+    Education benefits when innovation is human-centered.
+    Instructors can combine classic readings with hands-on labs that trace data through each step of the pipeline.
+    Open-source examples and clear rubrics help students reason about uncertainty, interpret model behavior, and articulate the limits of automation.
+    The goal is durable understanding and real-world impact, not just higher benchmark scores.
+    """
+)
+
+# Write files
+for (name, content) in files
+    open(joinpath(dir, name), "w") do io
+        write(io, strip(content))
+    end
+end
+
+# Load the corpus from the real path we just created
+corpus = read_corpus(dir)
 
 # Analyze across entire corpus
 results = analyze_corpus(corpus, "innovation", PMI,

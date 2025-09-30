@@ -42,17 +42,17 @@ end
 using TextAssociations
 using DataFrames
 
-text = "The IBM CEO visited NASA headquarters."
+s = "The IBM CEO visited NASA headquarters."
 
 # Keep original case
-ct_case = ContingencyTable(text, "IBM";
+ct_case = ContingencyTable(s, "IBM";
     windowsize=5,
     minfreq=1,
     norm_config=TextNorm(strip_case=false))
 results_case = assoc_score(PMI, ct_case)
 
 # Normalize to lowercase
-ct_lower = ContingencyTable(text, "IBM";
+ct_lower = ContingencyTable(s, "IBM";
     windowsize=5,
     minfreq=1,
     norm_config=TextNorm(strip_case=true))
@@ -245,14 +245,14 @@ arabic_config = TextNorm(
 
 ```@example custom_pipeline
 using TextAssociations
-using TextAnalytics: text
+using TextAnalysis: text
 
 function custom_preprocess(s::String)
     # Step 1: Remove URLs
-    s = replace(text, r"https?://[^\s]+" => "[URL]")
+    s = replace(s, r"https?://[^\s]+" => "[URL]")
 
     # Step 2: Remove email addresses
-    s = replace(text, r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b" => "[EMAIL]")
+    s = replace(s, r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b" => "[EMAIL]")
 
     # Step 3: Expand contractions
     contractions = Dict(
@@ -318,7 +318,7 @@ end
 using TextAssociations
 using BenchmarkTools
 
-text = repeat("Sample text for benchmarking. ", 1000)
+s = repeat("Sample text for benchmarking. ", 1000)
 
 # Minimal preprocessing
 minimal = TextNorm(
@@ -346,7 +346,7 @@ configs = [
 ]
 
 for (name, config) in configs
-    time = @elapsed prep_string(text, config)
+    time = @elapsed prep_string(s, config)
     println("$name: $(round(time*1000, digits=2))ms")
 end
 ```

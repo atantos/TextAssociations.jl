@@ -444,12 +444,12 @@ end
 using TextAssociations
 
 # Function for parallel processing (conceptual)
-function parallel_evaluate(texts, word, metrics)
+function parallel_evaluate(strings, word, metrics)
     results = []
 
     # In practice, use @distributed or Threads.@threads
-    for text in texts
-        ct = ContingencyTable(text, word; windowsize=5, minfreq=2)
+    for s in strings
+        ct = ContingencyTable(s, word; windowsize=5, minfreq=2)
         push!(results, assoc_score(metrics, ct))
     end
 
@@ -457,13 +457,13 @@ function parallel_evaluate(texts, word, metrics)
 end
 
 # Example with multiple text segments
-texts = [
+strings = [
     "Machine learning is powerful.",
     "Deep learning uses neural networks.",
     "Artificial intelligence includes machine learning."
 ]
 
-results = parallel_evaluate(texts, "learning", [PMI, LogDice])
+results = parallel_evaluate(strings, "learning", [PMI, LogDice])
 println("\nResults from $(length(results)) text segments processed")
 ```
 
@@ -475,13 +475,13 @@ println("\nResults from $(length(results)) text segments processed")
 using TextAssociations
 
 # Handle empty or invalid inputs
-function safe_evaluate(text, word, metric)
+function safe_evaluate(s, word, metric)
     try
         # Validate inputs
-        isempty(text) && throw(ArgumentError("Text cannot be empty"))
+        isempty(s) && throw(ArgumentError("Text cannot be empty"))
         isempty(word) && throw(ArgumentError("Word cannot be empty"))
 
-        ct = ContingencyTable(text, word; windowsize=5, minfreq=1)
+        ct = ContingencyTable(s, word; windowsize=5, minfreq=1)
         results = assoc_score(metric, ct)
 
         if isempty(results)
@@ -498,21 +498,21 @@ end
 
 # Test with various inputs
 println("Valid input:")
-valid = safe_evaluate(text, "learning", PMI)
+valid = safe_evaluate(s, "learning", PMI)
 println("  Found $(nrow(valid)) collocates")
 
 println("\nEmpty word:")
-empty_word = safe_evaluate(text, "", PMI)
+empty_word = safe_evaluate(s, "", PMI)
 
 println("\nWord not in text:")
-missing = safe_evaluate(text, "quantum", PMI)
+missing = safe_evaluate(s, "quantum", PMI)
 ```
 
 ### Parameter Validation
 
 ```@example param_validation
 # Validate parameters before processing
-function validated_analysis(text, word, windowsize, minfreq)
+function validated_analysis(s, word, windowsize, minfreq)
     # Check window size
     if windowsize < 1
         throw(ArgumentError("Window size must be positive"))
@@ -527,18 +527,18 @@ function validated_analysis(text, word, windowsize, minfreq)
         @warn "High minimum frequency may exclude valid collocates" minfreq
     end
 
-    ct = ContingencyTable(text, word; windowsize, minfreq)
+    ct = ContingencyTable(s, word; windowsize, minfreq)
     return assoc_score(PMI, ct)
 end
 
 # Test validation
 try
-    validated_analysis(text, "learning", -1, 5)
+    validated_analysis(s, "learning", -1, 5)
 catch e
     println("Caught error: ", e)
 end
 
-results = validated_analysis(text, "learning", 3, 1)
+results = validated_analysis(s, "learning", 3, 1)
 println("Valid analysis: $(nrow(results)) results")
 ```
 
@@ -550,9 +550,9 @@ println("Valid analysis: $(nrow(results)) results")
 using TextAssociations
 using DataFrames
 
-function comprehensive_analysis(text, target_word)
+function comprehensive_analysis(s, target_word)
     # Step 1: Preprocess
-    doc = prep_string(text,
+    doc = prep_string(s,
         strip_punctuation=true,
         strip_case=true,
         normalize_whitespace=true
@@ -580,7 +580,7 @@ function comprehensive_analysis(text, target_word)
     return results
 end
 
-analysis = comprehensive_analysis(text, "learning")
+analysis = comprehensive_analysis(s, "learning")
 println("\nTop 3 collocates by composite score:")
 for row in eachrow(first(analysis, 3))
     println("  $(row.Collocate): Score = $(round(row.CompositeScore, digits=3))")
@@ -594,7 +594,7 @@ using TextAssociations
 using CSV
 
 # Prepare results for export
-ct = ContingencyTable(text, "intelligence"; windowsize=5, minfreq=1)
+ct = ContingencyTable(s, "intelligence"; windowsize=5, minfreq=1)
 results = assoc_score([PMI, LogDice, LLR], ct)
 
 # Add metadata
