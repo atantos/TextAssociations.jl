@@ -127,7 +127,7 @@ end
 
 ### Cross-Period Analysis
 
-```@example cross_period
+```@example basic_temporal
 using TextAssociations
 
 function compare_periods(temporal_analysis::TemporalCorpusAnalysis,

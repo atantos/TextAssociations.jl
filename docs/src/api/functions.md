@@ -448,7 +448,11 @@ nodes = ["intelligence", "artificial", "learning"]
 score_dict = process_many_nodes(s, nodes)
 println("\nScore vectors per node:")
 for (node, scores) in score_dict
-    println("  $node: $(length(scores)) scores, max = $(maximum(scores))")
+    if isempty(scores)
+        println("  $node: no collocates found")
+    else
+        println("  $node: $(length(scores)) scores, max = $(round(maximum(scores), digits=2))")
+    end
 end
 ```
 
