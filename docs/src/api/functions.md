@@ -79,14 +79,14 @@ assoc_score(metric::Type{<:AssociationMetric},
 ```@example assoc_score
 using TextAssociations
 
-text = """
+s = """
 Data science combines mathematics, statistics, and computer science.
 Machine learning is a crucial part of data science.
 Data analysis helps extract insights from data.
 """
 
 # Create contingency table
-ct = ContingencyTable(text, "data"; windowsize=3, minfreq=1)
+ct = ContingencyTable(s, "data"; windowsize=3, minfreq=1)
 
 # Single metric evaluation
 pmi_results = assoc_score(PMI, ct)
@@ -546,7 +546,7 @@ println("Valid analysis: $(nrow(results)) results")
 
 ### Complete Analysis Pipeline
 
-```@example pipeline
+```@example assoc_score
 using TextAssociations
 using DataFrames
 
