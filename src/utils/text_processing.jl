@@ -65,7 +65,7 @@ Uses `TextNorm` configuration for all preprocessing options.
 # Returns
 A preprocessed `StringDocument` object suitable for downstream corpus analysis.
 """
-function prep_string(input_path::AbstractString, config::TextNorm)
+function prep_string(input_path::AbstractString, config::TextNorm=TextNorm())
 
     function prepare_document(content::String, config::TextNorm)
         # 1) Unicode normalization

@@ -151,7 +151,7 @@ end
 
 ```@example multi_node
 using TextAssociations
-using TextAnalysis: StringDocument
+using TextAnalysis
 
 # First create a corpus
 texts = [
@@ -161,7 +161,7 @@ texts = [
     "Neural networks power deep learning systems."
 ]
 docs = [StringDocument(t) for t in texts]
-corpus = Corpus(docs)
+corpus = TextAssociations.Corpus(docs)
 
 # Analyze multiple nodes
 nodes = ["machine", "learning", "neural"]
@@ -194,22 +194,24 @@ end
 
 ```@example temporal
 using TextAssociations, Dates, DataFrames
+using TextAnalysis
 
-# Create corpus with temporal metadata
-df = DataFrame(
-    text = [
-        "Early AI used rule-based systems.",
-        "Machine learning emerged as dominant approach.",
-        "Deep learning revolutionized the field.",
-        "Transformers changed natural language processing."
-    ],
-    year = [1980, 1990, 2010, 2020]
-)
+# Create documents with metadata
+docs_with_metadata = [
+    StringDocument("Early AI used rule-based systems."),
+    StringDocument("Machine learning emerged as dominant approach."),
+    StringDocument("Deep learning revolutionized the field."),
+    StringDocument("Transformers changed natural language processing.")
+]
 
-temporal_corpus = read_corpus_df(df;
-    text_column=:text,
-    metadata_columns=[:year]
-)
+# Add metadata to each document BEFORE creating corpus
+years = [1980, 1990, 2010, 2020]
+for (i, doc) in enumerate(docs_with_metadata)
+    doc.metadata[:year] = years[i]
+end
+
+# Create corpus
+temporal_corpus = TextAssociations.Corpus(docs_with_metadata)
 
 # Analyze temporal trends
 temporal_analysis = analyze_temporal(
@@ -224,6 +226,7 @@ temporal_analysis = analyze_temporal(
 
 println("Temporal Analysis Results:")
 println("Time periods: ", temporal_analysis.time_periods)
+
 if !isempty(temporal_analysis.trend_analysis)
     println("\nTrend analysis:")
     for row in eachrow(first(temporal_analysis.trend_analysis, 5))
@@ -410,8 +413,15 @@ println("Streaming analysis function defined for large corpora")
 using TextAssociations
 using TextAnalysis
 
+docs = [
+    StringDocument("Machine learning algorithms learn from data."),
+    StringDocument("Deep learning uses neural networks."),
+    StringDocument("AI includes machine learning.")
+]
+corpus = Corpus(docs)
+
 function filter_corpus(corpus::Corpus, min_length::Int, max_length::Int)
-    filtered_docs = StringDocument[]
+    filtered_docs = StringDocument{String}[]  # Specify type
 
     for doc in corpus.documents
         doc_length = length(tokens(doc))
@@ -420,12 +430,11 @@ function filter_corpus(corpus::Corpus, min_length::Int, max_length::Int)
         end
     end
 
-    return Corpus(filtered_docs; norm_config=corpus.norm_config)
+    return Corpus(filtered_docs, norm_config=corpus.norm_config)
 end
 
-# Filter corpus by document length
 filtered = filter_corpus(corpus, 5, 15)
-println("Filtered corpus: $(length(filtered.documents)) documents")
+println("Filtered: $(length(filtered.documents)) documents")
 ```
 
 ### Vocabulary Filtering
@@ -472,7 +481,7 @@ filtered_vocab = filter_vocabulary(corpus, 1, 0.8)
 ### Saving Results
 
 ```@example loading
-using TextAssociations, CSV
+using TextAssociations, CSV, Dates
 
 # Analyze and save results
 results = analyze_corpus(corpus, "learning", PMI, windowsize=3)
@@ -485,7 +494,7 @@ println("Results saved to temporary file")
 # Save with metadata
 results_with_meta = copy(results)
 metadata!(results_with_meta, "corpus_size", length(corpus.documents), style=:note)
-metadata!(results_with_meta, "analysis_date", today(), style=:note)
+metadata!(results_with_meta, "analysis_date", Dates.today(), style=:note)
 
 # Clean up
 rm(temp_file)
@@ -556,6 +565,7 @@ const OPTIMAL_WINDOW = Dict(
 ```@example loading
 using TextAssociations
 using TextAnalysis: tokens
+using Statistics
 
 function diagnose_corpus(corpus::Corpus)
     println("Corpus Diagnostics:")

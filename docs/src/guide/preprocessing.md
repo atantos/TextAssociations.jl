@@ -68,26 +68,29 @@ println("With lowercasing: $(nrow(results_lower)) collocates")
 using TextAssociations
 using TextAnalysis: text
 
-text1 = "Well-designed, user-friendly interface; however, performance issues..."
+text_punct = "Well-designed, user-friendly interface; however, performance issues..."
 
-# Different punctuation strategies
-configs = [
-    ("Remove", TextNorm(strip_punctuation=true, punctuation_to_space=false)),
-    ("To space", TextNorm(strip_punctuation=true, punctuation_to_space=true)),
-    ("Keep", TextNorm(strip_punctuation=false))
-]
+# Remove punctuation
+config_remove = TextNorm(strip_punctuation=true, punctuation_to_space=false)
+removed = prep_string(text_punct, config_remove)
+println("Removed: '$(text(removed))'")
 
-for (name, config) in configs
-    doc = prep_string(text1, config)
-    println("$name: '$(text(doc))'")
-end
+# Replace with spaces
+config_space = TextNorm(strip_punctuation=true, punctuation_to_space=true)
+spaced = prep_string(text_punct, config_space)
+println("To space: '$(text(spaced))'")
+
+# Keep punctuation
+config_keep = TextNorm(strip_punctuation=false)
+kept = prep_string(text_punct, config_keep)
+println("Kept: '$(text(kept))'")
 ```
 
 ### Whitespace Normalization
 
 ```@example whitespace
 using TextAssociations
-using TextAnalytics: text
+using TextAnalysis: text
 
 text1 = "Multiple   spaces    and\t\ttabs\n\neverywhere"
 

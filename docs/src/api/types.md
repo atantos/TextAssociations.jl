@@ -75,6 +75,7 @@ function ContingencyTable(inputstring::AbstractString,
 
 ```@example ct
 using TextAssociations
+using DataFrames
 
 text = """
 The field of data science combines statistical analysis with machine learning.
@@ -140,7 +141,7 @@ docs = [
     StringDocument("Deep learning uses neural networks.")
 ]
 
-corpus = TextAssociations.Corpus(docs, metadata=Dict("source" => "AI texts"))
+corpus = TextAssociations.Corpus(docs, metadata=Dict{String,Any}("source" => "AI texts"))
 
 println("Corpus Statistics:")
 println("  Documents: ", length(corpus.documents))

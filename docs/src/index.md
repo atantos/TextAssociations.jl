@@ -97,19 +97,19 @@ See [Installation](@ref) for detailed instructions and troubleshooting.
 
 ```@example basic
 using TextAssociations
-using TextAnalysis: texxt
+using TextAnalysis: text
+using DataFrames
 
-# Load and preprocess text
-doc = prep_string("Your text here...",
-    TextNorm(strip_punctuation=true,
-    strip_case=true)
-)
+text_sample = "Machine learning algorithms learn from data. Deep learning uses neural networks."
 
-# Create contingency table
-ct = ContingencyTable(text(doc), "word", windowsize=5, minfreq=3)
+doc = prep_string(text_sample, TextNorm(
+    strip_punctuation=true,
+    strip_case=true
+))
 
-# Evaluate metrics
+ct = ContingencyTable(text(doc), "learning"; windowsize=5, minfreq=1)
 pmi_scores = assoc_score(PMI, ct)
+println("Found $(nrow(pmi_scores)) collocates")
 ```
 
 ### Corpus-Level Analysis

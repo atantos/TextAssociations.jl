@@ -1,8 +1,6 @@
 # Quick Tutorial
 
-```
-@id getting_started_tutorial
-```
+`@id getting_started_tutorial`
 
 ```@meta
 CurrentModule = TextAssociations
@@ -11,121 +9,100 @@ DocTestSetup = quote
 end
 ```
 
-This tutorial will walk you through the basic workflow of TextAssociations.jl in about 10 minutes.
+This tutorial provides a comprehensive introduction to TextAssociations.jl. By the end, you'll understand how to analyze word associations in text and interpret the results.
 
-## Step 1: Basic Collocation Analysis
+## Prerequisites
 
-Let's start with a simple example to find collocations of a word:
+This tutorial assumes you have:
+
+- Julia 1.9 or later installed
+- TextAssociations.jl installed (`using Pkg; Pkg.add("TextAssociations")`)
+- Basic familiarity with Julia
+
+## Your First Analysis
+
+Let's start with a simple example analyzing word associations in text about technology.
+
+### Step 1: Load the Package
 
 ```@example tutorial
 using TextAssociations
-using TextAnalysis: text
-
-# Sample text (you can also load from a file)
-s = """
-Data science is an interdisciplinary field that uses scientific methods,
-processes, algorithms and systems to extract knowledge from data.
-Machine learning is a key component of data science.
-Data scientists use various tools for data analysis and data visualization.
-"""
-
-# Create a contingency table for the word "data"
-ct = ContingencyTable(
-    s,           # Input text
-    "data";         # Node word (target)
-    windowsize=3,   # Look 3 words left/right
-    minfreq=1       # Minimum frequency
-)
-
-# Calculate PMI (Pointwise Mutual Information)
-results = assoc_score(PMI, ct)
-println(results)
-```
-
-## Step 2: Understanding the Results
-
-The results DataFrame contains:
-
-- **Node**: The target word we're analyzing
-- **Collocate**: Words that co-occur with the node
-- **Frequency**: How often they co-occur
-- **PMI**: The association score
-
-Let's interpret the scores:
-
-```@example tutorial
-# Sort by PMI score
 using DataFrames
-sorted_results = sort(results, :PMI, rev=true)
-println("Top collocations by PMI:")
-for row in eachrow(first(sorted_results, 5))
-    println("  $(row.Collocate): PMI = $(round(row.PMI, digits=2))")
-end
 ```
 
-## Step 3: Comparing Multiple Metrics
-
-Different metrics capture different aspects of word association:
+### Step 2: Prepare Your Text
 
 ```@example tutorial
-# Evaluate multiple metrics at once
-metrics = [PMI, LogDice, LLR, Dice]
-multi_results = assoc_score(metrics, ct)
-
-# View the first few rows
-println("Multiple metrics comparison:")
-println(first(multi_results, 5))
-```
-
-### Understanding Different Metrics
-
-- **PMI**: Measures surprise - high when words occur together more than expected
-- **LogDice**: Stable across corpus sizes - good for comparison
-- **LLR**: Statistical significance - tests if association is real
-- **Dice**: Overlap measure - symmetric similarity
-
-## Step 4: Loading and Analyzing a Corpus
-
-For larger analyses, work with a corpus:
-
-```@example tutorial
-# Create a small corpus for demonstration
 docs = [
-    "Machine learning algorithms learn from data patterns.",
-    "Deep learning is a subset of machine learning.",
-    "Data science combines statistics and machine learning.",
-    "Neural networks power deep learning systems.",
-    "Big data requires efficient processing algorithms."
+    "Machine learning algorithms can learn from data without explicit programming.",
+    "Deep learning is a subset of machine learning that uses neural networks.",
+    "Artificial intelligence includes machine learning and deep learning techniques.",
+    "Neural networks are the foundation of modern deep learning systems."
 ]
 
-# Save as files (in practice, you'd have existing files)
-temp_dir = mktempdir()
-for (i, doc) in enumerate(docs)
-    write(joinpath(temp_dir, "doc$i.txt"), doc)
-end
-
-# Load corpus from directory
-corpus = read_corpus(temp_dir, preprocess=true, min_doc_length=5)
-
-println("Corpus loaded:")
-println("  Documents: ", length(corpus.documents))
-println("  Vocabulary size: ", length(corpus.vocabulary))
-
-# Clean up temp directory
-rm(temp_dir, recursive=true)
+# Combine documents into one text
+s = join(docs, " ")
+println("Text length: ", length(s), " characters")
 ```
 
-## Step 5: Corpus-Level Analysis
+### Step 3: Create a Contingency Table
 
-Analyze collocations across the entire corpus:
+The contingency table captures co-occurrence patterns between your target word and its context.
 
 ```@example tutorial
+# Analyze the word "learning"
+ct = ContingencyTable(
+    s,
+    "learning";
+    windowsize=3,  # Consider 3 words on each side
+    minfreq=1      # Include words appearing at least once
+)
+
+println("Contingency table created for 'learning'")
+```
+
+**Parameters explained:**
+
+- `windowsize=3`: Looks 3 words left and right of "learning"
+- `minfreq=1`: Only includes words that appear at least once as collocates
+
+### Step 4: Calculate Association Scores
+
+Now let's calculate PMI (Pointwise Mutual Information) scores to identify strong collocates.
+
+```@example tutorial
+# Calculate PMI scores
+results = assoc_score(PMI, ct)
+
+println("\nTop 5 collocates of 'learning':")
+println(first(sort(results, :PMI, rev=true), 5))
+```
+
+### Step 5: Try Multiple Metrics
+
+Different metrics reveal different aspects of associations.
+
+```@example tutorial
+# Calculate multiple metrics at once
+multi_results = assoc_score([PMI, LogDice, LLR], ct)
+
+println("\nTop 3 collocates with multiple metrics:")
+println(first(sort(multi_results, :PMI, rev=true), 3))
+```
+
+## Working with Corpora
+
+For analyzing multiple documents, use the Corpus functionality.
+
+```@example tutorial
+using TextAnalysis: StringDocument
+
 # Create a simple corpus directly
 doc_objects = [StringDocument(d) for d in docs]
 corpus = Corpus(doc_objects)
 
 # Analyze "learning" across the corpus
-results = analyze_corpus(
+corpus_results = analyze_corpus(
     corpus,
     "learning",     # Node word
     PMI,           # Metric
@@ -134,152 +111,226 @@ results = analyze_corpus(
 )
 
 println("Top collocates of 'learning' in corpus:")
-println(first(results, 5))
+println(first(corpus_results, 5))
 ```
 
-## Step 6: Filtering and Interpreting Results
+## Understanding the Results
 
-Apply filters to find the most relevant collocations:
+### Interpreting PMI Scores
+
+PMI (Pointwise Mutual Information) measures how much more likely two words co-occur than by chance:
+
+- **PMI > 0**: Words co-occur more than expected (positive association)
+- **PMI = 0**: Co-occurrence matches random expectation
+- **PMI < 0**: Words co-occur less than expected (negative association)
 
 ```@example tutorial
-# Recreate results for filtering example
-ct = ContingencyTable(s, "science"; windowsize=4, minfreq=1)
-results = assoc_score([PMI, LogDice, LLR], ct)
+# Filter for strong associations
+strong_assoc = filter(row -> row.PMI > 3.0, results)
+println("\nStrong associations (PMI > 3):")
+println(strong_assoc)
+```
 
-# Filter for strong collocations
-strong_collocations = filter(row ->
-    row.PMI > 2.0 &&           # Moderate PMI
-    row.LogDice > 5.0 &&        # Reliable collocation
-    row.LLR > 3.84,            # Statistically significant (p < 0.05)
-    results
+### Comparing Metrics
+
+Different metrics highlight different aspects:
+
+```@example tutorial
+# Create comparison
+comparison = assoc_score([PMI, LogDice, Dice], ct)
+
+println("\nMetric comparison for top collocate:")
+if nrow(comparison) > 0
+    top_row = first(sort(comparison, :PMI, rev=true))
+    println("  Collocate: ", top_row.Collocate)
+    println("  PMI: ", round(top_row.PMI, digits=2))
+    println("  LogDice: ", round(top_row.LogDice, digits=2))
+    println("  Dice: ", round(top_row.Dice, digits=3))
+end
+```
+
+## Text Preprocessing
+
+Control how text is normalized before analysis:
+
+```@example tutorial
+using TextAnalysis: text
+
+# Example with case-sensitive analysis
+text_mixed = "Machine Learning and machine learning are related. Machine learning is powerful."
+
+# Default: case normalization ON
+config_lower = TextNorm(strip_case=true)
+ct_lower = ContingencyTable(text_mixed, "learning";
+    windowsize=3, minfreq=1, norm_config=config_lower)
+
+# Case-sensitive: case normalization OFF
+config_case = TextNorm(strip_case=false)
+ct_case = ContingencyTable(text_mixed, "learning";
+    windowsize=3, minfreq=1, norm_config=config_case)
+
+println("Lowercase normalization: ", nrow(assoc_score(PMI, ct_lower)), " collocates")
+println("Case-sensitive: ", nrow(assoc_score(PMI, ct_case)), " collocates")
+```
+
+### Preprocessing Options
+
+```@example tutorial
+# Full preprocessing configuration
+full_config = TextNorm(
+    strip_case=true,              # Convert to lowercase
+    strip_punctuation=true,        # Remove punctuation
+    strip_accents=false,           # Keep diacritics
+    normalize_whitespace=true,     # Collapse multiple spaces
+    unicode_form=:NFC              # Unicode normalization
 )
 
-println("Strong collocations of 'science':")
-for row in eachrow(strong_collocations)
-    println("  $(row.Collocate): PMI=$(round(row.PMI, digits=2)), ",
-            "LogDice=$(round(row.LogDice, digits=2))")
-end
+# Apply preprocessing
+preprocessed = prep_string(s, full_config)
+println("Preprocessed text (first 100 chars):")
+println(first(text(preprocessed), 100), "...")
 ```
 
-## Step 7: Exporting Results
+## Common Workflows
 
-Save your results for further analysis or publication:
+### 1. Find Strong Collocations
 
 ```@example tutorial
-using CSV
+function find_strong_collocations(text, word, threshold=3.0)
+    ct = ContingencyTable(text, word; windowsize=5, minfreq=2)
+    results = assoc_score([PMI, LogDice], ct)
 
-# Create results
-results = assoc_score([PMI, LogDice], ct)
+    # Filter for strong associations
+    strong = filter(row -> row.PMI > threshold, results)
+    sort!(strong, :PMI, rev=true)
 
-# Save to CSV
-output_file = "collocations.csv"
-CSV.write(output_file, results)
-println("Results saved to $output_file")
-
-# Clean up
-rm(output_file)
-```
-
-## Step 8: Visualization Preparation
-
-Prepare data for visualization:
-
-```@example tutorial
-# Get top collocations for plotting
-top_n = 10
-sorted_results = sort(results, :PMI, rev=true)
-top_results = first(sorted_results, min(top_n, nrow(sorted_results)))
-
-# Extract data for plotting
-words = String.(top_results.Collocate)
-scores = top_results.PMI
-
-println("Top $(length(words)) collocations ready for plotting:")
-for (word, score) in zip(words, scores)
-    println("  $word: $(round(score, digits=2))")
+    return strong
 end
 
-# In practice, you would plot with:
-# using Plots
-# bar(words, scores, xlabel="Collocate", ylabel="PMI Score", rotation=45)
+collocations = find_strong_collocations(s, "learning")
+println("\nStrong collocations found: ", nrow(collocations))
 ```
 
-## Complete Workflow Example
-
-Here's everything together in a typical workflow:
+### 2. Compare Multiple Words
 
 ```@example tutorial
-function analyze_text(s::String, target_word::String)
-    # 1. Preprocess text
-    doc = prep_string(s, TextNorm(strip_case=true, strip_punctuation=true))
+function compare_words(text, words, metric=PMI)
+    all_results = DataFrame()
 
-    # 2. Create contingency table
-    ct = ContingencyTable(text(doc), target_word; windowsize=5, minfreq=2)
+    for word in words
+        ct = ContingencyTable(text, word; windowsize=5, minfreq=1)
+        word_results = assoc_score(metric, ct)
+        word_results.Node .= word
+        append!(all_results, word_results)
+    end
 
-    # 3. Calculate multiple metrics
-    results = assoc_score([PMI, LogDice, LLR], ct)
-
-    # 4. Filter significant results
-    significant = filter(row -> row.LLR > 10.83, results)  # p < 0.001
-
-    # 5. Sort by PMI
-    sorted_results = sort(significant, :PMI, rev=true)
-
-    return sorted_results
+    return all_results
 end
 
-# Use the function
-sample_text = """
-Natural language processing enables computers to understand human language.
-Language models are fundamental to natural language processing.
-Modern language models use transformer architectures.
-"""
-
-results = analyze_text(sample_text, "language")
-println("\nAnalysis complete. Top results:")
-println(first(results, 3))
+comparison_results = compare_words(s, ["learning", "neural", "deep"])
+println("\nComparison across words:")
+println(first(sort(comparison_results, :PMI, rev=true), 10))
 ```
 
-## What's Next?
+### 3. Parameter Tuning
 
-Now that you understand the basics:
+```@example tutorial
+function tune_parameters(text, word)
+    configs = [
+        (ws=2, mf=1, name="Narrow"),
+        (ws=5, mf=2, name="Balanced"),
+        (ws=10, mf=3, name="Wide")
+    ]
 
-1. **Explore different metrics**: See [Metrics Guide](@ref metrics_overview)
-2. **Work with larger corpora**: See [Corpus Analysis](@ref corpus_analysis_guide)
-3. **Try advanced features**:
-   - [Temporal Analysis](@ref advanced_temporal)
-   - [Network Building](@ref advanced_networks)
-   - [Keyword Extraction](@ref advanced_keywords)
+    for config in configs
+        ct = ContingencyTable(text, word;
+            windowsize=config.ws, minfreq=config.mf)
+        tune_results = assoc_score(PMI, ct)
+        println("$(config.name): $(nrow(tune_results)) collocates")
+    end
+end
+
+println("\nParameter tuning for 'learning':")
+tune_parameters(s, "learning")
+```
+
+## Next Steps
+
+Now that you understand the basics, explore:
+
+- **[Metrics Guide](../metrics/overview.md)**: Learn about all available metrics
+- **[Corpus Analysis](../guide/corpus_analysis.md)**: Advanced corpus techniques
+- **[Preprocessing](../guide/preprocessing.md)**: Detailed text normalization
+- **[API Reference](../api/functions.md)**: Complete function documentation
+
+## Quick Reference
+
+### Basic Analysis Pattern
+
+```julia
+# 1. Load package
+using TextAssociations
+
+# 2. Create contingency table
+ct = ContingencyTable(s, "word"; windowsize=5, minfreq=2)
+
+# 3. Calculate scores
+results = assoc_score(PMI, ct)
+
+# 4. Examine results
+sort!(results, :PMI, rev=true)
+```
+
+### Common Parameters
+
+| Parameter           | Typical Range | Description                     |
+| ------------------- | ------------- | ------------------------------- |
+| `windowsize`        | 2-10          | Context window size             |
+| `minfreq`           | 1-5           | Minimum co-occurrence frequency |
+| `strip_case`        | true/false    | Convert to lowercase            |
+| `strip_punctuation` | true/false    | Remove punctuation              |
+
+### Recommended Metrics
+
+- **PMI**: General-purpose, interpretable
+- **LogDice**: Balanced, less affected by frequency
+- **LLR**: Statistical significance testing
+- **Dice**: Simple similarity measure
+
+## Troubleshooting
+
+### No Results Found
+
+```julia
+# Check if word exists in text
+doc = prep_string(s, TextNorm(strip_case=true))
+tokens = TextAnalysis.tokens(doc)
+word_count = count(==("yourword"), tokens)
+println("Word appears $word_count times")
+```
+
+### Empty DataFrame
+
+Possible causes:
+
+1. `minfreq` too high - try `minfreq=1`
+2. `windowsize` too small - try `windowsize=10`
+3. Word not in text - check spelling and case
+4. Text too short - need more context
+
+### Memory Issues
+
+```julia
+# Use scores_only for large analyses
+scores = assoc_score(PMI, ct, scores_only=true)  # Returns Vector{Float64}
+```
 
 ## Practice Exercises
 
-1. **Exercise 1**: Find collocations of "research" with window size 2 vs 5
-2. **Exercise 2**: Compare PMI vs LogDice for the same word
-3. **Exercise 3**: Find words that collocate with multiple related terms
-4. **Exercise 4**: Identify domain-specific terminology using high PMI threshold
+1. Analyze your own text data
+2. Compare different window sizes
+3. Try all available metrics
+4. Build a collocate extraction pipeline
+5. Analyze a corpus of documents
 
-## Tips for Beginners
-
-- Start with **LogDice** for reliable results
-- Use **window size 5** as a good default
-- Set **minfreq** based on corpus size (5 for small, 10+ for large)
-- Always compare multiple metrics
-- Check concordance lines to verify collocations
-
-## Getting Help
-
-```julia
-# Get help on any function
-?assoc_score
-?ContingencyTable
-?analyze_corpus
-
-# List all available metrics
-available_metrics()
-
-# Check package version
-using Pkg
-Pkg.status("TextAssociations")
-```
-
-Ready to dive deeper? Continue to [Basic Examples](@ref getting_started_examples) for more use cases.
+Happy analyzing!

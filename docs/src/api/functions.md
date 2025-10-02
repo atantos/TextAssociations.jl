@@ -39,7 +39,7 @@ assoc_score(metrics::Vector{DataType},
 
 # Direct from text (single metric)
 assoc_score(metric::Type{<:AssociationMetric},
-          text::AbstractString,
+          s::AbstractString,
           node::AbstractString,
           windowsize::Int,
           minfreq::Int=5;
@@ -76,8 +76,9 @@ assoc_score(metric::Type{<:AssociationMetric},
 
 ##### Basic Usage
 
-```@example assoc_score
+```@example shared_context
 using TextAssociations
+using TextAnalysis
 
 s = """
 Data science combines mathematics, statistics, and computer science.
@@ -96,7 +97,7 @@ println(pmi_results)
 
 ##### Multiple Metrics
 
-```@example assoc_score_multi
+```@example shared_context
 # Evaluate multiple metrics simultaneously
 metrics = [PMI, LogDice, LLR, Dice]
 multi_results = assoc_score(metrics, ct)
@@ -108,16 +109,16 @@ println(first(sort(multi_results, :PMI, rev=true), 1))
 
 ##### Direct from Text
 
-```@example assoc_score_direct
+```@example shared_context
 # Skip contingency table creation
-results = assoc_score(PMI, text, "science", windowsize=4, minfreq=1)
+results = assoc_score(PMI, s, "science", windowsize=4, minfreq=1)
 println("\nDirect evaluation results:")
 println(results)
 ```
 
 ##### Performance Mode
 
-```@example assoc_score_perf
+```@example shared_context
 # Get only scores for better performance
 scores = assoc_score(PMI, ct, scores_only=true)
 println("\nScore vector: ", scores)
@@ -132,7 +133,11 @@ println("\nScore dictionary keys: ", keys(score_dict))
 
 ##### Custom Filtering Pipeline
 
-```@example assoc_score_advanced
+```@example shared_context
+using TextAssociations
+using TextAnalysis
+using DataFrames
+
 # Evaluate and filter in one pipeline
 function analyze_with_thresholds(text, word, thresholds)
     ct = ContingencyTable(text, word; windowsize=5, minfreq=2)
@@ -150,7 +155,7 @@ function analyze_with_thresholds(text, word, thresholds)
 end
 
 thresholds = Dict(:pmi => 2.0, :logdice => 5.0, :llr => 3.84)
-filtered = analyze_with_thresholds(text, "data", thresholds)
+filtered = analyze_with_thresholds(s, "data", thresholds)
 println("Filtered results: ", nrow(filtered), " collocates")
 ```
 
@@ -184,39 +189,46 @@ Preprocesses text with extensive customization options for different languages a
 
 ```@example prep_string
 using TextAssociations
+using TextAnalysis
 
 # Default preprocessing
-text = "Hello, WORLD!!! Multiple   spaces..."
-doc = prep_string(text)
+s = "Hello, WORLD!!! Multiple   spaces..."
+doc = prep_string(s)
 println("Default: '", text(doc), "'")
 
 # Custom preprocessing
-# doc_custom = prep_string(text,
-#     strip_case=false,        # Keep original case
-#     strip_punctuation=false, # Keep punctuation
-#     normalize_whitespace=true # Fix spacing only
-# )
+doc_custom = prep_string(s,
+    TextNorm(strip_case=false,        # Keep original case
+    strip_punctuation=false, # Keep punctuation
+    normalize_whitespace=true # Fix spacing only
+    ))
 println("Custom: '", text(doc_custom), "'")
 ```
 
 ##### Multilingual Text
 
 ```@example prep_string_multi
+using TextAssociations
+using TextAnalysis
+
 # Greek text with diacritics
 greek = "Καλημέρα! Η ανάλυση κειμένου είναι σημαντική."
 
 # Keep diacritics (default)
-doc_with = prep_string(greek, strip_accents=false)
+doc_with = prep_string(greek, TextNorm(strip_accents=false))
 println("With accents: '", text(doc_with), "'")
 
 # Remove diacritics
-doc_without = prep_string(greek, strip_accents=true)
+doc_without = prep_string(greek, TextNorm(strip_accents=true))
 println("Without accents: '", text(doc_without), "'")
 ```
 
 ##### Processing Files and Directories
 
 ```@example prep_string_files
+using TextAssociations
+using TextAnalysis
+
 # From file
 # doc = prep_string("document.txt")
 
@@ -352,8 +364,9 @@ Extracts the document from a `LazyInput` wrapper.
 
 ```@example batch
 using TextAssociations
+using DataFrames
 
-text = """
+s = """
 Artificial intelligence and machine learning are transforming technology.
 Deep learning, a subset of machine learning, uses neural networks.
 Machine learning algorithms can learn from data without explicit programming.
@@ -364,21 +377,22 @@ nodes = ["learning", "machine", "neural", "data"]
 results = Dict{String, DataFrame}()
 
 for node in nodes
-    ct = ContingencyTable(text, node; windowsize=3, minfreq=1)
+    ct = ContingencyTable(s, node; windowsize=3, minfreq=1)
     results[node] = assoc_score(PMI, ct)
 end
 
 println("Results per node:")
 for (node, df) in results
-    println("  $node: $(nrow(df)) collocates, top PMI = $(maximum(df.PMI))")
+    println("  $node: $(nrow(df)) collocates, top PMI = $(round(maximum(df.PMI), digits=2))")
 end
 ```
 
 ### Comparative Analysis
 
-```@example comparative
+```@example shared_context
 using TextAssociations
 using DataFrames
+using Statistics
 
 # Compare different window sizes
 function compare_parameters(text, word)
@@ -399,7 +413,7 @@ function compare_parameters(text, word)
     return comparison
 end
 
-comparison = compare_parameters(text, "learning")
+comparison = compare_parameters(s, "learning")
 grouped = groupby(comparison, :WindowSize)
 summary = combine(grouped,
     nrow => :NumCollocates,
@@ -414,7 +428,7 @@ println(summary)
 
 ### Memory-Efficient Processing
 
-```@example memory
+```@example shared_context
 using TextAssociations
 
 # Use scores_only for large-scale processing
@@ -431,7 +445,7 @@ function process_many_nodes(text, nodes)
 end
 
 nodes = ["intelligence", "artificial", "learning"]
-score_dict = process_many_nodes(text, nodes)
+score_dict = process_many_nodes(s, nodes)
 println("\nScore vectors per node:")
 for (node, scores) in score_dict
     println("  $node: $(length(scores)) scores, max = $(maximum(scores))")
@@ -471,8 +485,9 @@ println("\nResults from $(length(results)) text segments processed")
 
 ### Input Validation
 
-```@example validation
+```@example shared_context
 using TextAssociations
+using DataFrames
 
 # Handle empty or invalid inputs
 function safe_evaluate(s, word, metric)
@@ -510,7 +525,7 @@ missing = safe_evaluate(s, "quantum", PMI)
 
 ### Parameter Validation
 
-```@example param_validation
+```@example shared_context
 # Validate parameters before processing
 function validated_analysis(s, word, windowsize, minfreq)
     # Check window size
@@ -546,16 +561,17 @@ println("Valid analysis: $(nrow(results)) results")
 
 ### Complete Analysis Pipeline
 
-```@example assoc_score
+```@example shared_context
 using TextAssociations
 using DataFrames
+using TextAnalysis
 
 function comprehensive_analysis(s, target_word)
     # Step 1: Preprocess
     doc = prep_string(s,
-        strip_punctuation=true,
+        TextNorm(strip_punctuation=true,
         strip_case=true,
-        normalize_whitespace=true
+        normalize_whitespace=true)
     )
 
     # Step 2: Create contingency table
@@ -589,9 +605,10 @@ end
 
 ### Export Functions
 
-```@example export
+```@example shared_context
 using TextAssociations
 using CSV
+using Dates
 
 # Prepare results for export
 ct = ContingencyTable(s, "intelligence"; windowsize=5, minfreq=1)
@@ -601,7 +618,7 @@ results = assoc_score([PMI, LogDice, LLR], ct)
 metadata!(results, "node", "intelligence", style=:note)
 metadata!(results, "window_size", 5, style=:note)
 metadata!(results, "min_freq", 1, style=:note)
-metadata!(results, "timestamp", now(), style=:note)
+metadata!(results, "timestamp", Dates.now(), style=:note)
 
 # Export to CSV
 output_file = tempname() * ".csv"
@@ -616,15 +633,16 @@ rm(output_file)
 
 ### Using Chain.jl
 
-```@example chain
+```@example shared_context
 using TextAssociations
 using Chain
 using DataFrames
+using TextAnalysis
 
 # Chain operations for cleaner code
-result = @chain text begin
-    prep_string(strip_accents=false)
-    text
+result = @chain s begin
+    prep_string(_, TextNorm(strip_accents=false))
+    TextAnalysis.text(_)
     ContingencyTable("learning"; windowsize=4, minfreq=1)
     assoc_score([PMI, LogDice], _)
     filter(row -> row.PMI > 2 && row.LogDice > 5, _)
@@ -638,22 +656,22 @@ println(result)
 
 ### Custom Function Composition
 
-```@example compose
+```@example shared_context
 # Compose functions for reusable pipelines
-preprocess = text -> prep_string(text, strip_case=true, strip_punctuation=true)
-analyze = (text, word) -> ContingencyTable(text, word; windowsize=5, minfreq=2)
+preprocess = s -> prep_string(s, TextNorm(strip_case=true, strip_punctuation=true))
+analyze = (s, word) -> ContingencyTable(s, word; windowsize=5, minfreq=2)
 evaluate = ct -> assoc_score([PMI, LogDice, LLR], ct)
 filter_strong = df -> filter(row -> row.PMI > 3 && row.LLR > 10.83, df)
 
 # Use composition
-pipeline = text -> begin
-    doc = preprocess(text)
+pipeline = s -> begin
+    doc = preprocess(s)
     ct = analyze(text(doc), "machine")
     results = evaluate(ct)
     filter_strong(results)
 end
 
-final_results = pipeline(text)
+final_results = pipeline(s)
 println("\nPipeline results: $(nrow(final_results)) strong collocates")
 ```
 
@@ -722,13 +740,13 @@ end
 
 ### Debug Helper
 
-```@example debug
-function debug_analysis(text, word, windowsize, minfreq)
+```@example shared_context
+function debug_analysis(s, word, windowsize, minfreq)
     println("Debug Analysis for '$word'")
     println("="^40)
 
     # Check preprocessing
-    doc = prep_string(text)
+    doc = prep_string(s)
     tokens = TextAnalysis.tokens(doc)
     println("Total tokens: ", length(tokens))
     println("Unique tokens: ", length(unique(tokens)))
@@ -750,7 +768,7 @@ function debug_analysis(text, word, windowsize, minfreq)
     return results
 end
 
-debug_results = debug_analysis(text, "learning", 3, 1)
+debug_results = debug_analysis(s, "learning", 3, 1)
 ```
 
 ## See Also
