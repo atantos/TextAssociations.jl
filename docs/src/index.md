@@ -266,33 +266,33 @@ TextAssociations.jl
     <div class="card">
         <h3>🚀 Getting Started</h3>
         <ul>
-            <li><a href="getting_started/installation.html">Installation Guide</a></li>
-            <li><a href="getting_started/tutorial.html">Quick Tutorial</a></li>
-            <li><a href="getting_started/basic_examples.html">Basic Examples</a></li>
+            <li><a href="getting_started/installation/">Installation Guide</a></li>
+            <li><a href="getting_started/tutorial/">Quick Tutorial</a></li>
+            <li><a href="getting_started/examples/">Basic Examples</a></li>
         </ul>
     </div>
     <div class="card">
         <h3>📖 User Guide</h3>
         <ul>
-            <li><a href="guide/concepts.html">Core Concepts</a></li>
-            <li><a href="guide/preprocessing.html">Text Preprocessing</a></li>
-            <li><a href="guide/choosing_metrics.html">Choosing Metrics</a></li>
+            <li><a href="guide/concepts">Core Concepts</a></li>
+            <li><a href="guide/preprocessing">Text Preprocessing</a></li>
+            <li><a href="guide/choosing_metrics">Choosing Metrics</a></li>
         </ul>
     </div>
     <div class="card">
         <h3>📊 Metrics</h3>
         <ul>
-            <li><a href="metrics/overview.html">Metrics Overview</a></li>
-            <li><a href="metrics/information_theoretic.html">Information-theoretic</a></li>
-            <li><a href="metrics/statistical.html">Statistical Tests</a></li>
+            <li><a href="metrics/overview">Metrics Overview</a></li>
+            <li><a href="metrics/information_theoretic">Information-theoretic</a></li>
+            <li><a href="metrics/statistical">Statistical Tests</a></li>
         </ul>
     </div>
     <div class="card">
         <h3>🔬 Advanced</h3>
         <ul>
-            <li><a href="advanced/temporal.html">Temporal Analysis</a></li>
-            <li><a href="advanced/networks.html">Network Analysis</a></li>
-            <li><a href="advanced/keywords.html">Keyword Extraction</a></li>
+            <li><a href="advanced/temporal">Temporal Analysis</a></li>
+            <li><a href="advanced/networks">Network Analysis</a></li>
+            <li><a href="advanced/keywords">Keyword Extraction</a></li>
         </ul>
     </div>
 </div>
