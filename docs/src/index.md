@@ -8,9 +8,19 @@ Documentation for [TextAssociations](https://github.com/atantos/TextAssociations
 
 ## Install
 
+You can install `TextAssociations.jl` directly from its `GitHub` repository using `Julia`’s package manager. In the `Julia REPL`, press `]` to enter `Pkg` mode and run:
+
 ```julia-repl
-julia> add https://github.com/atantos/TextAssociations.jl
+pkg> add https://github.com/atantos/TextAssociations.jl
 ```
+
+Once the package is registered in the `Julia` _General registry_, you will be able to install it more simply with:
+
+```julia-repl
+pkg> add TextAssociations
+```
+
+See [Installation](@ref) for detailed instructions and troubleshooting.
 
 # TextAssociations.jl
 
@@ -18,15 +28,31 @@ julia> add https://github.com/atantos/TextAssociations.jl
 CurrentModule = TextAssociations
 ```
 
-_A comprehensive Julia package for word association analysis and collocation extraction_
+_A Julia package for word association measures, collocation analysis and descriptive statistics across text and corpus levels._
 
 ## Overview
 
-TextAssociations.jl provides a powerful and efficient framework for computing word association metrics and performing corpus-level collocation analysis. With over 50 implemented association measures, this package serves researchers in computational linguistics, corpus linguistics, natural language processing, and digital humanities.
+`TextAssociations.jl` is a comprehensive framework for computing word association metrics, performing collocation analysis, and producing a wide range of descriptive statistical indices at both the text and corpus levels. With 47 implemented association measures, it is designed to support research in computational linguistics, corpus linguistics, natural language processing, and the digital humanities.
 
-!!! note "Package Highlights" - **50+ association metrics** including PMI, LogDice, LLR, and many more - **Efficient processing** with lazy evaluation and caching - **Corpus analysis** at scale with streaming and parallel processing - **Multilingual support** including proper Unicode and diacritic handling - **Advanced features** like temporal analysis and collocation networks
+!!! tip **Package Highlights**
+
+- 47 association metrics across statistical, information-theoretic, similarity and epidemiological families — including PMI, LogDice, LLR, Chi-square, Odds Ratio, Lexical Gravity, and many more
+- **Efficient processing** of large corpora with lazy evaluation and caching
+- **Corpus analysis** at scale via batch and streaming modes, with optional parallelism
+- **Multilingual support** with proper Unicode handling and diacritic normalization
+
+- **Advanced features**:
+  - Temporal association analysis and trend detection
+  - Subcorpus comparisons with effect sizes and statistical testing
+  - Collocation network construction and export (e.g., to Gephi)
+  - KWIC concordances for contextual exploration
+  - Keyword extraction (currently TF-IDF, with RAKE and TextRank planned)
 
 ## Quick Start
+
+After installation, you can immediately begin analyzing text and exploring collocations with just a few lines of code. The example below demonstrates how to create a contingency table for a target word, compute multiple association measures, and display the top collocates.
+
+For a step-by-step explanation of what happens in each stage and detailed guidance on how to use the package effectively, see the Tutorial section of this documentation.
 
 ```@example quickstart
 using TextAssociations
@@ -54,7 +80,8 @@ first(results, 5)
 
 ### 📊 Comprehensive Metric Collection
 
-The package implements metrics from various theoretical frameworks:
+The package provides metrics from several families of measures. The examples below are representative; the full list of implemented measures, along with their formulae, is provided in the **Measures**
+section.
 
 - **Information-theoretic**: PMI, PPMI, Mutual Information variants
 - **Statistical**: Log-likelihood ratio, Chi-square, T-score, Z-score
@@ -75,21 +102,6 @@ The package implements metrics from various theoretical frameworks:
 - **Customizable preprocessing**: Full control over text normalization
 - **Extensible design**: Easy to add new metrics or modify existing ones
 - **Rich output options**: DataFrames, CSV, JSON, Excel export
-
-## Installation
-
-```julia
-using Pkg
-Pkg.add("TextAssociations")
-```
-
-For the development version:
-
-```julia
-Pkg.add(url="https://github.com/yourusername/TextAssociations.jl")
-```
-
-See [Installation](@ref) for detailed instructions and troubleshooting.
 
 ## Basic Usage
 
@@ -174,16 +186,6 @@ println("Vocabulary: $(stats[:vocabulary_size])")
 
 ## Advanced Features
 
-### Temporal Analysis
-
-Track how word associations change over time:
-
-```julia
-temporal_analysis = analyze_temporal(
-    corpus, ["digital", "transformation"], :year, PMI
-)
-```
-
 ### Collocation Networks
 
 Build networks of related terms:
@@ -205,25 +207,56 @@ comparison = compare_subcorpora(
 )
 ```
 
+### Temporal Analysis
+
+Track how word associations change over time:
+
+```julia
+temporal_analysis = analyze_temporal(
+    corpus, ["digital", "transformation"], :year, PMI
+)
+```
+
 ## Package Architecture
 
 ```
 TextAssociations.jl
 │
-├── Core Components
-│   ├── ContingencyTable     # Single document analysis
-│   ├── Corpus               # Document collection
-│   └── Metrics              # Association measures
+├─ Types & Basics
+│  ├─ AssociationMetric / AssociationDataFormat
+│  ├─ TextNorm (single source of truth for normalization)
+│  └─ LazyProcess / LazyInput (lazy evaluation & caching)
 │
-├── Analysis Functions
-│   ├── assoc_score()          # Metric evaluation
-│   ├── analyze_corpus()     # Corpus analysis
-│   └── keyterms()   # Keyword extraction
+├─ Utils
+│  ├─ I/O & encoding (read_text_smart)
+│  ├─ Text processing (normalize_node, prep_string, strip_diacritics)
+│  ├─ Statistical helpers (available_metrics, log_safe)
+│  └─ Text analysis helpers (token find/count utilities)
 │
-└── Advanced Features
-    ├── Temporal analysis
-    ├── Network building
-    └── Concordance generation
+├─ Core Data Structures
+│  ├─ ContingencyTable          # per-document co-occurrence table
+│  ├─ Corpus                    # collection + vocabulary/DTM
+│  └─ CorpusContingencyTable    # corpus-level aggregation (lazy)
+│
+├─ API (Unified)
+│  └─ assoc_score(metric(s), x::AssociationDataFormat; …)
+│
+├─ Metrics
+│  ├─ Interface + dispatch
+│  └─ 47 measures across families (PMI, LLR, LogDice, χ², OR, etc.)
+│
+├─ Analysis Functions
+│  ├─ analyze_corpus / analyze_nodes
+│  ├─ corpus_stats, token_distribution, vocab_coverage
+│  ├─ write_results, export/load with metadata
+│  ├─ batch_process_corpus, stream_corpus_analysis
+│  └─ keyterms (TF-IDF; RAKE/TextRank placeholders)
+│
+└─ Advanced Features
+   ├─ analyze_temporal, compare_subcorpora
+   ├─ colloc_graph → gephi_graph (network export)
+   └─ kwic (concordance)
+
 ```
 
 ## Documentation Guide
@@ -265,6 +298,7 @@ TextAssociations.jl
 </div>
 ```
 
+<!--
 ## Performance Benchmarks
 
 | Task            | Size      | Time   | Memory   |
@@ -272,28 +306,28 @@ TextAssociations.jl
 | Single document | 10K words | ~50ms  | 10MB     |
 | Small corpus    | 100 docs  | ~2s    | 50MB     |
 | Large corpus    | 10K docs  | ~30s   | 500MB    |
-| Streaming       | Unlimited | Linear | Constant |
+| Streaming       | Unlimited | Linear | Constant | -->
 
 ## Community and Support
 
 - 📚 [Complete API Reference](@ref api_types)
-- 💬 [GitHub Discussions](https://github.com/yourusername/TextAssociations.jl/discussions)
-- 🐛 [Issue Tracker](https://github.com/yourusername/TextAssociations.jl/issues)
-- 📧 Contact: your.email@example.com
+- 💬 [GitHub Discussions](https://github.com/atantos/TextAssociations.jl/discussions)
+- 🐛 [Issue Tracker](https://github.com/atantos/TextAssociations.jl/issues)
+<!-- - 📧 Contact: alextantos@lit.auth.gr -->
 
-## Citation
+<!-- ## Citation
 
 If you use TextAssociations.jl in your research, please cite:
 
 ```bibtex
-@software{textassociations2024,
+@software{textassociations2025,
     title = {TextAssociations.jl: A Julia Package for Word Association Analysis},
     author = {Your Name},
-    year = {2024},
+    year = {2025},
     url = {https://github.com/yourusername/TextAssociations.jl},
     version = {0.1.0}
 }
-```
+``` -->
 
 ## Contributing
 
@@ -310,7 +344,7 @@ TextAssociations.jl is licensed under the [MIT License](https://github.com/youru
 
 ## Acknowledgments
 
-This package builds upon decades of research in computational linguistics:
+This package builds upon decades of research in corpus and computational linguistics. The references that follow are illustrative rather than exhaustive, highlighting some of the key contributions that have shaped the development of association measures and corpus analysis methods.
 
 - Evert, S. (2008). "Corpora and collocations." _Corpus Linguistics: An International Handbook_
 - Church, K. W., & Hanks, P. (1990). "Word association norms, mutual information, and lexicography." _Computational Linguistics_
@@ -327,8 +361,4 @@ This package builds upon decades of research in computational linguistics:
 ```@autodocs
 Modules = [TextAssociations]
 Order   = [:function]
-```
-
-```
-
 ```

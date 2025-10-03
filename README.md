@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="https://github.com/atantos/TextAssociations.jl/raw/main/assets/TextAssociations_logo.png" alt="TextAssociations.jl" width="1100" height="400"/>
+  <img src="https://github.com/atantos/TextAssociations.jl/raw/main/assets/TextAssociations_logo.png" alt="`TextAssociations.jl`" width="1100" height="400"/>
 </p>
 
 # TextAssociations.jl
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://atantos.github.io/TextAssociations.jl/)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://atantos.github.io/`TextAssociations.jl`/)
 [![Build Status](https://github.com/atantos/TextAssociations.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/atantos/TextAssociations.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 ## 🎯 Introduction
 
-`TextAssociations.jl` is a comprehensive Julia package for word association analysis and corpus linguistics, offering over 50 association metrics to quantify relationships between words in texts and corpora. The package is now comparable to professional corpus analysis tools like:
+`TextAssociations.jl` is a comprehensive Julia package for word association analysis and corpus linguistics, offering -for the time being- 47 association metrics to quantify relationships between words in texts and corpora. The package is now comparable to professional corpus analysis tools like:
 
 - **AntConc** (but more programmable)
 - **SketchEngine** (but open source)
@@ -24,7 +24,7 @@ With added advantages of:
 - Ability to process streaming data
 - Modern parallel computing capabilities
 
-This makes TextAssociations.jl a powerful tool for computational linguistics, digital humanities, and any field requiring sophisticated text analysis!
+This makes `TextAssociations.jl` a powerful tool for computational linguistics, digital humanities, and any field requiring sophisticated text analysis!
 
 ### Why Word Association Metrics Still Matter
 
@@ -37,7 +37,7 @@ Even in the era of transformer models and word embeddings, association metrics r
 
 ## ✨ Core Features
 
-### 📈 **50+ Association Metrics**
+### 📈 **47 Association Metrics**
 
 Comprehensive suite including PMI, Log-likelihood, Dice, Jaccard, Lexical Gravity and many more specialized measures from corpus linguistics, information theory and even some association metrics inspired from epidemiology.
 
@@ -64,6 +64,8 @@ Process entire document collections with built-in support for:
 - Comprehensive API for programmatic access
 
 ## 📦 Installation
+
+You can install `TextAssociations.jl` directly from its `GitHub` repository using `Julia`’s package manager. In the `Julia REPL`, press `]` to enter `Pkg` mode and run:
 
 ```julia
 using Pkg
@@ -108,7 +110,7 @@ write_results(analysis, "results/", format=:csv)
 
 ## 📊 Supported Metrics
 
-TextAssociations.jl supports 50+ metrics organized by category:
+`TextAssociations.jl` supports 47 metrics organized by category:
 
 ### Information-Theoretic Metrics
 
@@ -144,7 +146,7 @@ TextAssociations.jl supports 50+ metrics organized by category:
 ### Complete Metric List
 
 <details>
-<summary>Click to see all 50+ metrics with formulas</summary>
+<summary>Click to see all 47 metrics with formulas</summary>
 
 | Metric            | Type          | Formula                                                  |
 | ----------------- | ------------- | -------------------------------------------------------- |
@@ -261,7 +263,7 @@ batch_process_corpus(
 
 ## 🔬 Use Cases
 
-TextAssociations.jl is ideal for:
+`TextAssociations.jl` is ideal for:
 
 - **Corpus Linguistics**: Collocation analysis, lexical patterns, semantic prosody
 - **Digital Humanities**: Literary analysis, historical text mining, stylometry
@@ -339,7 +341,7 @@ using Pkg; Pkg.test()
 
 ## 🙏 Acknowledgments
 
-TextAssociations.jl builds on established methods from computational linguistics and is inspired by:
+`TextAssociations.jl` builds on established methods from computational linguistics and is inspired by:
 
 - **AntConc** (Anthony, 2022)
 - **SketchEngine** (Kilgarriff et al., 2014)
@@ -370,7 +372,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 | Feature             | TextAssociations.jl | AntConc | SketchEngine | WordSmith |
 | ------------------- | ------------------- | ------- | ------------ | --------- |
 | Open Source         | ✅                  | ✅      | ❌           | ❌        |
-| Metrics             | 50+                 | ~10     | ~20          | ~15       |
+| Metrics             | 47                  | ~10     | ~20          | ~15       |
 | Corpus Size         | Unlimited\*         | Limited | Large        | Medium    |
 | Parallel Processing | ✅                  | ❌      | ✅           | ❌        |
 | API Access          | ✅                  | ❌      | ✅           | ❌        |
@@ -395,7 +397,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 <details>
 <summary><b>Can it handle non-English text?</b></summary>
 
-Yes! TextAssociations.jl works with any Unicode text. The preprocessing steps (lowercasing, punctuation removal) are Unicode-aware.
+Yes! `TextAssociations.jl` works with any Unicode text. The preprocessing steps (lowercasing, punctuation removal) are Unicode-aware.
 
 </details>
 
