@@ -51,7 +51,7 @@ jobs:
       - name: Setup Julia
         uses: julia-actions/setup-julia@v1
         with:
-          version: "1.10" # or your preferred version
+          version: "1.11" # or your preferred version
 
       - name: Install dependencies
         run: |
