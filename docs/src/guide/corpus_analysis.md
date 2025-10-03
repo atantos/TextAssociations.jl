@@ -194,24 +194,23 @@ end
 
 ```@example temporal
 using TextAssociations, Dates, DataFrames
-using TextAnalysis
 
-# Create documents with metadata
-docs_with_metadata = [
-    StringDocument("Early AI used rule-based systems."),
-    StringDocument("Machine learning emerged as dominant approach."),
-    StringDocument("Deep learning revolutionized the field."),
-    StringDocument("Transformers changed natural language processing.")
-]
+# Create DataFrame with temporal metadata
+df = DataFrame(
+    text = [
+        "Early AI used rule-based systems.",
+        "Machine learning emerged as dominant approach.",
+        "Deep learning revolutionized the field.",
+        "Transformers changed natural language processing."
+    ],
+    year = [1980, 1990, 2010, 2020]
+)
 
-# Add metadata to each document BEFORE creating corpus
-years = [1980, 1990, 2010, 2020]
-for (i, doc) in enumerate(docs_with_metadata)
-    doc.metadata[:year] = years[i]
-end
-
-# Create corpus
-temporal_corpus = TextAssociations.Corpus(docs_with_metadata)
+# Use read_corpus_df to properly store metadata
+temporal_corpus = read_corpus_df(df;
+    text_column=:text,
+    metadata_columns=[:year]
+)
 
 # Analyze temporal trends
 temporal_analysis = analyze_temporal(

@@ -130,12 +130,8 @@ function read_corpus(path::AbstractString;
         @showprogress desc = "Loading files..." for file in files
             content = read_text_smart(file)
 
-            if preprocess
-                doc = prep_string(content, norm_config)
-                typed_doc = StringDocument(text(doc))
-            else
-                typed_doc = StringDocument(content)
-            end
+            typed_doc = preprocess ? StringDocument(text(prep_string(content, norm_config))) :
+                        StringDocument(content)
 
             doc_tokens = tokens(typed_doc)
             if length(doc_tokens) >= min_doc_length &&
@@ -148,26 +144,38 @@ function read_corpus(path::AbstractString;
     elseif endswith(lowercase(path), ".csv")
         # Load from CSV
         df = DataFrame(CSV.File(path))
+        df_names = names(df)
+        df_syms = Set(Symbol.(df_names))
+
+        # Helper to fetch a column value by Symbol/String name
+        getcol = function (row, colsym::Symbol)
+            if colsym in df_syms
+                return row[colsym]
+            elseif String(colsym) in df_names
+                return row[String(colsym)]
+            else
+                throw(ArgumentError("Column '$(colsym)' not found in CSV. Available: $(df_names)"))
+            end
+        end
 
         @showprogress desc = "Processing CSV rows..." for row in eachrow(df)
-            text_content = string(row[text_column])
+            text_content = string(getcol(row, text_column))
 
-            if preprocess
-                doc = prep_string(text_content, norm_config)
-                typed_doc = StringDocument(text(doc))
-            else
-                typed_doc = StringDocument(text_content)
-            end
+            typed_doc = preprocess ? StringDocument(text(prep_string(text_content, norm_config))) :
+                        StringDocument(text_content)
 
             doc_tokens = tokens(typed_doc)
             if length(doc_tokens) >= min_doc_length &&
                (max_doc_length === nothing || length(doc_tokens) <= max_doc_length)
                 push!(documents, typed_doc)
 
+                # Per-row metadata
                 row_metadata = Dict{Symbol,Any}()
                 for col in metadata_columns
-                    if col in names(df)
-                        row_metadata[col] = row[col]
+                    if col in df_syms
+                        row_metadata[col] = row[col]                # Symbol access
+                    elseif String(col) in df_names
+                        row_metadata[col] = row[String(col)]        # String fallback
                     end
                 end
                 metadata["doc_$(length(documents))"] = row_metadata
@@ -182,12 +190,8 @@ function read_corpus(path::AbstractString;
             @showprogress desc = "Processing JSON entries..." for (i, entry) in enumerate(json_data)
                 text_content = string(get(entry, string(text_column), ""))
                 if !isempty(text_content)
-                    if preprocess
-                        doc = prep_string(text_content, norm_config)
-                        typed_doc = StringDocument(text(doc))
-                    else
-                        typed_doc = StringDocument(text_content)
-                    end
+                    typed_doc = preprocess ? StringDocument(text(prep_string(text_content, norm_config))) :
+                                StringDocument(text_content)
 
                     doc_tokens = tokens(typed_doc)
                     if length(doc_tokens) >= min_doc_length &&
@@ -208,10 +212,12 @@ function read_corpus(path::AbstractString;
     return Corpus(documents, metadata=metadata, norm_config=norm_config)
 end
 
+
 """
     read_corpus_df(df::DataFrame; kwargs...) -> Corpus
 
 Load corpus directly from a DataFrame with consistent normalization.
+Metadata columns are stored at the corpus level with document indices.
 """
 function read_corpus_df(df::DataFrame;
     text_column::Symbol=:text,
@@ -220,31 +226,47 @@ function read_corpus_df(df::DataFrame;
     norm_config::TextNorm=TextNorm())
 
     documents = StringDocument{String}[]
-    metadata = Dict{String,Any}()
+    corpus_metadata = Dict{String,Any}()
+
+    df_names = names(df)
+    df_syms = Set(Symbol.(df_names))
+
+    # Helper to fetch a column value by Symbol/String name
+    getcol = function (row, colsym::Symbol)
+        if colsym in df_syms
+            return row[colsym]
+        elseif String(colsym) in df_names
+            return row[String(colsym)]
+        else
+            throw(ArgumentError("Column '$(colsym)' not found in DataFrame. Available: $(df_names)"))
+        end
+    end
 
     @showprogress desc = "Processing DataFrame..." for (idx, row) in enumerate(eachrow(df))
-        text_content = string(row[text_column])
+        text_content = string(getcol(row, text_column))
 
-        if preprocess
-            doc = prep_string(text_content, norm_config)
-            typed_doc = StringDocument(text(doc))
-        else
-            typed_doc = StringDocument(text_content)
-        end
+        typed_doc = preprocess ? StringDocument(text(prep_string(text_content, norm_config))) :
+                    StringDocument(text_content)
 
         push!(documents, typed_doc)
 
-        row_metadata = Dict{Symbol,Any}()
-        for col in metadata_columns
-            if col in names(df)
-                row_metadata[col] = row[col]
+        # Store document metadata with index
+        if !isempty(metadata_columns)
+            doc_meta = Dict{Symbol,Any}()
+            for col in metadata_columns
+                if col in df_syms
+                    doc_meta[col] = row[col]
+                elseif String(col) in df_names
+                    doc_meta[col] = row[String(col)]
+                end
             end
+            corpus_metadata["doc_$idx"] = doc_meta
         end
-        metadata["doc_$idx"] = row_metadata
     end
 
-    return Corpus(documents, metadata=metadata, norm_config=norm_config)
+    return Corpus(documents, metadata=corpus_metadata, norm_config=norm_config)
 end
+
 
 # =====================================
 # Aggregation Functions

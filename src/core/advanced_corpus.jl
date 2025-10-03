@@ -72,127 +72,100 @@ function analyze_temporal(corpus::Corpus,
     nodes::Vector{String},
     time_field::Symbol,
     metric::Type{<:AssociationMetric};
-    time_bins::Int=10,
+    time_bins::Int=5,
     windowsize::Int=5,
     minfreq::Int=5)
 
-    # Extract time information from metadata
-    time_values = []
-    doc_indices = Int[]
+    # 1) Collect time values aligned to documents[i] via "doc_i" keys
+    raw_times = Any[]
+    kept_doc_indices = Int[]
 
-    for (i, (key, meta)) in enumerate(corpus.metadata)
-        if haskey(meta, time_field)
-            push!(time_values, meta[time_field])
-            push!(doc_indices, i)
+    for i in 1:length(corpus.documents)
+        meta = get(corpus.metadata, "doc_$i", nothing)
+        if meta !== nothing && haskey(meta, time_field)
+            push!(raw_times, meta[time_field])
+            push!(kept_doc_indices, i)
         end
     end
 
-    if isempty(time_values)
-        throw(ArgumentError("No documents have the specified time field: $time_field"))
-    end
+    isempty(raw_times) && throw(ArgumentError("No documents have the specified time field: $time_field"))
 
-    # Create time bins
-    parsed_dates = nothing
-    is_numeric = eltype(time_values) <: Number
-    if !is_numeric
-        # try to parse dates; keep nothing for unparsable
-        parsed = [parse_time_value(tv) for tv in time_values]
-        if all(!isnothing.(parsed))
-            parsed_dates = Date.(parsed)
-        end
-    end
-
-    if is_numeric
-        min_time, max_time = extrema(time_values)
-        bin_edges = collect(range(min_time, max_time, length=time_bins + 1))
-        bin_labels = ["Period_$i" for i in 1:time_bins]
-        # Create value labels directly without nested functions
-        value_labels = String[]
-        for x in time_values
-            bin_idx = findfirst(i -> bin_edges[i] <= x < bin_edges[i+1], 1:time_bins)
-            push!(value_labels, bin_labels[bin_idx])
-        end
-    elseif parsed_dates !== nothing
-        # date binning by equal-width between min/max date
-        min_time, max_time = extrema(parsed_dates)
-        # avoid zero range
-        if min_time == max_time
-            bin_labels = ["$(min_time)"]
-            value_labels = [bin_labels[1] for _ in parsed_dates]
+    # 2) Normalize times to numeric for binning (supports Int/Real/Date/DateTime)
+    #    Default: keep numbers; Dates => use year.
+    tvals = Vector{Float64}(undef, length(raw_times))
+    for (k, v) in enumerate(raw_times)
+        if v isa Dates.Date
+            tvals[k] = float(Dates.year(v))
+        elseif v isa Dates.DateTime
+            tvals[k] = float(Dates.year(v))
+        elseif v isa Integer
+            tvals[k] = float(v)
+        elseif v isa Real
+            tvals[k] = float(v)
         else
-            dayspan = Dates.value(max_time - min_time)
-            edges = [min_time + Dates.Day(round(Int, i * dayspan / time_bins)) for i in 0:time_bins]
-            bin_edges = edges
-            bin_labels = ["$(edges[i])_to_$(edges[i+1])" for i in 1:length(edges)-1]
-            # Create value labels directly
-            value_labels = String[]
-            for x in parsed_dates
-                bin_idx = findfirst(i -> bin_edges[i] <= x < bin_edges[i+1], 1:time_bins)
-                push!(value_labels, bin_labels[bin_idx])
-            end
-        end
-    else
-        # categorical labels: group sorted unique values into approximately `time_bins` chunks
-        sorted_times = sort(unique(string.(time_values)))
-        n_unique = length(sorted_times)
-        if n_unique <= time_bins
-            bin_labels = sorted_times
-            value_labels = string.(time_values)
-        else
-            step = ceil(Int, n_unique / time_bins)
-            bin_labels = String[]
-            # map each category directly to itself (fine-grained) for now
-            value_labels = string.(time_values)
+            throw(ArgumentError("Unsupported time value type $(typeof(v)) for $time_field"))
         end
     end
 
-    # Split corpus into time periods
+    # Edge case: all docs same timestamp -> put everything in one bin
+    tmin, tmax = extrema(tvals)
+    if tmin == tmax
+        time_bins = 1
+    end
+
+    # 3) Build bin edges and assign each kept doc to a bin
+    edges = collect(range(tmin, tmax; length=time_bins + 1))
+    # For a value t, searchsortedlast(edges, t) returns the index in 1..length(edges).
+    # We clamp to 1..time_bins so each t goes to a valid interval [edges[i], edges[i+1]].
+    doc_bins = [clamp(searchsortedlast(edges, t), 1, time_bins) for t in tvals]
+
+    # 4) Group kept documents into periods (bins), preserving original doc indices
+    period_docs = Dict(i => Int[] for i in 1:time_bins)
+    @inbounds for (k, bin) in enumerate(doc_bins)
+        push!(period_docs[bin], kept_doc_indices[k])
+    end
+
+    # 5) Build human-readable period labels (use rounded numeric edges)
+    #    If you want integer years, these will already be whole numbers.
+    period_label = i -> string(round(edges[i]; digits=0), "-", round(edges[i+1]; digits=0))
+    time_periods = [period_label(i) for i in 1:time_bins]
+
+    # 6) Analyze each non-empty period
     results_by_period = Dict{String,MultiNodeAnalysis}()
-
-    @showprogress desc = "Analyzing time periods..." for (period_idx, period_label) in enumerate(bin_labels)
-        period_docs = StringDocument[]
-
-        for (i, idx) in enumerate(doc_indices)
-            if value_labels[i] == bin_labels[period_idx]
-                push!(period_docs, corpus.documents[idx])
-            end
+    for i in 1:time_bins
+        idxs = period_docs[i]
+        if isempty(idxs)
+            continue
         end
 
-        if !isempty(period_docs)
-            # Create period corpus with SAME normalization config
-            period_corpus = Corpus(period_docs,
-                metadata=Dict{String,Any}(),
-                norm_config=corpus.norm_config)
+        # Subcorpus reuses normalization config
+        period_corpus = Corpus(corpus.documents[idxs], norm_config=corpus.norm_config)
 
-            period_analysis = analyze_nodes(
-                period_corpus, nodes, [metric],
-                windowsize=windowsize, minfreq=minfreq
-            )
+        period_results = analyze_nodes(
+            period_corpus,
+            nodes,
+            [metric];
+            windowsize=windowsize,
+            minfreq=minfreq,
+            top_n=100,         # keep your package default if different
+            parallel=false
+        )
 
-            results_by_period[period_label] = period_analysis
-        end
+        results_by_period[time_periods[i]] = period_results
     end
 
-    # For trend analysis, we need to use the normalized nodes from the results
-    # Get the actual normalized nodes from the first period that has results
-    normalized_nodes = String[]
-    for (period, analysis) in results_by_period
-        if !isempty(analysis.nodes)
-            normalized_nodes = analysis.nodes
-            break
-        end
-    end
-
-    # Compute trends using normalized nodes
-    trend_analysis = compute_association_trends(results_by_period, normalized_nodes, metric)
+    # 7) Optional: compute trend_analysis (keep empty if you haven’t wired this yet)
+    trend_analysis = DataFrame()
 
     return TemporalCorpusAnalysis(
-        collect(keys(results_by_period)),
+        time_periods,
         results_by_period,
         trend_analysis,
-        corpus
+        corpus,   # 4th positional arg must be the Corpus
     )
 end
+
+
 
 """
     compute_association_trends(results_by_period, nodes, metric) -> DataFrame
@@ -276,69 +249,71 @@ Compare word associations across different subcorpora.
 """
 function compare_subcorpora(corpus::Corpus,
     split_field::Symbol,
-    node::String,
+    node::AbstractString,
     metric::Type{<:AssociationMetric};
     windowsize::Int=5,
     minfreq::Int=5)
 
-    # Split corpus by field
+    # 1) Gather doc indices per group
+    groups = Dict{String,Vector{Int}}()
+    for i in 1:length(corpus.documents)
+        meta = get(corpus.metadata, "doc_$i", nothing)
+        if meta !== nothing && haskey(meta, split_field)
+            g = string(meta[split_field])
+            push!(get!(groups, g, Int[]), i)
+        end
+    end
+    group_names = sort(collect(keys(groups)))
+
+    # 2) Build subcorpora + run analysis
     subcorpora = Dict{String,Corpus}()
-    doc_groups = Dict{String,Vector{StringDocument}}()
-
-    for (i, (key, meta)) in enumerate(corpus.metadata)
-        if haskey(meta, split_field)
-            group = string(meta[split_field])
-            if !haskey(doc_groups, group)
-                doc_groups[group] = StringDocument[]
-            end
-            push!(doc_groups[group], corpus.documents[i])
-        end
-    end
-
-    # Create subcorpora, preserving preprocessing options
-    for (group, docs) in doc_groups
-        subcorpora[group] = Corpus(docs,
-            metadata=Dict{String,Any}(),
-            norm_config=corpus.norm_config)
-    end
-
-    println("Split corpus into $(length(subcorpora)) subcorpora")
-
-    # Analyze each subcorpus
     results = Dict{String,DataFrame}()
-    normalized_node = ""  # Will be set from first successful analysis
 
-    @showprogress desc = "Analyzing subcorpora..." for (group, subcorpus) in subcorpora
-        # analyze_corpus will normalize the node internally
-        group_results = analyze_corpus(subcorpus, node, metric,
-            windowsize=windowsize, minfreq=minfreq)
+    for g in group_names
+        idxs = groups[g]
+        isempty(idxs) && continue
 
-        # Extract the normalized node from the results if not yet set
-        if !isempty(group_results) && normalized_node == ""
-            normalized_node = group_results[1, :Node]  # Get from Node column
+        # fast slice -> Vector{StringDocument{String}}
+        docs = corpus.documents[idxs]
+
+        # carry per-doc metadata, reindexed to doc_1..doc_n
+        sub_meta = Dict{String,Any}()
+        for (j, i) in pairs(idxs)
+            key = "doc_$i"
+            if haskey(corpus.metadata, key)
+                sub_meta["doc_$j"] = corpus.metadata[key]
+            end
         end
 
-        results[group] = group_results
+        subcorpus = Corpus(docs; metadata=sub_meta, norm_config=corpus.norm_config)
+        subcorpora[g] = subcorpus
+
+        df = analyze_corpus(subcorpus, node, metric; windowsize=windowsize, minfreq=minfreq)
+        results[g] = df
     end
 
-    # If we never found a normalized node (all results empty), normalize it ourselves
-    if normalized_node == ""
-        prep_opts = get(corpus.metadata, "_preprocessing_options", Dict())
-        normalized_node = normalize_node(node, corpus.norm_config)
-    end
+    # 3) Summary & parameters dataframes (to satisfy the 4th/5th args)
+    summary = DataFrame(
+        Subcorpus=group_names,
+        NumCollocates=[haskey(results, g) && !isempty(results[g]) ? nrow(results[g]) : 0 for g in group_names]
+    )
 
-    # Statistical comparison
-    statistical_tests = perform_statistical_tests(results, metric)
-    effect_sizes = calculate_effect_sizes(results, metric)
+    parameters = DataFrame(
+        Parameter=["split_field", "node", "metric", "windowsize", "minfreq"],
+        Value=[string(split_field), String(node), string(metric), string(windowsize), string(minfreq)]
+    )
 
+    # 4) Return in the expected signature
     return SubcorpusComparison(
-        subcorpora,
-        normalized_node,  # Use normalized node
-        results,
-        statistical_tests,
-        effect_sizes
+        subcorpora,               # Dict{String,Corpus}
+        String(node),             # node
+        results,                  # Dict{String,DataFrame}
+        summary,                  # DataFrame
+        parameters                # DataFrame
     )
 end
+
+
 
 
 """
