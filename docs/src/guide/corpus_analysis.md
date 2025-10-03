@@ -1,8 +1,4 @@
-# Working with Corpora
-
-```
-@id corpus_analysis_guide
-```
+# [Working with Corpora](@id corpus_analysis_guide)
 
 ```@meta
 CurrentModule = TextAssociations

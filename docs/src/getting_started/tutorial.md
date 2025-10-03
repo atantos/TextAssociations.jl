@@ -1,6 +1,4 @@
-# Quick Tutorial
-
-`@id getting_started_tutorial`
+# [Quick Tutorial](@id getting_started_tutorial)
 
 ```@meta
 CurrentModule = TextAssociations

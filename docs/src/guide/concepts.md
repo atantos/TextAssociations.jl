@@ -1,8 +1,4 @@
-# Core Concepts
-
-```
-@id guide_concepts
-```
+# [Core Concepts](@id guide_concepts)
 
 ```@meta
 CurrentModule = TextAssociations

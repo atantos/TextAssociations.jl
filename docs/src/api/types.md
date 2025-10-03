@@ -1,4 +1,4 @@
-# Core Types
+# [Core Types](@id core_types)
 
 ```@meta
 CurrentModule = TextAssociations
@@ -40,6 +40,7 @@ TextAssociations Types
 
 ```@docs
 ContingencyTable
+TextNorm
 ```
 
 The `ContingencyTable` is the fundamental data structure for word co-occurrence analysis. It stores information about how often words co-occur within a specified window.

@@ -1,4 +1,4 @@
-# Main Functions
+# [Main Functions](@id api_functions)
 
 ```@meta
 CurrentModule = TextAssociations
@@ -777,8 +777,7 @@ debug_results = debug_analysis(s, "learning", 3, 1)
 
 ## See Also
 
-- [Core Types](@ref): Type definitions and structures
-- [Corpus Functions](@ref): Corpus-level operations
-- [Metrics Guide](@ref): Detailed metric descriptions
-- [Examples](@ref): More usage examples
-- [API Reference](@ref): Complete API documentation
+- [Core Types](@ref core_types): Type definitions and structures
+- [Corpus Functions](@ref corpus_analysis_guide): Corpus-level operations
+- [Metrics Guide](@ref metrics_overview): Detailed metric descriptions
+- [Examples](@ref getting_started_examples): More usage examples

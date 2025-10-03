@@ -13,6 +13,7 @@ makedocs(
         assets=String["assets/custom.css"],
         sidebar_sitename=true,
         collapselevel=2,
+        repolink="https://github.com/atantos/TextAssociations.jl",
         edit_link="main",
     ),
     modules=[TextAssociations],
@@ -20,6 +21,7 @@ makedocs(
     repo="https://github.com/atantos/TextAssociations.jl",
     pages=[
         "Home" => "index.md",
+        "Contributing" => "contributing.md",
         "Getting Started" => [
             "Installation" => "getting_started/installation.md",
             "Quick Tutorial" => "getting_started/tutorial.md",
@@ -45,6 +47,7 @@ makedocs(
             # "Concordance" => "advanced/concordance.md",
         ],
         "API Reference" => [
+            "Overview" => "api/index.md",
             "Core Types" => "api/types.md",
             "Main Functions" => "api/functions.md"
             # "Corpus Functions" => "api/corpus.md",

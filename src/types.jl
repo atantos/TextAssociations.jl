@@ -14,10 +14,44 @@ abstract type AssociationDataFormat end
 
 
 """
-    TextNorm
+    TextNorm(; strip_case=true,
+               strip_accents=false,
+               unicode_form=:NFC,
+               strip_punctuation=true,
+               punctuation_to_space=true,
+               normalize_whitespace=true,
+               strip_whitespace=false,
+               use_prepare=false)
 
-Single source of truth for text normalization/preprocessing configuration.
-All text processing in the package uses this configuration.
+Configuration for text normalization used by `prep_string` and corpus loaders.
+
+# Fields
+- `strip_case::Bool` — Lowercase the text when `true`.  
+- `strip_accents::Bool` — Remove combining diacritics (e.g., Greek tonos, diaeresis).  
+- `unicode_form::Symbol` — Unicode normalization form (`:NFC`, `:NFD`, `:NFKC`, `:NFKD`).  
+- `strip_punctuation::Bool` — If `true`, remove punctuation; combined with `punctuation_to_space`
+  to decide **replace with a space** vs **delete**.
+- `punctuation_to_space::Bool` — When stripping punctuation, replace it with a single space
+  (if `true`) or remove it (if `false`).  
+- `normalize_whitespace::Bool` — Collapse consecutive whitespace to a single space.  
+- `strip_whitespace::Bool` — Trim leading/trailing whitespace.  
+- `use_prepare::Bool` — Internal flag to route through a more aggressive prepare path.
+
+# Constructors
+- `TextNorm()` — defaults above.  
+- `TextNorm(d::Dict)` and `TextNorm(nt::NamedTuple)` — convenience constructors; keys must match field names.
+
+# Notes
+In `prep_string`, normalization typically proceeds as: Unicode normalization → punctuation handling →
+whitespace normalization, then (if enabled) case folding and accent stripping.
+
+# Examples
+```julia
+julia> cfg = TextNorm(strip_accents=true, strip_whitespace=true);
+
+julia> doc = prep_string("  Καφέ, naïve résumé!  ", cfg);
+julia> text(doc)
+"καφε naive resume"
 """
 Base.@kwdef struct TextNorm
     strip_case::Bool = true

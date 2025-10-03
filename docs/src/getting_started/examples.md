@@ -1,8 +1,4 @@
-# Basic Examples
-
-```
-@id getting_started_examples
-```
+# [Basic Examples](@id getting_started_examples)
 
 ```@meta
 CurrentModule = TextAssociations

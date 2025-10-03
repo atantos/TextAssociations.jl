@@ -310,7 +310,7 @@ TextAssociations.jl
 
 ## Community and Support
 
-- 📚 [Complete API Reference](@ref api_types)
+- 📚 [Complete API Reference](@ref api_reference)
 - 💬 [GitHub Discussions](https://github.com/atantos/TextAssociations.jl/discussions)
 - 🐛 [Issue Tracker](https://github.com/atantos/TextAssociations.jl/issues)
 <!-- - 📧 Contact: alextantos@lit.auth.gr -->
@@ -331,7 +331,7 @@ If you use TextAssociations.jl in your research, please cite:
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guide](@ref) for:
+We welcome contributions! See our [Contributing Guide](@ref contributing) for:
 
 - Bug reports and feature requests
 - Code contributions
