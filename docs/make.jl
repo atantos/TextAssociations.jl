@@ -1,5 +1,6 @@
 using Documenter
 using TextAssociations
+using TextAnalysis
 using DataFrames
 using CSV
 using Dates
@@ -64,10 +65,10 @@ makedocs(
     ],
 )
 
-deploydocs(
-    repo="github.com/atantos/TextAssociations.jl.git",
-    devbranch="main",
-    push_preview=true,
-    deps=nothing,
-    make=nothing,
-)
+# deploydocs(
+#     repo="github.com/atantos/TextAssociations.jl.git",
+#     devbranch="main",
+#     push_preview=true,
+#     deps=nothing,
+#     make=nothing,
+# )
