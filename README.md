@@ -272,10 +272,10 @@ batch_process_corpus(
 
 ## 📖 Documentation
 
-- [Getting Started Guide](https://atantos.github.io/TextAssociations.jl/dev/manual/getting_started)
-- [API Reference](https://atantos.github.io/TextAssociations.jl/dev/api/reference)
-- [Metric Formulas](https://atantos.github.io/TextAssociations.jl/dev/metrics)
-- [Examples](https://atantos.github.io/TextAssociations.jl/dev/examples)
+- [Getting Started Guide](https://atantos.github.io/TextAssociations.jl/)
+- [API Reference](https://atantos.github.io/TextAssociations.jl/api/)
+<!-- - [Metric Formulas](https://atantos.github.io/TextAssociations.jl/dev/metrics) -->
+- [Examples](https://atantos.github.io/TextAssociations.jl/api/functions/#Examples)
 
 ## 💻 Example Workflows
 
