@@ -9,7 +9,13 @@
 
 ## 🎯 Introduction
 
-`TextAssociations.jl` is a comprehensive Julia package for word association analysis and corpus linguistics, offering -for the time being- 47 association metrics to quantify relationships between words in texts and corpora. The package is now comparable to professional corpus analysis tools like:
+`TextAssociations.jl` is a comprehensive `Julia` package for word association analysis and corpus linguistics. It currently includes 47 association measures, enabling researchers to quantify lexical relationships within texts and corpora in a transparent, data-driven way.
+
+⚠️ Early Release Notice
+This is an early, pre-registration release of _TextAssociations.jl_.
+The package is fully functional but still evolving — documentation, tutorials, and examples are actively being expanded.
+
+Even at this stage, it already offers functionality comparable to established corpus analysis tools:
 
 - **AntConc** (but more programmable)
 - **SketchEngine** (but open source)
@@ -19,7 +25,7 @@
 With added advantages of:
 
 - Being fully programmable and extensible
-- Integration with Julia's ecosystem
+- Integration with `Julia`'s ecosystem
 - Support for custom metrics
 - Ability to process streaming data
 - Modern parallel computing capabilities
@@ -39,7 +45,7 @@ Even in the era of transformer models and word embeddings, association metrics r
 
 ### 📈 **47 Association Metrics**
 
-Comprehensive suite including PMI, Log-likelihood, Dice, Jaccard, Lexical Gravity and many more specialized measures from corpus linguistics, information theory and even some association metrics inspired from epidemiology.
+Comprehensive suite including `PMI`, `Log-likelihood`, `Dice`, `Jaccard`, `Lexical Gravity` and many more specialized measures from corpus linguistics, information theory and even some association metrics inspired from epidemiology.
 
 ### 📚 **Corpus-Level Analysis**
 
@@ -48,7 +54,7 @@ Process entire document collections with built-in support for:
 - Large-scale corpus processing
 - Temporal analysis (track changes over time)
 - Subcorpus comparison with statistical tests
-- Keyword extraction (TF-IDF and other methods)
+- Keyword extraction (TF-IDF and other methods soon to come)
 
 ### 🚀 **Performance Optimized**
 
@@ -242,13 +248,6 @@ analysis = analyze_nodes(
 results = stream_corpus_analysis(
     "texts/*.txt", "word", PMI, chunk_size=1000
 )
-```
-
-### Caching
-
-```julia
-cache = CachedCorpusAnalysis("cache/")
-result = cached_analyze(cache, corpus, "word", PMI)
 ```
 
 ### Batch Processing
