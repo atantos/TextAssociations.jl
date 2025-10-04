@@ -154,25 +154,25 @@ write_results(analysis, "results/", format=:csv)
 <details>
 <summary>Click to see all 47 metrics with formulas</summary>
 
-| Metric            | Type          | Formula                                                  |
-| ----------------- | ------------- | -------------------------------------------------------- |
-| PMI               | `PMI`         | $\log \frac{P(x,y)}{P(x)P(y)}$                           |
-| PMI²              | `PMI²`        | $(\log \frac{P(x,y)}{P(x)P(y)})^2$                       |
-| PMI³              | `PMI³`        | $(\log \frac{P(x,y)}{P(x)P(y)})^3$                       |
-| PPMI              | `PPMI`        | $\max(0, \log \frac{P(x,y)}{P(x)P(y)})$                  |
-| LLR               | `LLR`         | $2 \sum_{i,j} O_{ij} \ln \frac{O_{ij}}{E_{ij}}$          |
-| LLR²              | `LLR²`        | $\sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$          |
-| Dice              | `Dice`        | $\frac{2a}{2a + b + c}$                                  |
-| LogDice           | `LogDice`     | $14 + \log_2(\frac{2a}{2a + b + c})$                     |
-| Jaccard           | `JaccardIdx`  | $\frac{a}{a + b + c}$                                    |
-| Cosine            | `CosineSim`   | $\frac{a}{\sqrt{(a + b)(a + c)}}$                        |
-| Overlap           | `OverlapCoef` | $\frac{a}{\min(a + b, a + c)}$                           |
-| Relative Risk     | `RelRisk`     | $\frac{a/(a+b)}{c/(c+d)}$                                |
-| Odds Ratio        | `OddsRatio`   | $\frac{ad}{bc}$                                          |
-| Chi-square        | `ChiSquare`   | $\sum_{i,j}\frac{(f_{ij}-\hat{f}_{ij})^2}{\hat{f}_{ij}}$ |
-| Phi               | `PhiCoef`     | $\frac{ad - bc}{\sqrt{(a+b)(c+d)(a+c)(b+d)}}$            |
-| Cramér's V        | `CramersV`    | $\sqrt{\frac{\chi^2}{n \cdot \min(r-1, c-1)}}$           |
-| _...and 35+ more_ |               |                                                          |
+| Metric            | Type          | Formula                                              |
+| ----------------- | ------------- | ---------------------------------------------------- |
+| PMI               | `PMI`         | $\log \frac{P(x,y)}{P(x)P(y)}$                       |
+| PMI²              | `PMI²`        | $(\log \frac{P(x,y)}{P(x)P(y)})^2$                   |
+| PMI³              | `PMI³`        | $(\log \frac{P(x,y)}{P(x)P(y)})^3$                   |
+| PPMI              | `PPMI`        | $\max(0, \log \frac{P(x,y)}{P(x)P(y)})$              |
+| LLR               | `LLR`         | $2 \sum_{i,j} O_{ij} \ln \frac{O_{ij}}{E_{ij}}$      |
+| LLR²              | `LLR²`        | $\sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$      |
+| Dice              | `Dice`        | $\frac{2a}{2a + b + c}$                              |
+| LogDice           | `LogDice`     | $14 + \log_2(\frac{2a}{2a + b + c})$                 |
+| Jaccard           | `JaccardIdx`  | $\frac{a}{a + b + c}$                                |
+| Cosine            | `CosineSim`   | $\frac{a}{\sqrt{(a + b)(a + c)}}$                    |
+| Overlap           | `OverlapCoef` | $\frac{a}{\min(a + b, a + c)}$                       |
+| Relative Risk     | `RelRisk`     | $\frac{a/(a+b)}{c/(c+d)}$                            |
+| Odds Ratio        | `OddsRatio`   | $\frac{ad}{bc}$                                      |
+| Chi-square        | `ChiSquare`   | $\sum_{i,j}\frac{(f_{ij}-\hat{f_ij})^2}{\hat{f_ij}}$ |
+| Phi               | `PhiCoef`     | $\frac{ad - bc}{\sqrt{(a+b)(c+d)(a+c)(b+d)}}$        |
+| Cramér's V        | `CramersV`    | $\sqrt{\frac{\chi^2}{n \cdot \min(r-1, c-1)}}$       |
+| _...and 35+ more_ |               |                                                      |
 
 </details>
 
