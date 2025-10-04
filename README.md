@@ -28,9 +28,11 @@ With added advantages of:
 - Integration with `Julia`'s ecosystem
 - Support for custom metrics
 - Ability to process streaming data
-- Modern parallel computing capabilities
+- Parallel computing capabilities
 
-This makes `TextAssociations.jl` a powerful tool for computational linguistics, digital humanities, and any field requiring sophisticated text analysis!
+This makes `TextAssociations.jl` a powerful tool for computational linguistics, digital humanities and any field requiring sophisticated text analysis!
+
+Check out our [documentation](https://atantos.github.io/TextAssociations.jl/) for a detailed overview of all available features and functionalities.
 
 ### Why Word Association Metrics Still Matter
 
