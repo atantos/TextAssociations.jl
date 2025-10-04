@@ -367,17 +367,18 @@ MIT License - see [LICENSE](LICENSE) file for details.
 <details>
 <summary><b>How does this compare to other tools?</b></summary>
 
-| Feature             | TextAssociations.jl | AntConc | SketchEngine | WordSmith |
-| ------------------- | ------------------- | ------- | ------------ | --------- |
-| Open Source         | ✅                  | ✅      | ❌           | ❌        |
-| Metrics             | 47                  | ~10\*^2 | ~20\*^2      | ~15\*^2   |
-| Corpus Size         | Unlimited\*^1       | Limited | Large        | Medium    |
-| Parallel Processing | ✅                  | ❌      | ✅           | ❌        |
-| API Access          | ✅                  | ❌      | ✅           | ❌        |
-| Programmable        | ✅                  | ❌      | Limited      | ❌        |
+| Feature             | TextAssociations.jl     | AntConc           | SketchEngine      | WordSmith         |
+| ------------------- | ----------------------- | ----------------- | ----------------- | ----------------- |
+| Open Source         | ✅                      | ✅                | ❌                | ❌                |
+| Metrics             | 47                      | ~10\*<sup>2</sup> | ~20\*<sup>2</sup> | ~15\*<sup>2</sup> |
+| Corpus Size         | Unlimited\*<sup>1</sup> | Limited           | Large             | Medium            |
+| Parallel Processing | ✅                      | ❌                | ✅                | ❌                |
+| API Access          | ✅                      | ❌                | ✅                | ❌                |
+| Programmable        | ✅                      | ❌                | Limited           | ❌                |
 
-\*^1 With streaming and memory-mapped files
-\*^2 This is a rough estimate including both association measures and keyness tests. A more precise count from users of these tools is welcome.
+\*<sup>1</sup> With streaming and memory-mapped files
+
+\*<sup>2</sup> This is a rough estimate including both association measures and keyness tests. A more precise count from users of these tools is welcome.
 
 </details>
 
