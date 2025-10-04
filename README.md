@@ -4,7 +4,7 @@
 
 # TextAssociations.jl
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://atantos.github.io/`TextAssociations.jl`/)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://atantos.github.io/TextAssociations.jl/)
 [![Build Status](https://github.com/atantos/TextAssociations.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/atantos/TextAssociations.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 ## 🎯 Introduction
