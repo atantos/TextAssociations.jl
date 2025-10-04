@@ -12,7 +12,7 @@
 `TextAssociations.jl` is a comprehensive `Julia` package for word association analysis and corpus linguistics. It currently includes 47 association measures, enabling researchers to quantify lexical relationships within texts and corpora in a transparent, data-driven way.
 
 ⚠️ Early Release Notice
-This is an early, pre-registration release of _TextAssociations.jl_.
+This is an early, pre-registration release of `TextAssociations.jl`.
 The package is fully functional but still evolving — documentation, tutorials, and examples are actively being expanded.
 
 Even at this stage, it already offers functionality comparable to established corpus analysis tools:
@@ -20,7 +20,7 @@ Even at this stage, it already offers functionality comparable to established co
 - **AntConc** (but more programmable)
 - **SketchEngine** (but open source)
 - **WordSmith Tools** (but with more metrics)
-- **Corpus Workbench** (but easier to use)
+<!-- - **Corpus Workbench** (but easier to use) -->
 
 With added advantages of:
 
@@ -317,7 +317,7 @@ gephi_graph(network, "characters.csv", "relations.csv")
 
 ## 🤝 Contributing
 
-We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for details on:
+We welcome contributions! See our [Contributing Guide](https://github.com/atantos/TextAssociations.jl/discussions) for details on:
 
 - Adding new metrics
 - Improving performance
@@ -359,9 +359,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [ ] GPU acceleration for large-scale processing
 - [ ] Additional keyword extraction methods (TextRank, RAKE)
 - [ ] Integration with word embeddings
-- [ ] Web-based visualization interface
+- [ ] Indexing & Search Engine (à la _Corpus Workbench_)
 - [ ] Support for more file formats (XML, CONLL)
-- [ ] Multi-language support
 
 ## ❓ FAQ
 
@@ -371,13 +370,14 @@ MIT License - see [LICENSE](LICENSE) file for details.
 | Feature             | TextAssociations.jl | AntConc | SketchEngine | WordSmith |
 | ------------------- | ------------------- | ------- | ------------ | --------- |
 | Open Source         | ✅                  | ✅      | ❌           | ❌        |
-| Metrics             | 47                  | ~10     | ~20          | ~15       |
-| Corpus Size         | Unlimited\*         | Limited | Large        | Medium    |
+| Metrics             | 47                  | ~10\*^2 | ~20\*^2      | ~15\*^2   |
+| Corpus Size         | Unlimited\*^1       | Limited | Large        | Medium    |
 | Parallel Processing | ✅                  | ❌      | ✅           | ❌        |
 | API Access          | ✅                  | ❌      | ✅           | ❌        |
 | Programmable        | ✅                  | ❌      | Limited      | ❌        |
 
-\*With streaming and memory-mapped files
+\*^1 With streaming and memory-mapped files
+\*^2 This is a rough estimate including both association measures and keyness tests. A more precise count from users of these tools is welcome.
 
 </details>
 
@@ -389,7 +389,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - JSON files
 - Julia DataFrames
 - Directory of text files
-- Compressed archives (.gz)
+<!-- - Compressed archives (.gz) -->
 
 </details>
 
