@@ -73,7 +73,7 @@ export
 
     # Utility functions
     normalize_node, prep_string,
-    build_vocab,
+    strip_diacritics, build_vocab,
     cont_table,
 
     # All metric types
