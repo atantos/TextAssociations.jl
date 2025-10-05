@@ -77,7 +77,7 @@ You can install `TextAssociations.jl` directly from its `GitHub` repository usin
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/atantos/TextAssociations.jl")
+Pkg.add(url="https://github.com/atantos/TextAssociations.jl")
 ```
 
 ## 🚀 Quick Start
