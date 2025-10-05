@@ -4,8 +4,6 @@
 CurrentModule = TextAssociations
 ```
 
-````
-
 This page provides practical examples for common use cases in word association analysis.
 
 ## Example 1: Academic Paper Analysis
@@ -361,4 +359,3 @@ benchmark_metrics()
 - For corpus-level analysis, see [Working with Corpora](../guide/corpus_analysis.md)
 - To understand metric selection, see [Choosing Metrics](../guide/choosing_metrics.md)
 - For advanced features, see [Temporal Analysis](../advanced/temporal.md)
-````
