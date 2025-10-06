@@ -132,7 +132,7 @@ end
 Find fixed phrases and idioms:
 
 ```@example multiword
-using TextAssociations
+using TextAssociations, DataFrames
 
 text = """
 The project was completed on time and under budget.
@@ -274,7 +274,7 @@ function build_collocation_dict(text::String, min_pmi::Float64=3.0)
         results = assoc_score([PMI, LogDice, LLR], ct)
 
         # Strong collocations only
-        strong = filter(row -> row.PMI >= min_pmi, results)
+        strong = filter(row -> row.LLR >= min_pmi, results)
 
         if nrow(strong) > 0
             dict = vcat(dict, strong, cols=:union)

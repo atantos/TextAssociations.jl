@@ -145,9 +145,8 @@ end
 
 ### Multiple Nodes Analysis
 
-```@example multi_node
+```@example loading
 using TextAssociations
-using TextAnalysis
 
 # First create a corpus
 texts = [
@@ -157,7 +156,7 @@ texts = [
     "Neural networks power deep learning systems."
 ]
 docs = [StringDocument(t) for t in texts]
-corpus = TextAssociations.Corpus(docs)
+corpus = Corpus(docs)
 
 # Analyze multiple nodes
 nodes = ["machine", "learning", "neural"]

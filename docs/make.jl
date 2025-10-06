@@ -1,9 +1,21 @@
-using Documenter
-using TextAssociations
-using TextAnalysis
-using DataFrames
-using CSV
-using Dates
+
+DocMeta.setdocmeta!(TextAssociations, :DocTestSetup, :(
+        begin
+            using TextAssociations, DataFrames, CSV, Dates
+            using Random
+            Random.seed!(1)  # optional for deterministic examples
+        end
+    ); recursive=true)
+
+using Documenter, TextAssociations, DataFrames, CSV, Dates
+
+# using Documenter
+# using TextAssociations
+# using TextAnalysis
+# using DataFrames
+# using CSV
+# using Dates
+
 
 makedocs(
     sitename="TextAssociations.jl",

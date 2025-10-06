@@ -1,8 +1,7 @@
 <p align="center">
-  <img src="https://github.com/atantos/TextAssociations.jl/raw/main/assets/TextAssociations_logo.png" alt="`TextAssociations.jl`" width="1100" height="400"/>
+  <img src="assets/text-associations-no-backgound-light.png#gh-light-mode-only" alt="TextAssociations.jl" height="350" width="950">
+  <img src="assets/text-associations-no-backgound-tint.png#gh-dark-mode-only" alt="TextAssociations.jl" height="350" width="950">
 </p>
-
-# TextAssociations.jl
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://atantos.github.io/TextAssociations.jl/)
 [![Build Status](https://github.com/atantos/TextAssociations.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/atantos/TextAssociations.jl/actions/workflows/CI.yml?query=branch%3Amain)
