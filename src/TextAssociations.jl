@@ -45,6 +45,7 @@ export
     LazyInput,
     TextNorm,
     # Corpus-related types
+    StringDocument, # from TextAnalysis
     Corpus,
     CorpusContingencyTable,
     MultiNodeAnalysis,
@@ -60,6 +61,7 @@ export
     cached_data,
     document,
     # corpus-related API functions
+    text, tokens, # from TextAnalysis
     read_corpus, read_corpus_df,
     analyze_corpus, analyze_nodes,
     corpus_stats, vocab_coverage,
