@@ -17,11 +17,13 @@ using DataFrames
 # Create example files
 temp_dir = mktempdir()
 
+# Machine learning transforms data into insights.
+
 # Create sample text files
 texts = [
-    "Machine learning transforms data into insights.",
-    "Deep learning uses neural networks extensively.",
-    "Data science combines statistics and programming."
+    "Machine learning transforms data into insights. It parses corpora at scale, aligns term frequencies with semantic relationships, and highlights the associations that warrant closer study. Each iteration refines the embeddings, letting nuanced usage patterns surface from raw text streams. Within minutes, what began as unstructured prose becomes an interpretable map of concepts, trends, and contextual signals your analysts can act on. Continual learning cycles tie human feedback to automated scoring, ensuring each model update remains accountable across the network. In parallel, learning analytics expose which network nodes contribute novel context, letting curators rebalance data pipelines. As the knowledge graph expands, network observers watch federated network edges synchronize in real time, while downstream services tap network dashboards that keep learning teams aligned.",
+    "Deep learning uses neural networks extensively. Layers of nonlinear transformations enable the models to capture complex patterns, extracting latent representations that conventional features miss. When trained on rich corpora, the networks adapt to domain-specific nuances, delivering higher accuracy in tasks like entity recognition and sentiment analysis. With appropriate regularization and interpretability tools, practitioners can translate these dense embeddings into actionable insights while maintaining trust in the system’s predictions. Adaptive learning pipelines coordinate semantic parsers with a distributed network of annotators. Each network ingests curated corpora, while a secondary network synchronizes contextual metadata across regional clusters. During offline learning, analysts probe the recommendation network for bias signals, then trigger online learning updates that reweight features without stalling the monitoring network.",
+    "Data science combines statistics and programming. Analysts unify probabilistic models with code-driven automation to surface trends that raw tables conceal. This fusion accelerates experimentation, supports reproducible pipelines, and turns exploratory questions into measurable, actionable metrics across evolving datasets. Integrated learning cohorts audit each network channel to confirm data provenance. A governance network curates feature stores while a delivery network pushes dashboards to product teams. Scenario-based learning guides analysts as a simulation network harmonizes with a resilience network that shields critical pipelines. Hands-on learning labs document their findings for future audits."
 ]
 
 for (i, text) in enumerate(texts)
@@ -134,7 +136,7 @@ results = analyze_corpus(
     "learning",
     PMI;
     windowsize=5,
-    minfreq=2
+    minfreq=1
 )
 
 println("Top collocates of 'learning' across corpus:")
@@ -147,16 +149,6 @@ end
 
 ```@example loading
 using TextAssociations
-
-# First create a corpus
-texts = [
-    "Machine learning algorithms learn from data patterns.",
-    "Deep learning is a subset of machine learning.",
-    "Data science combines statistics and machine learning.",
-    "Neural networks power deep learning systems."
-]
-docs = [StringDocument(t) for t in texts]
-corpus = Corpus(docs)
 
 # Analyze multiple nodes
 nodes = ["machine", "learning", "neural"]
@@ -237,10 +229,10 @@ using TextAssociations, DataFrames
 # Create corpus with categories
 df = DataFrame(
     text = [
-        "Scientific research requires rigorous methodology.",
+        "Scientific research requires rigorous methodology before the analysis is conducted.",
         "Business analysis focuses on market trends.",
-        "Scientific experiments test hypotheses systematically.",
-        "Business strategy drives organizational success."
+        "Scientific experiments test hypotheses systematically and analyze the resulting data.",
+        "Business strategy and analysis drives organizational success."
     ],
     field = ["Science", "Business", "Science", "Business"]
 )
@@ -301,8 +293,8 @@ network = colloc_graph(
     corpus,
     ["learning", "network"];  # Seed words
     metric=PMI,
-    depth=2,
-    min_score=2.0,
+    depth=1,
+    min_score=-10.0,
     max_neighbors=5,
     windowsize=5,
     minfreq=1
@@ -478,7 +470,7 @@ filtered_vocab = filter_vocabulary(corpus, 1, 0.8)
 using TextAssociations, CSV, Dates
 
 # Analyze and save results
-results = analyze_corpus(corpus, "learning", PMI, windowsize=3)
+results = analyze_corpus(corpus, "learning", PMI, windowsize=3, minfreq=2)
 
 # Save to CSV
 temp_file = tempname() * ".csv"

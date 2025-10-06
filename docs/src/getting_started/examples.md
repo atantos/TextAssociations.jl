@@ -258,7 +258,7 @@ Create a reference resource of strong collocations:
 ```@example dictionary
 using TextAssociations, DataFrames
 
-function build_collocation_dict(text::String, min_pmi::Float64=3.0)
+function build_collocation_dict(text::String, min_llr::Float64=3.0)
     # Key words to analyze
     keywords = ["data", "analysis", "model", "system", "process"]
 
@@ -274,7 +274,7 @@ function build_collocation_dict(text::String, min_pmi::Float64=3.0)
         results = assoc_score([PMI, LogDice, LLR], ct)
 
         # Strong collocations only
-        strong = filter(row -> row.LLR >= min_pmi, results)
+        strong = filter(row -> row.LLR >= min_llr, results)
 
         if nrow(strong) > 0
             dict = vcat(dict, strong, cols=:union)
@@ -297,13 +297,14 @@ Model validation ensures model accuracy and model robustness.
 
 dictionary = build_collocation_dict(sample_text, 2.0)
 println("\nCollocation Dictionary:")
-current_node = ""
-for row in eachrow(dictionary)
-    if row.Node != current_node
-        current_node = row.Node
-        println("\n$current_node:")
+let current_node = ""
+    for row in eachrow(dictionary)
+        if row.Node != current_node
+            current_node = row.Node
+            println("\n$current_node:")
+        end
+        println("  → $(row.Collocate) (PMI: $(round(row.PMI, digits=2)))")
     end
-    println("  → $(row.Collocate) (PMI: $(round(row.PMI, digits=2)))")
 end
 ```
 

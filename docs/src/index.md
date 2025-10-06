@@ -180,7 +180,7 @@ corpus = read_corpus(dir)
 # Analyze across entire corpus
 results = analyze_corpus(corpus, "innovation", PMI,
     windowsize=5,
-    minfreq=10
+    minfreq=1
 )
 
 # Get corpus statistics
