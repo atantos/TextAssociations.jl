@@ -165,7 +165,7 @@ function cont_table(input_doc::StringDocument, target_word::AbstractString;
     # Build DataFrame
     con_table = hcat(a, b, c, d)
     con_df = DataFrame(con_table.array, Symbol.(["a", "b", "c", "d"]))
-    insertcols!(con_df, 1, :Collocate => Symbol.(names(a)[1]))
+    insertcols!(con_df, 1, :Collocate => String.(names(a)[1]))
 
     # Add derived columns
     @chain con_df begin

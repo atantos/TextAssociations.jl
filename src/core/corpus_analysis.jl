@@ -283,14 +283,14 @@ function aggregate_contingency_tables(tables::Vector{ContingencyTable}, minfreq:
     end
 
     # Collect all collocates across documents
-    all_collocates = Set{Symbol}()
+    all_collocates = Set{String}()
     for table in tables
         ct = cached_data(table.con_tbl)
         !isempty(ct) && union!(all_collocates, ct.Collocate)
     end
 
     # Initialize aggregated data
-    agg_data = Dict{Symbol,Vector{Int}}()
+    agg_data = Dict{String,Vector{Int}}()
     for collocate in all_collocates
         agg_data[collocate] = zeros(Int, 4)  # [a, b, c, d]
     end
@@ -369,10 +369,13 @@ function analyze_corpus(corpus::Corpus,
     # Evaluate metric
     scores_df = assoc_score(metric, cct)
 
+    # eltype ensures Collocate is String
+    @assert eltype(scores_df.Collocate) === String "Collocate column must be String"
+
     if nrow(scores_df) == 0
         return DataFrame(
             Node=String[],
-            Collocate=Symbol[],
+            Collocate=String[],
             Score=Float64[],
             Frequency=Int[],
             DocFrequency=Int[]
@@ -1044,7 +1047,7 @@ function stream_corpus_analysis(file_pattern::AbstractString,
         #     aggregated_data[collocate][4] += row.d
         # end
         for row in eachrow(chunk_table)
-            coll = String(row.Collocate)
+            coll = row.Collocate
             v = get!(aggregated_data, coll, zeros(Int, 4))
             @inbounds begin
                 v[1] += row.a

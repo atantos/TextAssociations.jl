@@ -180,7 +180,7 @@ function compute_association_trends(results_by_period::Dict{String,MultiNodeAnal
 
     for node in nodes
         # Collect top collocates across all periods
-        all_collocates = Set{Symbol}()
+        all_collocates = Set{String}()
         for (period, analysis) in results_by_period
             if haskey(analysis.results, node) && !isempty(analysis.results[node])
                 union!(all_collocates, analysis.results[node].Collocate)
@@ -332,14 +332,14 @@ function perform_statistical_tests(results::Dict{String,DataFrame},
     end
 
     # Get common collocates
-    common_collocates = Set{Symbol}()
-    for (group, df) in results
-        if !isempty(df)
-            if isempty(common_collocates)
-                common_collocates = Set(df.Collocate)
-            else
-                intersect!(common_collocates, Set(df.Collocate))
-            end
+    common_collocates = Set{String}()
+    for (_, df) in results
+        isempty(df) && continue
+        if isempty(common_collocates)
+            # first non-empty group
+            common_collocates = Set(df.Collocate)
+        else
+            intersect!(common_collocates, Set(df.Collocate))
         end
     end
 
