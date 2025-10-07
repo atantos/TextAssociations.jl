@@ -39,7 +39,7 @@ makedocs(
         "Metrics" => [
             "Overview" => "metrics/overview.md",
             "Information Theoretic" => "metrics/information_theoretic.md",
-            "Statistical" => "metrics/statistical.md"
+            "Statistical" => "metrics/statistical.md",
             "Similarity" => "metrics/similarity.md",
             "Epidemiological" => "metrics/epidemiological.md",
         ],
@@ -52,7 +52,7 @@ makedocs(
         "API Reference" => [
             "Overview" => "api/index.md",
             "Core Types" => "api/types.md",
-            "Main Functions" => "api/functions.md"
+            "Main Functions" => "api/functions.md",
             # "Corpus Functions" => "api/corpus.md",
             "Metric Functions" => "api/metrics.md",
         ],
