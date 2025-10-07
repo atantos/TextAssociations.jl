@@ -2,11 +2,6 @@
 CurrentModule = TextAssociations
 ```
 
-<p align="center">
-  <img src="assets/logo.svg#gh-light-mode-only" alt="TextAssociations.jl" height="350" width="950">
-  <img src="assets/logo-background.svg#gh-dark-mode-only" alt="TextAssociations.jl" height="350" width="950">
-</p>
-
 # TextAssociations
 
 Documentation for [TextAssociations](https://github.com/atantos/TextAssociations.jl).
