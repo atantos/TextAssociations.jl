@@ -8,7 +8,7 @@
 
 ## 🎯 Introduction
 
-`TextAssociations.jl` is a comprehensive `Julia` package for word association analysis and corpus linguistics. It currently includes 47 association measures, enabling researchers to quantify lexical relationships within texts and corpora in a transparent, data-driven way.
+`TextAssociations.jl` is a `Julia` package for word association analysis and corpus-based research in linguistics, social sciences, and the digital humanities. It provides a unified framework to quantify lexical relationships within texts and corpora using 47 association measures—spanning statistical, information-theoretic, epidemiological and lexical-gravity approaches—for transparent, data-driven analysis of how words co-occur and connect across discourse.
 
 ⚠️ Early Release Notice
 This is an early, pre-registration release of `TextAssociations.jl`.
