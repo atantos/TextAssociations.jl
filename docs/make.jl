@@ -40,13 +40,13 @@ makedocs(
             "Overview" => "metrics/overview.md",
             "Information Theoretic" => "metrics/information_theoretic.md",
             "Statistical" => "metrics/statistical.md"
-            # "Similarity" => "metrics/similarity.md",
-            # "Epidemiological" => "metrics/epidemiological.md",
+            "Similarity" => "metrics/similarity.md",
+            "Epidemiological" => "metrics/epidemiological.md",
         ],
         "Advanced Features" => [
             "Temporal Analysis" => "advanced/temporal.md"
-            # "Network Analysis" => "advanced/networks.md",
-            # "Keyword Extraction" => "advanced/keywords.md",
+            "Network Analysis" => "advanced/networks.md",
+            "Keyword Extraction" => "advanced/keywords.md",
             # "Concordance" => "advanced/concordance.md",
         ],
         "API Reference" => [
@@ -54,7 +54,7 @@ makedocs(
             "Core Types" => "api/types.md",
             "Main Functions" => "api/functions.md"
             # "Corpus Functions" => "api/corpus.md",
-            # "Metric Functions" => "api/metrics.md",
+            "Metric Functions" => "api/metrics.md",
         ],
         #     "Theory" => "theory.md",
         #     # "How-To Guides" => "howto.md",
