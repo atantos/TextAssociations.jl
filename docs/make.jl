@@ -44,7 +44,7 @@ makedocs(
             "Epidemiological" => "metrics/epidemiological.md",
         ],
         "Advanced Features" => [
-            "Temporal Analysis" => "advanced/temporal.md"
+            "Temporal Analysis" => "advanced/temporal.md",
             "Network Analysis" => "advanced/networks.md",
             "Keyword Extraction" => "advanced/keywords.md",
             # "Concordance" => "advanced/concordance.md",
