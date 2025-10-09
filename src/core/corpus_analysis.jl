@@ -109,9 +109,57 @@ end
 # =====================================
 
 """
-    read_corpus(path::AbstractString; kwargs...) -> Corpus
+    read_corpus(path::AbstractString;
+                text_column::Symbol = :text,
+                metadata_columns::Vector{Symbol} = Symbol[],
+                preprocess::Bool = true,
+                norm_config::TextNorm = TextNorm(),
+                min_doc_length::Int = 10,
+                max_doc_length::Union{Nothing,Int} = nothing) -> Corpus
 
-Load a corpus from various sources with consistent normalization.
+Load a text corpus from a **directory of `.txt` files**, a **CSV**, or a **JSON** file,
+optionally applying a consistent normalization pipeline (`norm_config`) before wrapping
+each text as a `StringDocument`. Returns a `Corpus` that stores the same `norm_config`.
+
+# Inputs
+- `path`: Path to a directory, `.csv`, or `.json` file.
+- `text_column`: Name of the text column (used for CSV/JSON).
+- `metadata_columns`: Columns to attach as per-document metadata (CSV/JSON). Stored under
+  keys `doc_1`, `doc_2`, …
+- `preprocess`: If `true`, normalizes text via `prep_string(text, norm_config)` before
+  creating `StringDocument`; otherwise uses raw text.
+- `norm_config`: A `TextNorm` that defines normalization (case/diacritics/unicode, etc.).
+- `min_doc_length`: Minimum token count to include a document.
+- `max_doc_length`: Optional maximum token count to include a document.
+
+# Behavior
+- **Directory**: Reads every `*.txt` file; file path is stored in corpus metadata.
+- **CSV**: Extracts `text_column`; attaches `metadata_columns` per row.
+- **JSON**: Expects an array of objects; extracts `string(get(entry, string(text_column), ""))`.
+- Documents failing length thresholds are skipped.
+- Returns `Corpus(documents; metadata=..., norm_config=norm_config)`.
+  (By default, no DTM is built here; you can build one later if needed.)
+
+# Returns
+A `Corpus` with:
+- `documents` = preprocessed `Vector{StringDocument{String}}`
+- `metadata`   = `Dict{String,Any}` of per-document info
+- `vocabulary` = built from final tokenized documents
+- `doc_term_matrix = nothing` (use other APIs to build if desired)
+- `norm_config = norm_config` (stored for downstream consistency)
+
+# Examples
+```julia
+c = read_corpus("data/articles")  # directory with .txt files
+
+c = read_corpus("data/news.csv";
+    text_column=:body,
+    metadata_columns=[:id, :date, :section],
+    norm_config=TextNorm(strip_case=true, strip_accents=true),
+    min_doc_length=20)
+
+c = read_corpus("data/posts.json"; text_column=:content, preprocess=false)
+```
 """
 function read_corpus(path::AbstractString;
     text_column::Symbol=:text,
@@ -214,10 +262,128 @@ end
 
 
 """
-    read_corpus_df(df::DataFrame; kwargs...) -> Corpus
+    read_corpus(c::Corpus;
+                preprocess::Bool = true,
+                norm_config::Union{Nothing,TextNorm} = nothing,
+                min_doc_length::Int = 0,
+                max_doc_length::Union{Nothing,Int} = nothing,
+                build_dtm::Bool = false) -> Corpus
 
-Load corpus directly from a DataFrame with consistent normalization.
-Metadata columns are stored at the corpus level with document indices.
+(Re)process an existing `Corpus` by **applying normalization to its documents** and
+return a **new** `Corpus`. By default, uses the corpus's own `c.norm_config`. You can
+optionally override it with a new `TextNorm`.
+
+This is useful when:
+- You loaded/constructed a corpus without normalization and want to standardize it.
+- You want to change normalization (e.g., add accent/case folding) and rebuild vocab/DTM.
+- You want to filter very short/long documents after normalization.
+
+# Inputs
+- `c`: The source `Corpus`.
+- `preprocess`: If `true`, runs `prep_string(text, cfg)` on each document, where
+  `cfg = isnothing(norm_config) ? c.norm_config : norm_config`.
+- `norm_config`: Override normalization for this pass; defaults to `c.norm_config`.
+- `min_doc_length`: Minimum token count to keep a document after reprocessing.
+- `max_doc_length`: Optional maximum token count to keep.
+- `build_dtm`: If `true`, builds the document–term matrix in the returned corpus.
+
+# Behavior
+- Produces a new `Vector{StringDocument}` from `c.documents`, applying normalization
+  only if `preprocess=true`.
+- Preserves (copies) `c.metadata`.
+- Rebuilds `vocabulary` (and `doc_term_matrix` if `build_dtm=true`) from the
+  **reprocessed** documents.
+- Stores the effective `cfg` as the returned corpus's `norm_config`.
+
+> Idempotency note: Re-running with the same `cfg` typically yields the same result,
+> so multiple passes are safe.
+
+# Returns
+A new `Corpus` reflecting the (re)applied normalization and filters.
+
+# Examples
+```julia
+# Re-apply the corpus’s own normalization (no change if already applied)
+c2 = read_corpus(c1)
+
+# Override with stricter normalization and build the DTM
+cfg = TextNorm(strip_accents=true, strip_case=true, unicode_form=:NFC)
+c3 = read_corpus(c1; norm_config=cfg, build_dtm=true)
+
+# Keep only docs with at least 20 tokens after normalization
+c4 = read_corpus(c1; min_doc_length=20)
+```
+"""
+# Add alongside the other read_corpus methods
+function read_corpus(c::Corpus;
+    preprocess::Bool=true,
+    norm_config::Union{Nothing,TextNorm}=nothing,  # defaults to c.norm_config
+    min_doc_length::Int=0,
+    max_doc_length::Union{Nothing,Int}=nothing,
+    build_dtm::Bool=false)
+
+    cfg = isnothing(norm_config) ? c.norm_config : norm_config
+
+    # Reprocess each document using the same pipeline used by file/df loaders
+    documents = StringDocument{String}[]
+    for doc in c.documents
+        raw = text(doc)
+        typed_doc = preprocess ? StringDocument(text(prep_string(raw, cfg))) : StringDocument(raw)
+
+        # Optional length filters (token-based, consistent with other loaders)
+        toks = tokens(typed_doc)
+        if length(toks) >= min_doc_length &&
+           (max_doc_length === nothing || length(toks) <= max_doc_length)
+            push!(documents, typed_doc)
+        end
+    end
+
+    # Preserve metadata; keep/override the config; optionally rebuild DTM
+    return Corpus(
+        documents;
+        metadata=copy(c.metadata),
+        norm_config=cfg,
+        build_dtm=build_dtm
+    )
+end
+
+"""
+    read_corpus_df(df::DataFrame;
+                   text_column::Symbol = :text,
+                   metadata_columns::Vector{Symbol} = Symbol[],
+                   preprocess::Bool = true,
+                   norm_config::TextNorm = TextNorm()) -> Corpus
+
+Load a corpus **directly from a `DataFrame`** using a consistent normalization pipeline
+(`norm_config`). Each row becomes a `StringDocument`. Optional `metadata_columns` are
+stored per document under keys `doc_1`, `doc_2`, …
+
+# Inputs
+- `df`: Source `DataFrame`.
+- `text_column`: Column containing the raw text.
+- `metadata_columns`: Additional columns to store alongside each document.
+- `preprocess`: If `true`, applies `prep_string(text, norm_config)` before wrapping.
+- `norm_config`: A `TextNorm` that defines normalization behavior.
+
+# Behavior
+- Accesses columns by either `Symbol` or `String` name (graceful fallback).
+- Builds a `Corpus` (no DTM by default) and **stores** `norm_config` on the corpus.
+- Vocabulary is built from the final tokenized documents.
+
+# Returns
+A `Corpus` as above (documents, metadata, vocabulary, `doc_term_matrix=nothing`,
+and `norm_config` set to the provided config).
+
+# Example
+```julia
+using DataFrames
+df = DataFrame(id=1:3, text=["One two", "Two three", "Three four"])
+
+c = read_corpus_df(df;
+    text_column=:text,
+    metadata_columns=[:id],
+    norm_config=TextNorm(strip_case=true))
+```
 """
 function read_corpus_df(df::DataFrame;
     text_column::Symbol=:text,
