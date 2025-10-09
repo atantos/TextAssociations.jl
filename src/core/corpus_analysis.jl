@@ -373,13 +373,25 @@ function analyze_corpus(corpus::Corpus,
     @assert eltype(scores_df.Collocate) === String "Collocate column must be String"
 
     if nrow(scores_df) == 0
-        return DataFrame(
+        result = DataFrame(
             Node=String[],
             Collocate=String[],
             Score=Float64[],
             Frequency=Int[],
             DocFrequency=Int[]
         )
+        metadata!(result, "status", "empty", style=:note)
+        present = assoc_node_present(cct)
+        msg = present === false ?
+              "Node '$(cct.node)' not found in the corpus." :
+              "Node found, but no collocates met the thresholds for node='$(cct.node)' (windowsize=$(windowsize), minfreq=$(minfreq))."
+        metadata!(result, "message", msg, style=:note)
+        metadata!(result, "metric", string(metric), style=:note)
+        metadata!(result, "node", cct.node, style=:note)
+        metadata!(result, "windowsize", windowsize, style=:note)
+        metadata!(result, "minfreq", minfreq, style=:note)
+        metadata!(result, "analysis_type", "corpus_analysis", style=:note)
+        return result
     end
 
     # Calculate document frequency
@@ -400,6 +412,10 @@ function analyze_corpus(corpus::Corpus,
     sort!(result, :Score, rev=true)
 
     # Add metadata
+    metadata!(result, "status", "ok", style=:note)
+    if haskey(metadata(scores_df), "message")
+        metadata!(result, "message", metadata(scores_df)["message"], style=:note)
+    end
     metadata!(result, "metric", string(metric), style=:note)
     metadata!(result, "node", cct.node, style=:note)  # Use normalized node
     metadata!(result, "windowsize", windowsize, style=:note)

@@ -20,13 +20,58 @@ NeedsTokens(::Type{T}) where {T<:AssociationMetric} = Val(false)
     return getfield(@__MODULE__, fname)
 end
 
+# Adding a guardrail layer that makes assoc_score, analyze_corpus and token-requiring metrics behave deterministically and non-crashing
+
+const _STATUS_OK = "ok"
+const _STATUS_EMPTY = "empty"
+const _STATUS_ERROR = "error"
+
+# Build the typed empty shell for a single metric
+function _empty_result(x::AssociationDataFormat, ::Type{T};
+    reason::AbstractString, error::Bool=false) where {T<:AssociationMetric}
+
+    df = DataFrame(
+        Node=String[],
+        Collocate=String[],
+        Frequency=Int[]
+    )
+    df[!, Symbol(nameof(T))] = Float64[]
+
+    metadata!(df, "status", error ? _STATUS_ERROR : _STATUS_EMPTY, style=:note)
+    metadata!(df, "message", reason, style=:note)
+    metadata!(df, "node", assoc_node(x), style=:note)
+    metadata!(df, "windowsize", assoc_ws(x), style=:note)
+    return df
+end
+
+# Build the *typed* empty shell for multi-metric calls
+function _empty_multi_result(x::AssociationDataFormat,
+    metrics::AbstractVector{<:Type{<:AssociationMetric}};
+    reason::AbstractString, error::Bool=false)
+
+    df = DataFrame(
+        Node=String[],
+        Collocate=String[],
+        Frequency=Int[]
+    )
+    for T in metrics
+        df[!, Symbol(nameof(T))] = Float64[]
+    end
+    metadata!(df, "status", error ? _STATUS_ERROR : _STATUS_EMPTY, style=:note)
+    metadata!(df, "message", reason, style=:note)
+    metadata!(df, "node", assoc_node(x), style=:note)
+    metadata!(df, "windowsize", assoc_ws(x), style=:note)
+    metadata!(df, "metrics", join(string.(metrics), ", "), style=:note)
+    return df
+end
+
 """
-    assoc_score(metricType::Type{<:AssociationMetric}, x::AssociationDataFormat;
+    assoc_score(metricType::Type{T<:AssociationMetric}, x::AssociationDataFormat;
               scores_only::Bool=false,
               tokens::Union{Nothing,Vector{String}}=nothing,
-              kwargs...)
+              kwargs...) where {T<:AssociationMetric}
 
-Evaluate a metric on any association data format (CT or CCT).
+Evaluate a metric on any association data format (ContingencyTable or CorpusContingencyTable).
 
 - If the metric requires tokens (e.g., LexicalGravity), pass `tokens=...` or
   implement `assoc_tokens(::YourType)` to supply them automatically.
@@ -39,37 +84,58 @@ function assoc_score(::Type{T}, x::AssociationDataFormat;
     kwargs...) where {T<:AssociationMetric}
 
     f = _resolve_metric_function(T)
-    needs_tok = NeedsTokens(T)
+    needs_tok = NeedsTokens(T)                      # already defined in api.jl
+    df_in = assoc_df(x)                             # unified accessor
 
-    # Compute scores
-    scores = if needs_tok === Val(true)
-        # This metric NEEDS tokens, so get them and pass them
+    # If there is literally no contingency data, return a typed empty result
+    if isempty(df_in)
+        present = assoc_node_present(x)
+        reason = present === false ?
+                 "Node not found in the corpus." :
+                 "Node found, but no collocates met the thresholds (windowsize/minfreq/filters)."
+        return scores_only ? Float64[] :
+               _empty_result(x, T; reason=reason)
+    end
+
+    # Token guard for token-requiring metrics (e.g., LexicalGravity)
+    if needs_tok === Val(true)
         toks = tokens === nothing ? assoc_tokens(x) : tokens
-        toks === nothing && error("$(T) requires tokens; pass `tokens=...` or implement assoc_tokens(::$(typeof(x))).")
-        f(x; tokens=toks, kwargs...)
+        if toks === nothing
+            return scores_only ? Float64[] :
+                   _empty_result(x, T; reason="Metric $(T) requires tokens but none were provided or available via assoc_tokens().")
+        end
+        # Safe compute with tokens
+        scores = try
+            f(x; tokens=toks, kwargs...)
+        catch err
+            return scores_only ? Float64[] :
+                   _empty_result(x, T; reason="Metric $(T) failed during evaluation: $(err)", error=true)
+        end
+        return scores_only ? scores : begin
+            out = DataFrame(Node=fill(assoc_node(x), nrow(df_in)),
+                Collocate=String.(df_in.Collocate),
+                Frequency=df_in.a)
+            out[!, Symbol(nameof(T))] = scores
+            metadata!(out, "status", _STATUS_OK, style=:note)
+            out
+        end
     else
-        # Do NOT pass tokens kwarg if not needed, to avoid kwarg errors on methods that don't accept it.
-        f(x; kwargs...)
+        # Count-only metrics: do *not* pass tokens kwarg
+        scores = try
+            f(x; kwargs...)
+        catch err
+            return scores_only ? Float64[] :
+                   _empty_result(x, T; reason="Metric $(T) failed during evaluation: $(err)", error=true)
+        end
+        return scores_only ? scores : begin
+            out = DataFrame(Node=fill(assoc_node(x), nrow(df_in)),
+                Collocate=String.(df_in.Collocate),
+                Frequency=df_in.a)
+            out[!, Symbol(nameof(T))] = scores
+            metadata!(out, "status", _STATUS_OK, style=:note)
+            out
+        end
     end
-
-    # Fast path
-    if scores_only
-        return scores
-    end
-
-    # Build standard DataFrame output
-    df = assoc_df(x)
-    if isempty(df)
-        return DataFrame()
-    end
-
-    out = DataFrame()
-    out[!, :Node] = fill(assoc_node(x), nrow(df))
-    out[!, :Collocate] = String.(df.Collocate)
-    # Assumes your contingency schema puts co-occurrence freq in :a
-    out[!, :Frequency] = df.a
-    out[!, Symbol(nameof(T))] = scores
-    return out
 end
 
 """
@@ -79,7 +145,7 @@ end
               tokens::Union{Nothing,Vector{String}}=nothing,
               kwargs...)
 
-Evaluate multiple metrics on CT or CCT.
+Evaluate multiple metrics on ContingencyTable or CorpusContingencyTable.
 
 - Returns a DataFrame with one column per metric by default.
 - If `scores_only=true`, returns Dict{String,Vector{Float64}}.
@@ -90,33 +156,37 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...)
 
-    # Validate
     if !all(m -> m <: AssociationMetric, metrics)
         invalid = filter(m -> !(m <: AssociationMetric), metrics)
         throw(ArgumentError("Invalid metric types: $invalid"))
     end
 
-    df = assoc_df(x)
-
+    df_in = assoc_df(x)
     if scores_only
-        scores_dict = Dict{String,Vector{Float64}}()
-        for T in metrics
-            scores_dict[String(nameof(T))] = assoc_score(T, x; scores_only=true, tokens=tokens, kwargs...)
-        end
-        return scores_dict
+        # Return Dict, empty if no rows
+        return isempty(df_in) ? Dict{String,Vector{Float64}}() :
+               Dict(String(nameof(T)) => assoc_score(T, x; scores_only=true, tokens=tokens, kwargs...)
+                    for T in metrics)
     else
-        if isempty(df)
-            return DataFrame()
+        if isempty(df_in)
+            present = assoc_node_present(x)
+            reason = present === false ?
+                     "Node not found in the corpus." :
+                     "Node found, but no collocates met the thresholds (windowsize/minfreq/filters)."
+            return _empty_multi_result(x, metrics; reason=reason)
         end
 
-        out = DataFrame()
-        out[!, :Node] = fill(assoc_node(x), nrow(df))
-        out[!, :Collocate] = String.(df.Collocate)
-        out[!, :Frequency] = df.a
+        out = DataFrame(
+            Node=fill(assoc_node(x), nrow(df_in)),
+            Collocate=String.(df_in.Collocate),
+            Frequency=df_in.a,
+        )
 
         for T in metrics
-            out[!, Symbol(nameof(T))] = assoc_score(T, x; scores_only=true, tokens, kwargs...)
+            # We reuse the single-metric assoc_score in scores_only mode
+            out[!, Symbol(nameof(T))] = assoc_score(T, x; scores_only=true, tokens=tokens, kwargs...)
         end
+        metadata!(out, "status", _STATUS_OK, style=:note)
         return out
     end
 end
@@ -141,17 +211,61 @@ end
 # ----------------------------
 
 """
-    assoc_score(metricType::Type{<:AssociationMetric},
-              inputstring::AbstractString,
-              node::AbstractString;
-              windowsize::Int,
-              minfreq::Int=5;
-              scores_only::Bool=false,
-              norm_config::TextNorm=TextNorm(),
-              tokens::Union{Nothing,Vector{String}}=nothing,
-              kwargs...)
+    assoc_score(::Type{T},
+                inputstring::AbstractString,
+                node::AbstractString;
+                windowsize::Int,
+                minfreq::Int=5,
+                scores_only::Bool=false,
+                norm_config::TextNorm=TextNorm(),
+                tokens::Union{Nothing,Vector{String}}=nothing,
+                kwargs...) where {T<:AssociationMetric}
 
-Convenience overload to compute a metric directly from a raw string.
+Compute an association metric `T` directly from a raw string. This is a
+convenience overload that (1) builds a `ContingencyTable` from
+`inputstring` around `node` with the given window/threshold and
+normalization settings, and (2) delegates to
+`assoc_score(::Type{T}, ::AssociationDataFormat; ...)`.
+
+# Positional arguments
+- `::Type{T}`: The metric type to evaluate (e.g. `PMI`, `LLR`, `LogDice`), where `T <: AssociationMetric`.
+- `inputstring`: Raw text to analyze.
+- `node`: The target token whose collocates will be scored.
+
+# Keywords
+- `windowsize::Int`: Symmetric context window size (in tokens) used to
+  collect co-occurrences.
+- `minfreq::Int=5`: Minimum co-occurrence frequency required for a
+  collocate to be kept.
+- `scores_only::Bool=false`: If `true`, return only the vector of scores
+  (in the same order as the returned collocates for the tabular form);
+  otherwise return a `DataFrame`.
+- `norm_config::TextNorm=TextNorm()`: Text normalization configuration
+  applied when constructing the contingency table (e.g., casefolding,
+  punctuation handling, accent normalization).
+- `tokens::Union{Nothing,Vector{String}}=nothing`: Optional pre-tokenized
+  sequence for metrics that require token access. If `nothing`, metrics
+  that need tokens will internally derive them; metrics that do not need
+  tokens ignore this.
+- `kwargs...`: Additional metric-specific keywords forwarded to the
+  metric evaluator (e.g., smoothing, priors).
+
+# Returns
+- If `scores_only == false` (default): a `DataFrame` with one row per
+  collocate, typically including columns like `:Node`, `:Collocate`,
+  frequency/count fields (e.g., `:Freq`, `:DocFrequency`), and a column
+  named after the metric (e.g., `:PMI`, `:LLR`).
+- If `scores_only == true`: a `Vector{Float64}` of scores aligned to the
+  collocates that would appear in the `DataFrame` form.
+
+# Notes
+- This method constructs a `ContingencyTable(inputstring, node; windowsize, minfreq, norm_config)`
+  and then calls `assoc_score(T, ct; scores_only, tokens, kwargs...)`.
+- If the text is too small or filters are strict (`minfreq` high, small
+  `windowsize`), the result may be empty. Consider lowering `minfreq`,
+  increasing `windowsize`, or providing more text.
+- The `node` is interpreted after normalization as specified by
+  `norm_config`. Ensure `node` matches the normalized form you expect.
 """
 function assoc_score(::Type{T},
     inputstring::AbstractString,
