@@ -320,7 +320,7 @@ const NORM_KEEP = TextNorm(;
 
         @testset "Single/Multiple Node (skipped until stable)" begin
             @test_skip begin
-                df = analyze_corpus(corpus, "the", PMI; windowsize=3, minfreq=1)
+                df = analyze_node(corpus, "the", PMI; windowsize=3, minfreq=1)
                 @test isa(df, DataFrame)
             end
             @test_skip begin

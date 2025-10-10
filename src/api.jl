@@ -20,7 +20,7 @@ NeedsTokens(::Type{T}) where {T<:AssociationMetric} = Val(false)
     return getfield(@__MODULE__, fname)
 end
 
-# Adding a guardrail layer that makes assoc_score, analyze_corpus and token-requiring metrics behave deterministically and non-crashing
+# Adding a guardrail layer that makes assoc_score, analyze_node and token-requiring metrics behave deterministically and non-crashing
 
 const _STATUS_OK = "ok"
 const _STATUS_EMPTY = "empty"
@@ -332,7 +332,7 @@ end
     assoc_score(metricType::Type{<:AssociationMetric}, corpus::Corpus, node::AbstractString;
                 windowsize::Int=5, minfreq::Int=5, kwargs...)
 
-Evaluate a metric on a corpus - convenience method that delegates to analyze_corpus.
+Evaluate a metric on a corpus - convenience method that delegates to analyze_node.
 """
 function assoc_score(::Type{T}, corpus::Corpus, node::AbstractString;
     windowsize::Int=5,

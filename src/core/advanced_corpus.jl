@@ -288,7 +288,7 @@ function compare_subcorpora(corpus::Corpus,
         subcorpus = Corpus(docs; metadata=sub_meta, norm_config=corpus.norm_config)
         subcorpora[g] = subcorpus
 
-        df = analyze_corpus(subcorpus, node, metric; windowsize=windowsize, minfreq=minfreq)
+        df = analyze_node(subcorpus, node, metric; windowsize=windowsize, minfreq=minfreq)
         results[g] = df
     end
 
@@ -637,8 +637,8 @@ function colloc_graph(corpus::Corpus,
         next_layer = Set{String}()
 
         @showprogress desc = "Building layer $layer..." for node in current_layer
-            # analyze_corpus will handle any further normalization
-            results = analyze_corpus(corpus, node, metric; windowsize=windowsize, minfreq=minfreq)
+            # analyze_node will handle any further normalization
+            results = analyze_node(corpus, node, metric; windowsize=windowsize, minfreq=minfreq)
 
             if results isa DataFrame && nrow(results) > 0
                 # The node in results is already normalized

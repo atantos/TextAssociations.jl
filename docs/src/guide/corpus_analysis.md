@@ -131,7 +131,7 @@ end
 using TextAssociations
 
 # Analyze a single word across the corpus
-results = analyze_corpus(
+results = analyze_node(
     corpus,
     "learning",
     PMI;
@@ -319,7 +319,7 @@ end
 ```@example loading
 using TextAssociations
 
-function batch_analyze_corpus(corpus::Corpus, nodes::Vector{String}, batch_size::Int=10)
+function batch_analyze_node(corpus::Corpus, nodes::Vector{String}, batch_size::Int=10)
     all_results = Dict{String, DataFrame}()
 
     for batch_start in 1:batch_size:length(nodes)
@@ -350,7 +350,7 @@ end
 many_nodes = ["machine", "learning", "deep", "neural", "network",
               "algorithm", "data", "pattern"]
 
-batch_results = batch_analyze_corpus(corpus, many_nodes, 3)
+batch_results = batch_analyze_node(corpus, many_nodes, 3)
 println("\nBatch processing complete: $(length(batch_results)) nodes analyzed")
 ```
 
@@ -470,7 +470,7 @@ filtered_vocab = filter_vocabulary(corpus, 1, 0.8)
 using TextAssociations, CSV, Dates
 
 # Analyze and save results
-results = analyze_corpus(corpus, "learning", PMI, windowsize=3, minfreq=2)
+results = analyze_node(corpus, "learning", PMI, windowsize=3, minfreq=2)
 
 # Save to CSV
 temp_file = tempname() * ".csv"

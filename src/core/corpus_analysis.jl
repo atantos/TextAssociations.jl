@@ -517,13 +517,13 @@ end
 
 
 """
-    analyze_corpus(corpus::Corpus, node::AbstractString, metric::Type{<:AssociationMetric};
+    analyze_node(corpus::Corpus, node::AbstractString, metric::Type{<:AssociationMetric};
                   windowsize::Int, minfreq::Int=5) -> DataFrame
 
 Analyze a single node word across the entire corpus using corpus's normalization.
 Returns DataFrame with Node, Collocate, Score, Frequency, and DocFrequency columns.
 """
-function analyze_corpus(corpus::Corpus,
+function analyze_node(corpus::Corpus,
     node::AbstractString,
     metric::Type{<:AssociationMetric};
     windowsize::Int,
@@ -1059,7 +1059,7 @@ function demonstrate_corpus_analysis()
     println("Corpus contains $(stats[:num_documents]) documents with $(stats[:total_tokens]) tokens")
 
     # Example 2: Analyze single node word - NOW WITH NODE COLUMN
-    results = analyze_corpus(corpus, "important", PMI; windowsize=5, minfreq=10)
+    results = analyze_node(corpus, "important", PMI; windowsize=5, minfreq=10)
     println("Top collocates for 'important':")
     println(first(results, 10))
     # Output now shows: Node | Collocate | Score | Frequency | DocFrequency

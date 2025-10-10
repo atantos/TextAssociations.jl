@@ -104,7 +104,7 @@ results = assoc_score([PMI, LogDice, LLR], ct)
 corpus = read_corpus("path/to/texts/", preprocess=true)
 
 # Analyze word associations across the entire corpus
-results = analyze_corpus(corpus, "innovation", PMI, windowsize=5, minfreq=10)
+results = analyze_node(corpus, "innovation", PMI, windowsize=5, minfreq=10)
 
 # Analyze multiple words with multiple metrics
 nodes = ["technology", "innovation", "research"]

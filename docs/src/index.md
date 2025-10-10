@@ -173,7 +173,7 @@ end
 corpus = read_corpus(dir)
 
 # Analyze across entire corpus
-results = analyze_corpus(corpus, "innovation", PMI,
+results = analyze_node(corpus, "innovation", PMI,
     windowsize=5,
     minfreq=1
 )
@@ -246,7 +246,7 @@ TextAssociations.jl
 │  └─ 47 measures across families (PMI, LLR, LogDice, χ², OR, etc.)
 │
 ├─ Analysis Functions
-│  ├─ analyze_corpus / analyze_nodes
+│  ├─ analyze_node / analyze_nodes
 │  ├─ corpus_stats, token_distribution, vocab_coverage
 │  ├─ write_results, export/load with metadata
 │  ├─ batch_process_corpus, stream_corpus_analysis

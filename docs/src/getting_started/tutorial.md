@@ -100,7 +100,7 @@ doc_objects = [StringDocument(d) for d in docs]
 corpus = Corpus(doc_objects)
 
 # Analyze "learning" across the corpus
-corpus_results = analyze_corpus(
+corpus_results = analyze_node(
     corpus,
     "learning",     # Node word
     PMI,           # Metric

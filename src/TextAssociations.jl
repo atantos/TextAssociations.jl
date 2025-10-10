@@ -63,7 +63,7 @@ export
     # corpus-related API functions
     text, tokens, # from TextAnalysis
     read_corpus, read_corpus_df,
-    analyze_corpus, analyze_nodes,
+    analyze_node, analyze_nodes,
     corpus_stats, vocab_coverage,
     coverage_summary, token_distribution,
     write_results,
