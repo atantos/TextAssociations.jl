@@ -132,6 +132,13 @@ each text as a `StringDocument`. Returns a `Corpus` that stores the same `norm_c
 - `min_doc_length`: Minimum token count to include a document.
 - `max_doc_length`: Optional maximum token count to include a document.
 
+# Notes
+- The `min_doc_length` and `max_doc_length` thresholds are applied **after tokenization**.
+  This means they count **tokens**, not characters. Documents are first normalized
+  (if `preprocess=true`), tokenized, and then filtered by these limits.
+  For instance, `min_doc_length=20` keeps only texts with 20 or more tokens after
+  normalization and tokenization.
+
 # Behavior
 - **Directory**: Reads every `*.txt` file; file path is stored in corpus metadata.
 - **CSV**: Extracts `text_column`; attaches `metadata_columns` per row.
@@ -293,6 +300,13 @@ This is useful when:
 - `min_doc_length`: Minimum token count to keep a document after reprocessing.
 - `max_doc_length`: Optional maximum token count to keep.
 - `build_dtm`: If `true`, builds the document–term matrix in the returned corpus.
+
+# Notes
+- The `min_doc_length` and `max_doc_length` thresholds are applied **after tokenization**.
+  This means they count **tokens**, not characters. Documents are first normalized
+  (if `preprocess=true`), tokenized, and then filtered by these limits.
+  For instance, `min_doc_length=20` keeps only texts with 20 or more tokens after
+  normalization and tokenization.
 
 # Behavior
 - Produces a new `Vector{StringDocument}` from `c.documents`, applying normalization
