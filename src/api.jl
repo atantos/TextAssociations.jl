@@ -354,7 +354,7 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     kwargs...)
 
     # Create corpus contingency table
-    cct = CorpusContingencyTable(corpus, node, windowsize, minfreq)
+    cct = CorpusContingencyTable(corpus, node; windowsize, minfreq)
 
     # Call the unified assoc_score with the CCT
     return assoc_score(metrics, cct; kwargs...)
