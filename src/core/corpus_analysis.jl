@@ -256,6 +256,13 @@ function read_corpus(path::AbstractString;
 
     println("Loaded $(length(documents)) documents")
 
+    # Record preprocessing options used for this load
+    metadata["_preprocessing_options"] = Dict(
+        :norm_config => norm_config,
+        :preprocess => preprocess,
+        :min_doc_length => min_doc_length,
+        :max_doc_length => max_doc_length
+    )
     # Create corpus with normalization config
     return Corpus(documents, metadata=metadata, norm_config=norm_config)
 end
@@ -338,10 +345,19 @@ function read_corpus(c::Corpus;
         end
     end
 
+    # Preserve metadata; attach effective preprocessing options
+    meta = copy(c.metadata)
+    meta["_preprocessing_options"] = Dict(
+        :norm_config => cfg,
+        :preprocess => preprocess,
+        :min_doc_length => min_doc_length,
+        :max_doc_length => max_doc_length
+    )
+
     # Preserve metadata; keep/override the config; optionally rebuild DTM
     return Corpus(
         documents;
-        metadata=copy(c.metadata),
+        metadata=meta,
         norm_config=cfg,
         build_dtm=build_dtm
     )
@@ -430,6 +446,12 @@ function read_corpus_df(df::DataFrame;
         end
     end
 
+    # Record preprocessing options used for this load
+    corpus_metadata["_preprocessing_options"] = Dict(
+        :norm_config => norm_config,
+        :preprocess => preprocess
+        # (min/max lengths aren’t used in read_corpus_df yet; add if you add filters)
+    )
     return Corpus(documents, metadata=corpus_metadata, norm_config=norm_config)
 end
 
