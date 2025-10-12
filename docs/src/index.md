@@ -105,12 +105,10 @@ section.
 
 ### Single Document Analysis
 
-In the code cell below, contingency tables are created for the word "innovation" within the string `text_sample`, including all its collocates that occur within a 5-word context window and appear at least once.
-Subsequently, `PMI` (Pointwise Mutual Information) scores are computed for all collocates, and the top five collocates along with their scores are displayed in a `DataFrame`.
+In the code cell below, contingency tables are created for the word "innovation" within the `text_sample`. These tables record all words that occur within a 5-word window around innovation and appear at least once. Based on these counts, `PMI` (Pointwise Mutual Information) scores are computed to measure the strength of association between innovation and each of its collocates. The top five collocates with the highest PMI scores are then displayed in a `DataFrame`.
 
 ```@example basic
 using TextAssociations
-using TextAnalysis: text
 using DataFrames
 
 text_sample =  """
@@ -126,7 +124,7 @@ ct = ContingencyTable(text_sample, "innovation";
                                     minfreq=1,
                                     norm_config=TextNorm(strip_punctuation=true, strip_case=true))
 
-# Calculate
+# Calculate PMI for ct, sort and return the top 5 collocates with their scores
 pmi_scores = assoc_score(PMI, ct)
 sort!(pmi_scores, :PMI, rev=true)
 first(pmi_scores, 5)
