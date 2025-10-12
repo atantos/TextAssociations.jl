@@ -617,7 +617,7 @@ function colloc_graph(corpus::Corpus,
     seed_words::Vector{String};
     metric::Type{<:AssociationMetric}=PMI,
     depth::Int=2,
-    min_score::Float64=3.0,
+    min_score::Float64=0.0,
     max_neighbors::Int=20,
     windowsize::Int=5,
     minfreq::Int=5)

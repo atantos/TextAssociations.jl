@@ -56,12 +56,11 @@ For a step-by-step explanation of what happens in each stage and detailed guidan
 
 ```@example quickstart
 using TextAssociations
+using DataFrames
 
 # Analyze collocations in text
 text = """
-Machine learning algorithms learn patterns from data.
-Deep learning is a subset of machine learning.
-Neural networks power deep learning systems.
+Machine learning algorithms learn patterns from data, allowing computers to make predictions, classifications, and decisions without being explicitly programmed for every possible scenario. Instead of following hard-coded instructions, these algorithms identify statistical regularities in large datasets and use them to generalize from past examples to new situations. Within the broader field of machine learning, deep learning represents a particularly powerful and transformative subset. Deep learning methods are built around neural networks—computational architectures inspired by the structure and function of the human brain—that consist of layers of interconnected nodes or “neurons.” Each layer processes input data and passes its transformed representation to the next, enabling the system to detect increasingly abstract and complex features. Through this hierarchical representation learning, deep learning models can automatically extract meaning from raw data such as images, audio, or text, achieving remarkable performance across domains that once required handcrafted rules and expert knowledge. Neural networks, therefore, form the backbone of deep learning systems, powering technologies like speech recognition, image analysis, and large language models. The success of these systems illustrates how learning from data, rather than from explicit programming, has become a defining paradigm of modern artificial intelligence.
 """
 
 # Find collocations of "learning"
@@ -70,8 +69,7 @@ ct = ContingencyTable(text, "learning", windowsize=3, minfreq=1)
 # Calculate multiple metrics
 results = assoc_score([PMI, LogDice, LLR], ct)
 
-# Display top collocations
-using DataFrames
+# Display top 5 collocations
 sort!(results, :PMI, rev=true)
 first(results, 5)
 ```
@@ -107,29 +105,43 @@ section.
 
 ### Single Document Analysis
 
+In the code cell below, contingency tables are created for the word "innovation" within the string `text_sample`, including all its collocates that occur within a 5-word context window and appear at least once.
+Subsequently, `PMI` (Pointwise Mutual Information) scores are computed for all collocates, and the top five collocates along with their scores are displayed in a `DataFrame`.
+
 ```@example basic
 using TextAssociations
 using TextAnalysis: text
 using DataFrames
 
-text_sample = "Machine learning algorithms learn from data. Deep learning uses neural networks."
+text_sample =  """
+    Computational linguistics increasingly intersects with innovation practice.
+    Teams use data to evaluate hypotheses, prototype ideas quickly, and measure impact with reproducible pipelines.
+    In modern research workflows, small models are validated against well-defined tasks before scaling, ensuring that innovation is more than a buzzword—it is a methodical, testable process.
+    When AI systems are involved, documentation and transparent governance help peers replicate results and trust conclusions.
+    """
 
-doc = prep_string(text_sample, TextNorm(
-    strip_punctuation=true,
-    strip_case=true
-))
+# Create the contingency tables of "innovation".
+ct = ContingencyTable(text_sample, "innovation";
+                                    windowsize=5,
+                                    minfreq=1,
+                                    norm_config=TextNorm(strip_punctuation=true, strip_case=true))
 
-ct = ContingencyTable(text(doc), "learning"; windowsize=5, minfreq=1)
+# Calculate
 pmi_scores = assoc_score(PMI, ct)
-println("Found $(nrow(pmi_scores)) collocates")
+sort!(pmi_scores, :PMI, rev=true)
+first(pmi_scores, 5)
 ```
 
 ### Corpus-Level Analysis
 
+When moving from a single string or file to a corpus of strings or files, you can create a `Corpus` instance using the `read_corpus` function.
+You can then apply the `analyze_node` function, which returns a `DataFrame` containing the same type of information as shown above.
+An alternative approach allows you to work at a lower level, examining in more detail how the contingency table is constructed. In this workflow, you first create a `Corpus` instance, then build the contingency table separately, and finally compute association scores using `assoc_score`. For a step-by-step explanation, see the Tutorial section.
+
 ```@example corpus
 using TextAssociations
 
-# Create a temporary mini-corpus with longer texts
+# Create a temporary directory that will store a mini-corpus
 dir = mktempdir()
 
 files = Dict(
@@ -162,7 +174,7 @@ files = Dict(
     """
 )
 
-# Write files
+# Write files to the temporary directory
 for (name, content) in files
     open(joinpath(dir, name), "w") do io
         write(io, strip(content))
@@ -178,23 +190,42 @@ results = analyze_node(corpus, "innovation", PMI,
     minfreq=1
 )
 
+# Return the top 5 collocates with the higher PMI score.
+first(results, 5)
+```
+
+There are 31 descriptive statistical indices available out of the box through the corpus_stats function when applied to a corpus.
+Below, only a few representative examples are shown. You can find the complete list and explanations in the Tutorial section.
+
+```@example corpus
 # Get corpus statistics
 stats = corpus_stats(corpus)
 println("Documents: $(stats[:num_documents])")
 println("Vocabulary: $(stats[:vocabulary_size])")
+println("Type-Token Ratio: $(stats[:type_token_ratio])")
+println("Hapax Ratio: $(stats[:hapax_ratio])")
+println("Median Type Frequency: $(stats[:median_type_frequency])")
+println("Mean Type Frequency: $(stats[:mean_type_frequency ])")
 ```
 
 ## Advanced Features
 
 ### Collocation Networks
 
-Build networks of related terms:
+The code cell below builds a one-layer collocation network centered on the seed word “innovation”.
+It scans the corpus using a sliding window (default windowsize=5) and counts the co-occurrences of “innovation” with all neighboring words (only pairs with a frequency ≥ minfreq=1 are considered). Each pair is then scored using LLR (Log-Likelihood Ratio), a robust association measure that performs well even with small samples.
 
-```julia
+For small corpora, you may need to relax the thresholds (e.g., increase max_neighbors) to prevent the network from being empty. For more details on collocation networks, see the relevant section of the Tutorial.
+
+```@example corpus
 network = colloc_graph(
-    corpus, ["artificial", "intelligence"],
-    metric=PMI, depth=2
+    corpus, ["innovation"],
+    metric=LLR,
+    depth=1,
+    minfreq=1
 )
+
+network.node_metrics
 ```
 
 ### Comparative Analysis
@@ -205,6 +236,8 @@ Compare associations across subcorpora:
 comparison = compare_subcorpora(
     corpus, :category, "technology", PMI
 )
+
+
 ```
 
 ### Temporal Analysis
@@ -298,36 +331,11 @@ TextAssociations.jl
 </div>
 ```
 
-<!--
-## Performance Benchmarks
-
-| Task            | Size      | Time   | Memory   |
-| --------------- | --------- | ------ | -------- |
-| Single document | 10K words | ~50ms  | 10MB     |
-| Small corpus    | 100 docs  | ~2s    | 50MB     |
-| Large corpus    | 10K docs  | ~30s   | 500MB    |
-| Streaming       | Unlimited | Linear | Constant | -->
-
 ## Community and Support
 
 - 📚 [Complete API Reference](@ref api_reference)
 - 💬 [GitHub Discussions](https://github.com/atantos/TextAssociations.jl/discussions)
 - 🐛 [Issue Tracker](https://github.com/atantos/TextAssociations.jl/issues)
-<!-- - 📧 Contact: alextantos@lit.auth.gr -->
-
-<!-- ## Citation
-
-If you use TextAssociations.jl in your research, please cite:
-
-```bibtex
-@software{textassociations2025,
-    title = {TextAssociations.jl: A Julia Package for Word Association Analysis},
-    author = {Your Name},
-    year = {2025},
-    url = {https://github.com/yourusername/TextAssociations.jl},
-    version = {0.1.0}
-}
-``` -->
 
 ## Contributing
 
