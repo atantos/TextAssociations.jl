@@ -203,13 +203,24 @@ tests = comparison.statistical_tests
 
 ### Collocation Networks
 
-Build and export word association networks:
+Build and export word association networks with richer metadata:
 
 ```julia
 network = colloc_graph(
-    corpus, ["climate", "change"],
-    metric=PMI, depth=2, min_score=3.0
+    corpus, ["climate", "change"];  # seed terms
+    metric=PMI,
+    depth=2,
+    min_score=2.5,
+    direction=:undirected,
+    include_frequency=true,
+    weight_normalization=:minmax,
+    compute_centrality=true,
+    centrality_metrics=[:pagerank, :betweenness]
 )
+
+first(network.edges, 5)          # includes Frequency / DocFrequency / NormalizedWeight
+first(network.node_metrics, 5)    # includes degrees, strengths & centrality scores
+
 gephi_graph(network, "nodes.csv", "edges.csv")
 ```
 

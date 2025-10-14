@@ -220,11 +220,17 @@ network = colloc_graph(
     corpus, ["innovation"],
     metric=LLR,
     depth=1,
-    minfreq=1
+    minfreq=1,
+    include_frequency=true,
+    weight_normalization=:rank,
+    compute_centrality=true
 )
 
-network.node_metrics
+first(network.edges, 5)
 ```
+
+The returned `node_metrics` table now includes degree/strength totals and optional
+centrality scores, providing a quick overview of the structural role of each term.
 
 ### Comparative Analysis
 

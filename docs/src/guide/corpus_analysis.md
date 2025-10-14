@@ -297,18 +297,25 @@ network = colloc_graph(
     min_score=-10.0,
     max_neighbors=5,
     windowsize=5,
-    minfreq=1
+    minfreq=1,
+    direction=:undirected,
+    include_frequency=true,
+    weight_normalization=:zscore,
+    compute_centrality=true
 )
 
 println("\nCollocation Network:")
 println("  Nodes: $(length(network.nodes))")
 println("  Edges: $(nrow(network.edges))")
 
-if !isempty(network.edges)
-    println("\nStrongest connections:")
-    for row in eachrow(first(sort(network.edges, :Weight, rev=true), 5))
-        println("  $(row.Source) → $(row.Target): $(round(row.Weight, digits=2))")
-    end
+println("\nTop weighted connections:")
+for row in eachrow(first(sort(network.edges, :Weight, rev=true), 5))
+    println("  $(row.Source) ↔ $(row.Target): score=$(round(row.Weight, digits=2)), freq=$(row.Frequency)")
+end
+
+println("\nCentrality (Pagerank):")
+for row in eachrow(first(sort(network.node_metrics, :Centrality_pagerank, rev=true), 5))
+    println("  $(row.Node): pagerank=$(round(row.Centrality_pagerank, digits=4))")
 end
 ```
 
