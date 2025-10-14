@@ -364,6 +364,49 @@ const NORM_KEEP = TextNorm(;
             @test isa(conc.lines, DataFrame)
             @test isa(conc.statistics, Dict)
         end
+
+        @testset "Collocation Graph Enhancements" begin
+            network = colloc_graph(
+                corpus,
+                ["innovation"];  # single seed
+                metric=PMI,
+                depth=1,
+                min_score=-5.0,
+                max_neighbors=5,
+                windowsize=3,
+                minfreq=1,
+                direction=:undirected,
+                include_frequency=true,
+                include_doc_frequency=true,
+                weight_normalization=:minmax,
+                compute_centrality=true,
+                centrality_metrics=[:pagerank, :betweenness],
+                cache_results=false,
+            )
+
+            @test isa(network, CollocationNetwork)
+            @test :Frequency in propertynames(network.edges)
+            @test :DocFrequency in propertynames(network.edges)
+            @test :NormalizedWeight in propertynames(network.edges)
+            @test network.parameters[:direction] == :undirected
+            @test network.parameters[:weight_normalization] == :minmax
+            @test network.parameters[:centrality_metrics] == [:pagerank, :betweenness]
+
+            nm = network.node_metrics
+            @test all(col -> col in propertynames(nm), [:OutDegree, :InDegree, :TotalDegree, :TotalStrength])
+            @test all(col -> col in propertynames(nm), [:Centrality_pagerank, :Centrality_betweenness])
+            @test all(nm.TotalDegree .>= 0)
+            @test all(nm.TotalStrength .>= 0)
+
+            zero_depth = colloc_graph(
+                corpus,
+                ["innovation"]; depth=0, max_neighbors=0, include_frequency=false,
+                compute_centrality=false,
+            )
+            @test isempty(zero_depth.edges)
+            @test length(zero_depth.nodes) == 1
+            @test zero_depth.node_metrics.TotalDegree[1] == 0
+        end
     end
 
     @testset_if "AssociationDataFormat Interface" begin
