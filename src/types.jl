@@ -90,7 +90,7 @@ const METRIC_TYPES = [
     :SorgenfreyIdx, :SorgenfreyIdx2,
     :MountfordCoef, :MountfordCoef2,
     :SokalSneathIdx, :SokalMichenerCoef,
-    :LexicalGravity,
+    :LexicalGravity, :DeltaPiLeft, :DeltaPiRight,
     :Tscore, :Zscore, :ChiSquare
 ]
 

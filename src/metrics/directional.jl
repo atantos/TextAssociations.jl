@@ -16,8 +16,6 @@ Directional analysis helper: get bounded range that does not cross document boun
     return start <= stop′ ? (start, stop′) : (1, 0)
 end
 
-
-
 # Mark LexicalGravity as needing tokens
 NeedsTokens(::Type{LexicalGravity}) = Val(true)
 
@@ -73,57 +71,112 @@ end
 The original Daudaravičius & Marcinkevičienė formula.
 This is the main contribution of their paper.
 """
-function _gravity_original_formula(x::AssociationDataFormat,
+function _gravity_original_formula(
+    x::AssociationDataFormat,
     con_tbl::DataFrame,
-    tokens::Vector{String})
-
+    tokens::Vector{String}
+)::Vector{Float64}
+    # Inputs from the association context
     node = assoc_node(x)
     ws = assoc_ws(x)
 
-    # n⁺(node): distinct types RIGHT of node within window
+    nrows = nrow(con_tbl)
+    scores = Vector{Float64}(undef, nrows)
+    nrows == 0 && return scores
+    ws <= 0 && return fill(-Inf, nrows)
+
+    # Positions & frequency of the node
+    node_positions = findall(==(node), tokens)
+    f_node = length(node_positions)
+    f_node == 0 && return fill(-Inf, nrows)
+
+    # n⁺(node): distinct types in the RIGHT window of each node occurrence
     words_after_node = Set{String}()
     @inbounds for npos in node_positions
-        (r1, r2) = _bounded_range(tokens, npos + 1, min(npos + ws, length(tokens)))
+        # pre-clamp, then bound within document
+        r_start = npos + 1
+        r_stop = min(npos + ws, length(tokens))
+        (r1, r2) = _bounded_range(tokens, max(r_start, 1), r_stop)
         r2 < r1 && continue
         for j in r1:r2
-            if tokens[j] !== _DOC_SEP
-                push!(words_after_node, tokens[j])
-            end
+            t = tokens[j]
+            t == _DOC_SEP && break
+            push!(words_after_node, t)
         end
     end
     n_plus_node = length(words_after_node)
 
-    gravity = Vector{Float64}(undef, nrow(con_tbl))
+    # Main loop over collocates in the contingency table
     @inbounds for (i, row) in enumerate(eachrow(con_tbl))
         coll = String(row.Collocate)
 
-        # n⁻(coll): distinct types LEFT of coll within window
+        # Positions & frequency of collocate
+        coll_positions = findall(==(coll), tokens)
+        f_coll = length(coll_positions)
+
+        # n⁻(coll): distinct types in the LEFT window of each collocate occurrence
         words_before_coll = Set{String}()
-        for cpos in pos_map[coll]
-            (l1, l2) = _bounded_range(tokens, max(cpos - ws, 1), cpos - 1)
+        for cpos in coll_positions
+            l_start = max(cpos - ws, 1)
+            l_stop = cpos - 1
+            (l1, l2) = _bounded_range(tokens, l_start, l_stop)
             l2 < l1 && continue
-            for j in l1:l2
-                if tokens[j] !== _DOC_SEP
-                    push!(words_before_coll, tokens[j])
-                end
+            @inbounds for j in reverse(l1:l2)
+                t = tokens[j]
+                t == _DOC_SEP && break
+                push!(words_before_coll, t)
             end
         end
         n_minus_coll = length(words_before_coll)
 
-        ff = f_fwd[i]
-        fb = f_back[i]
-        f1 = f_node
-        f2 = f_coll[i]
-        if ff > 0 && fb > 0 && f1 > 0 && f2 > 0 && n_plus_node > 0 && n_minus_coll > 0
-            term1 = log_safe(ff * n_plus_node / f1)
-            term2 = log_safe(fb * n_minus_coll / f2)
-            gravity[i] = term1 + term2
+        # Directional co-occurrence counts
+        f_forward = 0  # node → coll (coll to the right of node)
+        f_backward = 0  # node ← coll (node to the left of coll)
+
+        # Count node → coll
+        for npos in node_positions
+            r_start = npos + 1
+            r_stop = min(npos + ws, length(tokens))
+            (r1, r2) = _bounded_range(tokens, max(r_start, 1), r_stop)
+            r2 < r1 && continue
+            @inbounds for j in r1:r2
+                t = tokens[j]
+                t == _DOC_SEP && break
+                if t == coll
+                    f_forward += 1
+                end
+            end
+        end
+
+        # Count node ← coll
+        for cpos in coll_positions
+            l_start = max(cpos - ws, 1)
+            l_stop = cpos - 1
+            (l1, l2) = _bounded_range(tokens, l_start, l_stop)
+            l2 < l1 && continue
+            @inbounds for j in reverse(l1:l2)
+                t = tokens[j]
+                t == _DOC_SEP && break
+                if t == node
+                    f_backward += 1
+                end
+            end
+        end
+
+        # G(w1,w2) = log(f→ * n⁺ / f_node) + log(f← * n⁻ / f_coll)
+        if f_forward > 0 && f_backward > 0 && f_node > 0 && f_coll > 0 &&
+           n_plus_node > 0 && n_minus_coll > 0
+            term1 = log((f_forward * n_plus_node) / f_node)
+            term2 = log((f_backward * n_minus_coll) / f_coll)
+            scores[i] = term1 + term2
         else
-            gravity[i] = -Inf
+            scores[i] = -Inf
         end
     end
-    return gravity
+
+    return scores
 end
+
 
 """
 Simplified gravity formula often used in implementations.
@@ -266,3 +319,22 @@ end
 
 # Convenience alias
 const lexicalgravity = eval_lexicalgravity
+
+
+# ΔP→(X→Y) = P(Y|X) − P(Y|¬X) = a/m − c/n
+"""
+Directional analysis: rightward influence from X to Y following Gries(2013). 
+"""
+function eval_deltapiright(data::AssociationDataFormat)
+    @extract_values data a c m n
+    (a ./ max.(m, eps())) .- (c ./ max.(n, eps()))
+end
+
+"""
+Directional analysis: leftward influence from Y to X following Gries(2013). 
+"""
+# ΔP←(Y→X) = P(X|Y) − P(X|¬Y) = a/k − b/l
+function eval_deltapileft(data::AssociationDataFormat)
+    @extract_values data a b k l
+    (a ./ max.(k, eps())) .- (b ./ max.(l, eps()))
+end

@@ -1,8 +1,7 @@
 # Common accessors all metrics rely on
 
-"""
-Internal document separator token. Used to prevent co-occurrences across document boundaries. 
-"""
+
+# Internal document separator token. Used to prevent co-occurrences across document boundaries. 
 if !isdefined(@__MODULE__, :_DOC_SEP)
     const _DOC_SEP = "\uFFFF"
 end

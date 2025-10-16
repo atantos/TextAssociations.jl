@@ -100,6 +100,7 @@ export
     SokalSneathIdx, SokalMichenerCoef,
     LexicalGravity,
     ChiSquare, Tscore, Zscore,
+    DeltaPiLeft, DeltaPiRight,
 
     # DataFrame utilities
     write_results,
