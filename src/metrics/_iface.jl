@@ -1,6 +1,15 @@
 # Common accessors all metrics rely on
 
 """
+Internal document separator token. Used to prevent co-occurrences across document boundaries. 
+"""
+if !isdefined(@__MODULE__, :_DOC_SEP)
+    const _DOC_SEP = "\uFFFF"
+end
+
+
+
+"""
     assoc_node_present(x::AssociationDataFormat)::Union{Bool,Nothing}
 
 Return `true` if the (normalized) node occurs ≥ 1 time in the underlying data,
@@ -38,12 +47,15 @@ assoc_df(x::CorpusContingencyTable) = cached_data(x.aggregated_table)
 assoc_node(x::CorpusContingencyTable) = x.node
 assoc_ws(x::CorpusContingencyTable) = x.windowsize
 assoc_norm_config(x::CorpusContingencyTable) = x.norm_config
-# Extract all tokens from the corpus
+
+"""
+Extract all tokens from the corpus. Documents are separated by a special token to prevent co-occurrences across document boundaries.
+"""
 function assoc_tokens(x::CorpusContingencyTable)
     toks = String[]
-    for ct in x.tables
+    for (i, ct) in enumerate(x.tables)
         append!(toks, String.(tokens(document(ct.input_ref))))
+        i < length(x.tables) && push!(toks, _DOC_SEP)
     end
     return toks
 end
-
