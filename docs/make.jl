@@ -1,13 +1,5 @@
 using Documenter, TextAssociations, DataFrames, CSV, Dates
 
-# using Documenter
-# using TextAssociations
-# using TextAnalysis
-# using DataFrames
-# using CSV
-# using Dates
-
-
 makedocs(
     sitename="TextAssociations.jl",
     format=Documenter.HTML(
@@ -38,6 +30,7 @@ makedocs(
         ],
         "Metrics" => [
             "Overview" => "metrics/overview.md",
+            "Metric Catalog" => "api/metrics_catalog.md",
             "Information Theoretic" => "metrics/information_theoretic.md",
             "Statistical" => "metrics/statistical.md",
             "Similarity" => "metrics/similarity.md",
@@ -56,25 +49,23 @@ makedocs(
             # "Corpus Functions" => "api/corpus.md",
             "Metric Functions" => "api/metrics.md",
         ],
-        #     "Theory" => "theory.md",
-        #     # "How-To Guides" => "howto.md",
-        #     "Performance" => "performance.md",
-        #     "Troubleshooting" => "troubleshooting.md",
-        #     "Contributing" => "contributing.md",
+        "Internals" => [
+            "Metric Implementations" => "internals/metrics.md",
+        ],
     ],
     pagesonly=true,
     warnonly=true,
     checkdocs=:exports,
     doctestfilters=Regex[
         r"Ptr{0x[0-9a-f]+}",
-        r"[0-9\.]+ seconds \(.*\)"
+        r"[0-9\.]+ seconds \(.*\)",
     ],
 )
 
 # deploydocs(
-#     repo="github.com/atantos/TextAssociations.jl.git",
-#     devbranch="main",
-#     push_preview=true,
-#     deps=nothing,
-#     make=nothing,
+#     repo = "github.com/atantos/TextAssociations.jl.git",
+#     devbranch = "main",
+#     push_preview = true,
+#     deps = nothing,
+#     make = nothing,
 # )

@@ -94,9 +94,71 @@ const METRIC_TYPES = [
     :Tscore, :Zscore, :ChiSquare
 ]
 
-# Generate abstract types for each metric
+# 2) Optional: a registry with nice descriptions & flags (fill incrementally)
+const _METRIC_REGISTRY = Dict{Symbol,NamedTuple}(
+    :PMI => (title="Pointwise Mutual Information",
+        short="Association strength via surprisal of co-occurrence.",
+        needs_tokens=false,
+        family=:information_theoretic,
+        ref="Church & Hanks (1990)"),
+    :LexicalGravity => (title="Lexical Gravity",
+        short="Direction-sensitive association weighting with n⁺/n⁻ context diversity.",
+        needs_tokens=true,
+        family=:directional,
+        ref="Daudaravičius & Marcinkevičienė (2004)"),
+    :DeltaPiRight => (title="ΔP Right",
+        short="P(Y|X) − P(Y|¬X): rightward influence.",
+        needs_tokens=false,
+        family=:directional,
+        ref="Gries (2013)"),
+    :DeltaPiLeft => (title="ΔP Left",
+        short="P(X|Y) − P(X|¬Y): leftward influence.",
+        needs_tokens=false,
+        family=:directional,
+        ref="Gries (2013)")
+    # …extend over time; unknowns get a generic doc
+)
+
+# 3) Helper to render a docstring for a given metric Symbol
+function _metric_doc(sym::Symbol)
+    meta = get(_METRIC_REGISTRY, sym, nothing)
+    name = String(sym)
+    if meta === nothing
+        return """
+        $name
+
+        Association metric type used with `assoc_score($name, ...)`.
+
+        !!! note
+            This metric is generated programmatically. See the *Metric Catalog* page
+            and `assoc_score` docs for usage and available options.
+        """
+    else
+        needs_tokens = meta.needs_tokens ? "Yes" : "No"
+        return """
+        $(meta.title) — `$name`
+
+        $(meta.short)
+
+        **Use:** `assoc_score($name, data; kwargs...)`
+
+        - **Family:** `$(meta.family)`
+        - **Needs tokens?** $needs_tokens
+        - **Reference:** $(meta.ref)
+
+        !!! tip
+            Implementation is internal (`eval_$(lowercase(name))`), called via `assoc_score`. 
+            See `assoc_score` for API and examples.
+        """
+    end
+end
+
+# Generate the abstract type *and* attach the docstring
 for metric in METRIC_TYPES
-    @eval abstract type $metric <: AssociationMetric end
+    @eval begin
+        abstract type $metric <: AssociationMetric end
+        @doc _metric_doc($(QuoteNode(metric))) $metric
+    end
 end
 
 """
