@@ -32,11 +32,11 @@ _A Julia package for word association measures, collocation analysis and descrip
 
 ## Overview
 
-`TextAssociations.jl` is a comprehensive framework for computing word association metrics, performing collocation analysis, and producing a wide range of descriptive statistical indices at both the text and corpus levels. With 47 implemented association measures, it is designed to support research in computational linguistics, corpus linguistics, natural language processing, and the digital humanities.
+`TextAssociations.jl` is a comprehensive framework for computing word association metrics, performing collocation analysis, and producing a wide range of descriptive statistical indices at both the text and corpus levels. With 49 implemented association measures, it is designed to support research in computational linguistics, corpus linguistics, natural language processing, and the digital humanities.
 
 !!! tip **Package Highlights**
 
-- 47 association metrics across statistical, information-theoretic, similarity and epidemiological families — including PMI, LogDice, LLR, Chi-square, Odds Ratio, Lexical Gravity, and many more
+- 49 association metrics across statistical, information-theoretic, similarity and epidemiological families — including PMI, LogDice, LLR, Chi-square, Odds Ratio, Lexical Gravity, and many more
 - **Efficient processing** of large corpora with lazy evaluation and caching
 - **Corpus analysis** at scale via batch and streaming modes, with optional parallelism
 - **Multilingual support** with proper Unicode handling and diacritic normalization
@@ -280,7 +280,7 @@ TextAssociations.jl
 │
 ├─ Metrics
 │  ├─ Interface + dispatch
-│  └─ 47 measures across families (PMI, LLR, LogDice, χ², OR, etc.)
+│  └─ 49 measures across families (PMI, LLR, LogDice, χ², OR, etc.)
 │
 ├─ Analysis Functions
 │  ├─ analyze_node / analyze_nodes
