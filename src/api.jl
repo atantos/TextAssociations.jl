@@ -26,7 +26,6 @@ const _STATUS_OK = "ok"
 const _STATUS_EMPTY = "empty"
 const _STATUS_ERROR = "error"
 
-
 # Build the typed empty shell for a single metric
 function _empty_result(x::AssociationDataFormat, ::Type{T};
     reason::AbstractString, error::Bool=false) where {T<:AssociationMetric}
