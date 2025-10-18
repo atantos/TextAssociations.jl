@@ -4,6 +4,26 @@
 # =====================================
 
 # Dice Coefficient
+"""
+    eval_dice(data::AssociationDataFormat)
+
+Compute the Dice coefficient for each collocate pair.
+
+# Arguments
+- `data`: AssociationDataFormat with contingency counts.
+
+# Formula
+Dice = 2a / (m + k)
+Notes: Uses a small numerical guard (max(m + k, eps())) to avoid divide-by-zero in degenerate rows (e.g., when m = 0 or k = 0 or a = 0). In well-formed tables the guard never triggers.
+
+Where:
+- `a` = co-occurrence frequency
+- `m` = f(node)
+- `k` = f(collocate)
+
+# Notes
+Returns a `Vector{Float64}` aligned with `assoc_df(data)`.
+"""
 function eval_dice(data::AssociationDataFormat)
     @extract_values data a m k
     (2 .* a) ./ max.(m .+ k, eps())

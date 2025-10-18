@@ -5,8 +5,8 @@
 """
 Safe logarithm that handles zero and negative values.
 """
-log_safe(x::Real) = log(max(x, eps()))
-log2_safe(x::Real) = log2(max(x, eps()))
+log_safe(x::Real) = log(max(float(x), eps(Float64)))
+log2_safe(x::Real) = log2(max(float(x), eps(Float64)))
 
 """
     available_metrics() -> Vector{DataType}
