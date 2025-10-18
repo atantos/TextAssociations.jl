@@ -26,29 +26,6 @@ const _STATUS_OK = "ok"
 const _STATUS_EMPTY = "empty"
 const _STATUS_ERROR = "error"
 
-# ------------------------------------------------------------
-# Numeric promotion helper (one-time float promotion of counts)
-# ------------------------------------------------------------
-"""
-    promote_counts(x::AssociationDataFormat, ::Type{T}=Float64) -> AssociationDataFormat
-
-Return a copy of `x` with numeric contingency arrays promoted to floating type `T`
-(default `Float64`). Non-numeric fields are preserved unchanged.
-"""
-function promote_counts(x::AssociationDataFormat, ::Type{T}=Float64) where {T<:AbstractFloat}
-    # Replace only the standard count fields; keep everything else as-is.
-    # This assumes the struct has fields a,b,c,d,m,k,N; adapt if yours differ.
-    names_to_replace = (:a, :b, :c, :d, :m, :k, :N)
-    pairs = Pair{Symbol,Any}[]
-    for name in fieldnames(typeof(x))
-        if name in names_to_replace
-            push!(pairs, name => T.(getfield(x, name)))
-        else
-            push!(pairs, name => getfield(x, name))
-        end
-    end
-    return AssociationDataFormat(; pairs...)
-end
 
 # Build the typed empty shell for a single metric
 function _empty_result(x::AssociationDataFormat, ::Type{T};
@@ -107,23 +84,9 @@ function assoc_score(::Type{T}, x::AssociationDataFormat;
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...) where {T<:AssociationMetric}
 
-    # Promote numeric counts once, then delegate to the choke-point helper
-    x_f = promote_counts(x, Float64)
-    return _assoc_score_promoted(T, x_f; scores_only=scores_only, tokens=tokens, kwargs...)
-end
-
-# --------------------------------------------------------------------
-# Internal choke point that assumes counts are already promoted to Float
-# (This is the old assoc_score body, lifted unchanged into a helper.)
-# --------------------------------------------------------------------
-function _assoc_score_promoted(::Type{T}, x::AssociationDataFormat;
-    scores_only::Bool=false,
-    tokens::Union{Nothing,Vector{String}}=nothing,
-    kwargs...) where {T<:AssociationMetric}
-
     f = _resolve_metric_function(T)
-    needs_tok = NeedsTokens(T)
-    df_in = assoc_df(x)
+    needs_tok = NeedsTokens(T)                      # already defined in api.jl
+    df_in = assoc_df(x)                             # unified accessor
 
     # If there is literally no contingency data, return a typed empty result
     if isempty(df_in)
@@ -135,12 +98,14 @@ function _assoc_score_promoted(::Type{T}, x::AssociationDataFormat;
                _empty_result(x, T; reason=reason)
     end
 
+    # Token guard for token-requiring metrics (e.g., LexicalGravity)
     if needs_tok === Val(true)
         toks = tokens === nothing ? assoc_tokens(x) : tokens
         if toks === nothing
             return scores_only ? Float64[] :
                    _empty_result(x, T; reason="Metric $(T) requires tokens but none were provided or available via assoc_tokens().")
         end
+        # Safe compute with tokens
         scores = try
             f(x; tokens=toks, kwargs...)
         catch err
@@ -156,6 +121,7 @@ function _assoc_score_promoted(::Type{T}, x::AssociationDataFormat;
             out
         end
     else
+        # Count-only metrics: do *not* pass tokens kwarg
         scores = try
             f(x; kwargs...)
         catch err
@@ -200,11 +166,8 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
     if scores_only
         # Return Dict, empty if no rows
         return isempty(df_in) ? Dict{String,Vector{Float64}}() :
-        begin
-            x_f = promote_counts(x, Float64)  # promote once for all metrics
-            Dict(String(nameof(T)) => _assoc_score_promoted(T, x_f; scores_only=true, tokens=tokens, kwargs...)
-                 for T in metrics)
-        end
+               Dict(String(nameof(T)) => assoc_score(T, x; scores_only=true, tokens=tokens, kwargs...)
+                    for T in metrics)
     else
         if isempty(df_in)
             present = assoc_node_present(x)
@@ -214,8 +177,6 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
             return _empty_multi_result(x, metrics; reason=reason)
         end
 
-        x_f = promote_counts(x, Float64)  # promote once
-
         out = DataFrame(
             Node=fill(assoc_node(x), nrow(df_in)),
             Collocate=String.(df_in.Collocate),
@@ -223,8 +184,8 @@ function assoc_score(metrics::AbstractVector{<:Type{<:AssociationMetric}},
         )
 
         for T in metrics
-            # Use the promoted choke point to avoid repeated promotion
-            out[!, Symbol(nameof(T))] = _assoc_score_promoted(T, x_f; scores_only=true, tokens=tokens, kwargs...)
+            # We reuse the single-metric assoc_score in scores_only mode
+            out[!, Symbol(nameof(T))] = assoc_score(T, x; scores_only=true, tokens=tokens, kwargs...)
         end
         metadata!(out, "status", _STATUS_OK, style=:note)
         return out
