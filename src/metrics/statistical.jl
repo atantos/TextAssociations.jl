@@ -3,56 +3,76 @@
 # Statistical metrics
 # =====================================
 
-# Log-Likelihood Ratio (G²) — Dunning (1993)
+# Fisher’s Exact Test — right-tailed p-value
 """
-    eval_g2(data::AssociationDataFormat)
+    eval_fisherright(data::AssociationDataFormat)
 
-Compute the Log-Likelihood Ratio statistic G² for 2×2 contingency tables.
+Compute the right-tailed Fisher’s Exact Test p-value for each 2×2 table row.
 
 # Arguments
-- `data`: AssociationDataFormat with contingency counts.
+- `data`: AssociationDataFormat with counts.
 
 # Definition
-For observed counts `a,b,c,d` and expected counts `E₁₁,E₁₂,E₂₁,E₂₂` from the
-marginals, the per-row statistic is:
+Given a 2×2 table with row totals `m = a + b`, `n = c + d`,
+column total `k = a + c`, and `N = a + b + c + d`, the hypergeometric
+pmf for observing `x` co-occurrences is:
 
-G² = 2 · Σ Oᵢⱼ · ln(Oᵢⱼ / Eᵢⱼ)   (with convention 0·ln(0/E)=0)
+    pmf(x) = C(m, x) * C(n, k - x) / C(N, k)
 
-Expected counts for a 2×2 come from row/column marginals:
-- `m = a + b`, `n = c + d = N - m`
-- `k = a + c`, `ℓ = b + d = N - k`
-- `E₁₁ = m·k/N`, `E₁₂ = m·ℓ/N`, `E₂₁ = n·k/N`, `E₂₂ = n·ℓ/N`
+The **right-tailed** p-value is:
+    
+    p_right = Σ_{x = a}^{min(m, k)} pmf(x)
 
 # Notes
-- Uses **natural log** (`ln`) as standard in G²; if you prefer log base 2, multiply by `2ln(2)` accordingly.
-- Fully fused implementation (no temporaries), with **float promotion only where needed** to avoid integer overflow (e.g., `float(m) * k`).
-- Guards:
-  - `N` and each `Eᵢⱼ` are floored with `eps(Float64)` to prevent division by zero.
-  - Terms with `Oᵢⱼ == 0` contribute 0 by convention.
-- Returns `Vector{Float64}` aligned with `assoc_df(data)`.
+- We compute `pmf(a)` once via log-space (`logfactorial`), then sum the tail using
+  the stable recurrence `p(x+1) = p(x) * r(x)`, where:
+  
+    r(x) = [(m - x)/(x + 1)] * [(k - x)/(n - (k - x))]
+
+- Fully vectorized: a small scalar helper is dot-called over all rows (`@.` fused).
+- Returns a `Vector{Float64}` with one p-value per row.
+- For ranking as an association score, a common transform is `-log10(p_right)`.
 """
-function eval_g2(data::AssociationDataFormat)
+function eval_fisherright(data::AssociationDataFormat)
     @extract_values data a b c d m k N
-    @. begin
-        Nf = max(float(N), eps(Float64))
-        mf = float(m)
-        kf = float(k)
-        n = Nf - mf
-        ell = Nf - kf
 
-        E11 = (mf * kf) / Nf
-        E12 = (mf * ell) / Nf
-        E21 = (n * kf) / Nf
-        E22 = (n * ell) / Nf
+    # Scalar helper for a single row (fast, stable, no extra allocations)
+    @inline function _fisherright_one(a::Int, m::Int, k::Int, N::Int)::Float64
+        # Derive n; basic sanity checks (return p=1.0 if row is structurally invalid)
+        n = N - m
+        if N < 0 || m < 0 || n < 0 || k < 0 || k > N
+            return 1.0
+        end
+        # Valid range for a given marginals (clamp a into feasible hypergeometric support)
+        a_min = max(0, k - n)
+        a_max = min(m, k)
+        if a_max < a_min
+            return 1.0
+        end
+        a0 = clamp(a, a_min, a_max)
 
-        t11 = ifelse(a > 0, a * log(a / max(E11, eps(Float64))), 0.0)
-        t12 = ifelse(b > 0, b * log(b / max(E12, eps(Float64))), 0.0)
-        t21 = ifelse(c > 0, c * log(c / max(E21, eps(Float64))), 0.0)
-        t22 = ifelse(d > 0, d * log(d / max(E22, eps(Float64))), 0.0)
+        # pmf at a0 in log-space: log C(m, a0) + log C(n, k-a0) - log C(N, k)
+        @inline logchoose(n::Integer, r::Integer) = logfactorial(n) - logfactorial(r) - logfactorial(n - r)
+        logp = logchoose(m, a0) + logchoose(n, k - a0) - logchoose(N, k)
+        p = exp(logp)
+        s = p
 
-        2.0 * (t11 + t12 + t21 + t22)
+        # Sum tail upwards using recurrence:
+        # p(x+1) = p(x) * ((m - x)/(x + 1)) * ((k - x)/(n - (k - x)))
+        x = a0
+        while x < a_max && p > 0.0
+            r = ((m - x) / (x + 1)) * ((k - x) / (n - (k - x)))
+            p *= r
+            s += p
+            x += 1
+        end
+        return min(s, 1.0)
     end
+
+    # Vectorized evaluation (one p_right per row)
+    @. _fisherright_one(a, m, k, N)
 end
+
 
 # Minimum Sensitivity
 """

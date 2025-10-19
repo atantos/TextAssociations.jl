@@ -80,7 +80,7 @@ export
 
     # All metric types
     PMI, PMI², PMI³, PPMI,
-    LLR, LLR²,
+    LLR, LLR², FisherRight,
     DeltaPi, MinSens,
     Dice, LogDice,
     RelRisk, LogRelRisk, RiskDiff, AttrRisk,

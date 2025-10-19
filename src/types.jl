@@ -72,7 +72,7 @@ TextNorm(nt::NamedTuple) = TextNorm(; pairs(nt)...)
 # Define metric types programmatically
 const METRIC_TYPES = [
     :PMI, :PMI², :PMI³, :PPMI,
-    :LLR, :LLR²,
+    :LLR, :LLR², :FisherRight,
     :DeltaPi, :MinSens,
     :Dice, :LogDice,
     :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk,
@@ -115,7 +115,12 @@ const _METRIC_REGISTRY = Dict{Symbol,NamedTuple}(
         short="P(X|Y) − P(X|¬Y): leftward influence.",
         needs_tokens=false,
         family=:directional,
-        ref="Gries (2013)")
+        ref="Gries (2013)"),
+    :FisherRight => (title="Fisher’s Exact (right-tailed)",
+        short="Exact hypergeometric p-value for over-association; often ranked via −log₁₀(p).",
+        needs_tokens=false,
+        family=:statistical,
+        ref="Fisher (1922, 1925)")
     # …extend over time; unknowns get a generic doc
 )
 
