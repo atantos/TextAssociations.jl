@@ -73,7 +73,7 @@ TextNorm(nt::NamedTuple) = TextNorm(; pairs(nt)...)
 const METRIC_TYPES = [
     :PMI, :PMI², :PMI³, :PPMI,
     :LLR, :LLR², :FisherRight,
-    :DeltaPi, :MinSens,
+    :DeltaPiLeft, :DeltaPiRight, :MinSens,
     :Dice, :LogDice,
     :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk,
     :OddsRatio, :LogOddsRatio,
