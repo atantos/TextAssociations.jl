@@ -95,3 +95,120 @@ function eval_g2(data::AssociationDataFormat)
         2.0 * (t11 + t12 + t21 + t22)
     end
 end
+
+############################
+# Bayesian-smoothed PMI (symmetric Dirichlet smoothing)
+############################
+
+"""
+    eval_bpmi(data::AssociationDataFormat; λ::Float64=0.5) -> Vector{Float64}
+
+Bayesian PMI with symmetric Dirichlet(λ) smoothing on the 2×2 table.
+
+Uses posterior-mean plug-in probabilities:
+
+    p̂(x,y) = (a + λ) / (N + 4λ)
+    p̂(x)   = (m + 2λ) / (N + 4λ)
+    p̂(y)   = (k + 2λ) / (N + 4λ)
+
+Returns log(p̂(x,y) / (p̂(x)p̂(y))) as a vector aligned to rows of `assoc_df(data)`.
+
+`λ=0.5` (Jeffreys) is a sensible default for sparse lexical counts.
+"""
+function eval_bpmi(data::AssociationDataFormat; λ::Float64=0.5)
+    df = assoc_df(data)
+    isempty(df) && return Float64[]
+
+    @inbounds begin
+        a = df.a
+        m = df.m
+        k = df.k
+        N = df.N
+
+        # Smoothed components
+        N_ = N .+ 4λ
+        a_ = a .+ λ
+        m_ = m .+ 2λ
+        k_ = k .+ 2λ
+
+        # BPMI = log( (a_/N_) / ((m_/N_)*(k_/N_)) ) = log( a_*N_ / (m_*k_) )
+        return log.((a_ .* N_) ./ (m_ .* k_)) .|> log_safe
+    end
+end
+
+
+############################
+# Bayesian-smoothed LLR (plug-in, single λ)
+############################
+
+"""
+    eval_bllr(data::AssociationDataFormat; λ::Float64=0.5) -> Vector{Float64}
+
+Bayesian-smoothed variant of the Log-Likelihood Ratio (Dunning-style)
+computed *on a table smoothed with symmetric Dirichlet(λ)*.
+
+We form a smoothed 2×2:
+
+    a' = a + λ,  b' = b + λ,  c' = c + λ,  d' = d + λ
+    m' = a'+b',  n' = c'+d',  N' = m' + n'
+    p'  = (a' + c') / N'       # pooled success prob under H0
+    p1' = a' / m'              # success prob row 1 (H1)
+    p2' = c' / n'              # success prob row 2 (H1)
+
+Then classic LLR on smoothed counts:
+
+    LLR' = 2 * [ a' log(a'/(m' p')) + b' log(b'/(m'(1-p'))) +
+                 c' log(c'/(n' p')) + d' log(d'/(n'(1-p'))) ]
+
+Returns a non-negative vector of doubles.
+"""
+function eval_bllr(data::AssociationDataFormat; λ::Float64=0.5)
+    df = assoc_df(data)
+    isempty(df) && return Float64[]
+
+    @inbounds begin
+        a = df.a
+        b = df.b
+        c = df.c
+        d = df.d
+        # Smoothed cells & margins
+        ap = a .+ λ
+        bp = b .+ λ
+        cp = c .+ λ
+        dp = d .+ λ
+
+        mp = ap .+ bp
+        np = cp .+ dp
+        Np = mp .+ np
+
+        # Smoothed probabilities
+        pp = (ap .+ cp) ./ Np
+        one_minus_pp = 1 .- pp
+        p1p = ap ./ mp
+        p2p = cp ./ np
+
+        # Helper: x * log(x / (base)) with guards
+        @inline term(x, base) = (x .> 0) .* (x .* (log.(max.(x ./ max.(base, eps()), eps()))))
+
+        # H0 terms (pooled p')
+        t1 = term(ap, mp .* pp)
+        t2 = term(bp, mp .* one_minus_pp)
+        t3 = term(cp, np .* pp)
+        t4 = term(dp, np .* one_minus_pp)
+
+        # H1 terms (separate p1', p2') — but in LLR we subtract H0 from H1;
+        # the standard compact form with counts already incorporates both by using the same 'term' pattern.
+        # Since we've written the H0 version explicitly, we can compute H1 by:
+        u1 = term(ap, mp .* p1p)
+        u2 = term(bp, mp .* (1 .- p1p))
+        u3 = term(cp, np .* p2p)
+        u4 = term(dp, np .* (1 .- p2p))
+
+        # 2 * [ (H1 sum) - (H0 sum) ]
+        llr = 2 .* ((u1 .+ u2 .+ u3 .+ u4) .- (t1 .+ t2 .+ t3 .+ t4))
+
+        # numerical floor at zero (tiny negatives from fp error)
+        return max.(llr, 0.0)
+    end
+end
+

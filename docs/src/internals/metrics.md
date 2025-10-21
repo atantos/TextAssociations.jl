@@ -22,10 +22,10 @@ is automatically passed by `assoc_score` based on internal traits (`NeedsTokens(
 Modules = [TextAssociations]
 Pages = [
   "metrics/directional.jl",
-  "metrics/lexical_gravity.jl",
   "metrics/information_theoretic.jl",
   "metrics/similarity.jl",
   "metrics/statistical.jl",
+  "metrics/epidemiological.jl",
 ]
 Private = true
 ```

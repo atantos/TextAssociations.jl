@@ -72,8 +72,9 @@ TextNorm(nt::NamedTuple) = TextNorm(; pairs(nt)...)
 # Define metric types programmatically
 const METRIC_TYPES = [
     :PMI, :PMI², :PMI³, :PPMI,
-    :LLR, :LLR², :FisherRight,
-    :DeltaPiLeft, :DeltaPiRight, :MinSens,
+    :LLR, :LLR²,
+    :BPMI, :BLLR,
+    :FisherRight, :DeltaPiLeft, :DeltaPiRight, :MinSens,
     :Dice, :LogDice,
     :RelRisk, :LogRelRisk, :RiskDiff, :AttrRisk,
     :OddsRatio, :LogOddsRatio,
@@ -120,9 +121,21 @@ const _METRIC_REGISTRY = Dict{Symbol,NamedTuple}(
         short="Exact hypergeometric p-value for over-association; often ranked via −log₁₀(p).",
         needs_tokens=false,
         family=:statistical,
-        ref="Fisher (1922, 1925)")
-    # …extend over time; unknowns get a generic doc
+        ref="Fisher (1922, 1925)"),
+    :BPMI => (
+        title="Bayesian Pointwise Mutual Information",
+        short="Regularized PMI with symmetric Dirichlet(λ) prior; stabilizes low-frequency estimates.",
+        needs_tokens=false,
+        family=:information_theoretic,
+        ref="Jeffreys (1946); see also Evert (2005), Gries (2019)"),
+    :BLLR => (
+        title="Bayesian Log-Likelihood Ratio",
+        short="Smoothed LLR computed on a 2×2 table with symmetric Dirichlet(λ) prior; reduces overestimation for rare pairs.",
+        needs_tokens=false,
+        family=:information_theoretic,
+        ref="Dunning (1993); Jeffreys (1946)")
 )
+
 
 # 3) Helper to render a docstring for a given metric Symbol
 function _metric_doc(sym::Symbol)

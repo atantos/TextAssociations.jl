@@ -1058,31 +1058,6 @@ function write_results(analysis::MultiNodeAnalysis, path::AbstractString; format
 end
 
 # =====================================
-# Extend assoc_score for corpus types
-# =====================================
-
-# """
-#     assoc_score(metric::Type{<:AssociationMetric}, cct::CorpusContingencyTable)
-
-# Evaluate a metric on a corpus contingency table by wrapping the corpus-level
-# lazy aggregated table into a `ContingencyTable` without materializing it.
-# """
-# function assoc_score(::Type{T}, cct::CorpusContingencyTable) where {T<:AssociationMetric}
-#     # Keep the aggregation lazy: pass the existing LazyProcess straight through.
-#     temp_ct = ContingencyTable(
-#         cct.aggregated_table,            # LazyProcess{…,DataFrame}
-#         cct.node,
-#         cct.windowsize,
-#         cct.minfreq,
-#         LazyInput(StringDocument("")),
-#         cct.norm_config   # Use the corpus's normalization config
-#     )
-
-#     return assoc_score(T, temp_ct)
-# end
-
-
-# =====================================
 # Example Usage - UPDATED
 # =====================================
 
