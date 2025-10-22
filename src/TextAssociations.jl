@@ -12,6 +12,7 @@ using SparseArrays: SparseMatrixCSC
 using Chain
 using ProgressMeter
 using Unicode
+using SpecialFunctions: logbeta
 
 # === Types & core ===
 include("types.jl")

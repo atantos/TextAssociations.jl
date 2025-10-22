@@ -3,9 +3,6 @@
 # Information-theoretic metrics
 # =====================================
 
-# helper function: log Beta function
-@inline logbeta(x::Real, y::Real) = lgamma(x) + lgamma(y) - lgamma(x + y)
-
 # Pointwise Mutual Information
 function eval_pmi(data::AssociationDataFormat)
     @extract_values data a N k m
