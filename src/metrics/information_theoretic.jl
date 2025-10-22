@@ -3,6 +3,9 @@
 # Information-theoretic metrics
 # =====================================
 
+# helper function: log Beta function
+@inline logbeta(x::Real, y::Real) = lgamma(x) + lgamma(y) - lgamma(x + y)
+
 # Pointwise Mutual Information
 function eval_pmi(data::AssociationDataFormat)
     @extract_values data a N k m
@@ -212,3 +215,32 @@ function eval_bllr(data::AssociationDataFormat; λ::Float64=0.5)
     end
 end
 
+"""
+    eval_bayesllr(data::AssociationDataFormat; λ::Float64=0.5) -> Vector{Float64}
+
+Pure Bayesian evidence for association in a 2×2 table via a Bayes factor
+between H₁: different proportions vs H₀: equal proportion (independence),
+using symmetric Beta(λ, λ) priors. Returns `2 * log(BF₁₀)`.
+
+For counts (a,b;c,d):
+    log BF10 = log B(a+λ, b+λ) + log B(c+λ, d+λ)
+               - log B(a+c+λ, b+d+λ) - log B(λ, λ)
+"""
+function eval_bayesllr(data::AssociationDataFormat; λ::Float64=0.5)
+    df = assoc_df(data)
+    isempty(df) && return Float64[]
+
+    @inbounds begin
+        a = df.a
+        b = df.b
+        c = df.c
+        d = df.d
+        lb0 = logbeta(λ, λ)
+
+        logbf = logbeta.(a .+ λ, b .+ λ) .+
+                logbeta.(c .+ λ, d .+ λ) .-
+                logbeta.(a .+ c .+ λ, b .+ d .+ λ) .- lb0
+
+        return 2 .* logbf
+    end
+end

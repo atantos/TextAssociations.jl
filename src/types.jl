@@ -92,7 +92,8 @@ const METRIC_TYPES = [
     :MountfordCoef, :MountfordCoef2,
     :SokalSneathIdx, :SokalMichenerCoef,
     :LexicalGravity, :DeltaPiLeft, :DeltaPiRight,
-    :Tscore, :Zscore, :ChiSquare
+    :Tscore, :Zscore, :ChiSquare,
+    :BayesLLR
 ]
 
 # 2) Optional: a registry with nice descriptions & flags (fill incrementally)
@@ -133,7 +134,14 @@ const _METRIC_REGISTRY = Dict{Symbol,NamedTuple}(
         short="Smoothed LLR computed on a 2×2 table with symmetric Dirichlet(λ) prior; reduces overestimation for rare pairs.",
         needs_tokens=false,
         family=:information_theoretic,
-        ref="Dunning (1993); Jeffreys (1946)")
+        ref="Dunning (1993); Jeffreys (1946)"),
+    :BbaysLLR => (
+        title="Bayesian Evidence Ratio (Bayes LLR)",
+        short="True Bayesian evidence (2·log BF₁₀) for dependence vs independence with Beta(λ,λ) priors.",
+        needs_tokens=false,
+        family=:information_theoretic,
+        ref="Jeffreys (1939); Kass & Raftery (1995); Dunning (1993)"
+    )
 )
 
 

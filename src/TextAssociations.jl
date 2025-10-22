@@ -102,6 +102,7 @@ export
     LexicalGravity,
     ChiSquare, Tscore, Zscore,
     DeltaPiLeft, DeltaPiRight,
+    BayesLLR,
 
     # DataFrame utilities
     write_results,
