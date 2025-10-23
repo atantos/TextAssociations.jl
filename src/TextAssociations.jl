@@ -24,8 +24,6 @@ include("utils/statistical.jl")
 include("utils/text_analysis.jl")
 include("utils/compare_metrics.jl")
 
-using .CompareMetrics: compare_metrics, MetricComparison
-
 # === Core data structures ===
 include("core/contingency_table.jl")
 include("core/corpus_analysis.jl")
