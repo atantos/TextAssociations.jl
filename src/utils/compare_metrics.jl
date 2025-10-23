@@ -114,7 +114,7 @@ function _topk_overlap(df::DataFrame, metrics::Vector{Symbol}; ks::Vector{Int}=[
 end
 
 # Per-collocate Δrank for a specified pair (defaults to first two metrics)
-function _rank_deltas(df::DataFrame, metrics::Vector[Symbol]; pair::Union{Nothing,Tuple{Symbol,Symbol}}=nothing)
+function _rank_deltas(df::DataFrame, metrics::Vector{Symbol}; pair::Union{Nothing,Tuple{Symbol,Symbol}}=nothing)
     chosen = pair === nothing ? (metrics[1], metrics[2]) : pair
     R = _metric_ranks(df, metrics)
     base = DataFrame(Collocate = hasproperty(df, :Collocate) ? df.Collocate : 1:nrow(df))
