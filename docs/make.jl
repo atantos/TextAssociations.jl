@@ -43,6 +43,7 @@ makedocs(
             # "Concordance" => "advanced/concordance.md",
         ],
         "API Reference" => [
+            "Evaluation Flow (Mental Model)" => "api/mental_model.md",
             "Overview" => "api/index.md",
             "Core Types" => "api/types.md",
             "Main Functions" => "api/functions.md",
