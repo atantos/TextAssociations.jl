@@ -8,7 +8,7 @@
 
 ## 🎯 Introduction
 
-`TextAssociations.jl` is a `Julia` package for word association analysis and corpus-based research in linguistics, social sciences and the digital humanities. It provides a unified framework to quantify lexical relationships within texts and corpora using 49 association measures—spanning statistical, information-theoretic, epidemiological and lexical-gravity approaches—for transparent, data-driven analysis of how words co-occur and connect across discourse.
+`TextAssociations.jl` is a `Julia` package for word association analysis and corpus-based research in linguistics, social sciences and the digital humanities. It provides a unified framework to quantify lexical relationships within texts and corpora using 51 association measures—spanning statistical, information-theoretic, epidemiological and lexical-gravity approaches—for transparent, data-driven analysis of how words co-occur and connect across discourse.
 
 ⚠️ Early Release Notice
 This is an early, pre-registration release of `TextAssociations.jl`.
@@ -44,7 +44,7 @@ Even in the era of transformer models and word embeddings, association metrics r
 
 ## ✨ Core Features
 
-### 📈 **49 Association Metrics**
+### 📈 **51 Association Metrics**
 
 Comprehensive suite including `PMI`, `Log-likelihood`, `Dice`, `Jaccard`, `Lexical Gravity` and many more specialized measures from corpus linguistics, information theory and even some association metrics inspired from epidemiology.
 
@@ -117,7 +117,7 @@ write_results(analysis, "results/", format=:csv)
 
 ## 📊 Supported Metrics
 
-`TextAssociations.jl` supports 49 metrics organized by category:
+`TextAssociations.jl` supports 51 metrics organized by category:
 
 ### Information-Theoretic Metrics
 
@@ -153,7 +153,7 @@ write_results(analysis, "results/", format=:csv)
 ### Complete Metric List
 
 <details>
-<summary>Click to see all 9 metrics with formulas</summary>
+<summary>Click to see all 51 metrics with formulas</summary>
 
 | Metric            | Type          | Formula                                              |
 | ----------------- | ------------- | ---------------------------------------------------- |
