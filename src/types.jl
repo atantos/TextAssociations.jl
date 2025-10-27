@@ -91,8 +91,8 @@ const METRIC_TYPES = [
     :SorgenfreyIdx, :SorgenfreyIdx2,
     :MountfordCoef, :MountfordCoef2,
     :SokalSneathIdx, :SokalMichenerCoef,
-    :LexicalGravity, :DeltaPiLeft, :DeltaPiRight,
-    :Tscore, :Zscore, :ChiSquare,
+    :LexicalGravity, :Tscore,
+    :Zscore, :ChiSquare,
     :BayesLLR
 ]
 
