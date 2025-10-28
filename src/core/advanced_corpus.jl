@@ -64,7 +64,7 @@ end
                             nodes::Vector{String},
                             time_field::Symbol,
                             metric::Type{<:AssociationMetric};
-                            time_bins::Int=10,
+                            time_bins::Int=5,
                             windowsize::Int=5,
                             minfreq::Int=5) -> TemporalCorpusAnalysis
 
