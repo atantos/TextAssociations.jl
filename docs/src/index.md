@@ -277,7 +277,6 @@ TextAssociations.jl
 ├─ Analysis Functions
 │  ├─ analyze_node / analyze_nodes
 │  ├─ corpus_stats, token_distribution, vocab_coverage
-│  ├─ write_results, export/load with metadata
 │  ├─ batch_process_corpus, stream_corpus_analysis
 │  └─ keyterms (TF-IDF; RAKE/TextRank placeholders)
 │

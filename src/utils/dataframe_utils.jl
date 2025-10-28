@@ -4,14 +4,14 @@
 # =====================================
 
 """
-    write_results(df::DataFrame) -> Dict{String, Any}
+    extract_results_metadata(df::DataFrame) -> Dict{String, Any}
 
 Extract all analysis metadata from a result DataFrame.
 
 # Returns
 Dictionary containing available metadata fields like metric, node, windowsize, etc.
 """
-function write_results(df::DataFrame)
+function extract_results_metadata(df::DataFrame)
     info = Dict{String,Any}()
     metadata_keys = ["metric", "metrics", "node", "windowsize", "minfreq",
         "top_n", "analysis_type", "corpus_size", "timestamp"]

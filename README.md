@@ -110,9 +110,6 @@ results = analyze_node(corpus, "innovation", PMI, windowsize=5, minfreq=10)
 nodes = ["technology", "innovation", "research"]
 metrics = [PMI, LogDice, LLR, ChiSquare]
 analysis = analyze_nodes(corpus, nodes, metrics, top_n=100)
-
-# Export results
-write_results(analysis, "results/", format=:csv)
 ```
 
 ## 📊 Supported Metrics

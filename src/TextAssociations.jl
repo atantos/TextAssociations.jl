@@ -68,7 +68,6 @@ export
     analyze_node, analyze_nodes,
     corpus_stats, vocab_coverage,
     coverage_summary, token_distribution,
-    write_results,
     batch_process_corpus, stream_corpus_analysis,
     # Advanced features
     analyze_temporal, compare_subcorpora,
@@ -106,8 +105,8 @@ export
     BayesLLR,
 
     # DataFrame utilities
-    write_results,
     analysis_metric,
+    extract_results_metadata,
     analysis_summary,
     filter_scores,
     export_with_metadata,

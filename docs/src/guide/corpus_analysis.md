@@ -493,35 +493,6 @@ metadata!(results_with_meta, "analysis_date", Dates.today(), style=:note)
 rm(temp_file)
 ```
 
-### Multi-format Export
-
-```@example multiformat
-using TextAssociations
-
-function export_analysis(analysis::MultiNodeAnalysis, base_path::String)
-    # Export as CSV
-    write_results(analysis, base_path * ".csv"; format=:csv)
-
-    # Export as JSON
-    write_results(analysis, base_path * ".json"; format=:json)
-
-    # Export summary
-    summary = DataFrame(
-        Node = analysis.nodes,
-        NumCollocates = [nrow(analysis.results[n]) for n in analysis.nodes],
-        WindowSize = analysis.parameters[:windowsize],
-        MinFreq = analysis.parameters[:minfreq]
-    )
-
-    CSV.write(base_path * "_summary.csv", summary)
-
-    println("Exported to multiple formats")
-end
-
-# Example (would create files)
-# export_analysis(analysis, "corpus_analysis")
-```
-
 ## Performance Optimization
 
 ### Corpus Size Guidelines

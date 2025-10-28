@@ -998,65 +998,6 @@ function coverage_summary(stats::Dict)
         stats[:hapax_legomena], stats[:hapax_ratio] * 100))
 end
 
-
-# =====================================
-# Export Functions - UPDATED
-# =====================================
-
-"""
-    write_results(analysis::MultiNodeAnalysis, path::AbstractString; format::Symbol=:csv)
-
-Export analysis results to file. Results now include Node column.
-"""
-function write_results(analysis::MultiNodeAnalysis, path::AbstractString; format::Symbol=:csv)
-    if format == :csv
-        # Option 1: Export each node's results to separate files
-        for (node, results) in analysis.results
-            if !isempty(results)
-                filename = joinpath(path, "$(node)_results.csv")
-                CSV.write(filename, results)
-            end
-        end
-
-        # Option 2: Also create a combined file with all results
-        all_results = DataFrame()
-        for (node, results) in analysis.results
-            if !isempty(results)
-                all_results = vcat(all_results, results, cols=:union)
-            end
-        end
-        if !isempty(all_results)
-            CSV.write(joinpath(path, "all_results_combined.csv"), all_results)
-        end
-
-        # Export summary
-        summary = DataFrame(
-            Node=analysis.nodes,
-            NumCollocates=[nrow(analysis.results[node]) for node in analysis.nodes]
-        )
-        CSV.write(joinpath(path, "summary.csv"), summary)
-
-    elseif format == :json
-        # Export all results as JSON
-        json_data = Dict(
-            "parameters" => analysis.parameters,
-            "results" => Dict(node => Dict(
-                "collocates" => [Dict(pairs(row)) for row in eachrow(results)]
-            ) for (node, results) in analysis.results if !isempty(results))
-        )
-
-        open(path, "w") do io
-            JSON.print(io, json_data, 2)
-        end
-
-    elseif format == :excel
-        # Requires XLSX package
-        XLSX.writetable(path,
-            [("$(node)" => analysis.results[node]) for node in analysis.nodes]...,
-            overwrite=true)
-    end
-end
-
 # =====================================
 # Example Usage - UPDATED
 # =====================================
@@ -1083,10 +1024,7 @@ function demonstrate_corpus_analysis()
         corpus, nodes, metrics;
         windowsize=5, minfreq=10, top_n=50
     )
-
     # Each result DataFrame now includes the Node column
-    # Export results - the exported files will include the Node column
-    write_results(multi_analysis, "results/", format=:csv)
 
     # Example 4: Combine results from multiple nodes into single DataFrame
     all_results = DataFrame()
@@ -1170,7 +1108,6 @@ function batch_process_corpus(corpus::Corpus,
         # Save batch results
         batch_dir = joinpath(output_dir, "batch_$batch_num")
         mkpath(batch_dir)
-        write_results(analysis, batch_dir, format=:csv)
 
         # Collect all results
         for (node, df) in analysis.results
