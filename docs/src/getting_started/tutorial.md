@@ -7,15 +7,7 @@ DocTestSetup = quote
 end
 ```
 
-This tutorial provides a comprehensive introduction to TextAssociations.jl. By the end, you'll understand how to analyze word associations in text and interpret the results.
-
-## Prerequisites
-
-This tutorial assumes you have:
-
-- Julia 1.9 or later installed
-- TextAssociations.jl installed (`using Pkg; Pkg.add("TextAssociations")`)
-- Basic familiarity with Julia
+This tutorial provides a first introduction to `TextAssociations.jl`. By the end, you'll understand how to analyze word associations in text and interpret the results.
 
 ## Your First Analysis
 
@@ -30,12 +22,14 @@ using DataFrames
 
 ### Step 2: Prepare Your Text
 
+The first step in calculating association measures is to prepare your text as a single string. In many cases, you may start with an array (or vector) of document strings; for example, one string per document in a corpus. To compute word associations across the entire dataset, it’s often useful to concatenate these individual documents into a single unified text string. This provides a continuous text stream from which co-occurrence patterns can be extracted and analyzed.
+
 ```@example tutorial
 docs = [
-    "Machine learning algorithms can learn from data without explicit programming.",
-    "Deep learning is a subset of machine learning that uses neural networks.",
-    "Artificial intelligence includes machine learning and deep learning techniques.",
-    "Neural networks are the foundation of modern deep learning systems."
+    "Machine learning algorithms can learn from data without explicit programming, making learning an intrinsic part of how computers adapt to new information. Through iterative learning cycles, these algorithms identify patterns, refine their predictions, and continue learning from mistakes or feedback. Instead of following fixed rules, they rely on statistical learning models that evolve as more data becomes available. From spam detection to medical image analysis, machine learning represents a paradigm shift — where learning itself becomes the engine that powers continuous improvement and innovation.",
+    "Deep learning is a subset of machine learning that emphasizes multi-layered representations and hierarchical learning processes. Each layer of a deep neural network performs its own stage of learning, extracting progressively more abstract features from raw data. This depth of learning allows systems to achieve human-like performance in recognizing speech, images, and text. Deep learning thrives on massive datasets where the learning process can uncover subtle, non-linear relationships. It has reshaped industries by proving how learning can scale to unprecedented levels of complexity and precision.",
+    "Artificial intelligence includes both machine learning and deep learning techniques, which together enable continuous and adaptive learning. In this broader sense, learning is central to how AI systems reason, plan, and interact with their environment. Traditional rule-based AI has gradually evolved toward learning-driven models that improve with experience. Whether through reinforcement learning for strategic games or transfer learning for adapting to new domains, the essence of AI lies in cultivating learning behaviors that mirror, and sometimes surpass, human capabilities. Thus, learning is not just a component of AI—it is its defining characteristic.",
+    "Neural networks form the backbone of deep learning systems, embodying one of the most powerful learning architectures ever created. Designed to simulate biological neurons, each unit participates in the learning process by adjusting its weights based on errors during training. This collective learning enables networks to capture intricate dependencies in data and generalize across tasks. From early perceptron models to transformer-based architectures, the evolution of neural networks has been driven by deeper and more efficient forms of learning. As a result, these systems have revolutionized what learning means in the context of artificial intelligence."
 ]
 
 # Combine documents into one text
@@ -45,10 +39,10 @@ println("Text length: ", length(s), " characters")
 
 ### Step 3: Create a Contingency Table
 
-The contingency table captures co-occurrence patterns between your target word and its context.
+The contingency table is a central component in the workflow of `TextAssociations.jl`. It represents the co-occurrence structure between a target word and its surrounding context, serving as the foundation for calculating all association measures.
 
 ```@example tutorial
-# Analyze the word "learning"
+# Create the contingency table for the word "learning"
 ct = ContingencyTable(
     s,
     "learning";
@@ -56,7 +50,7 @@ ct = ContingencyTable(
     minfreq=1      # Include words appearing at least once
 )
 
-println("Contingency table created for 'learning'")
+ct
 ```
 
 **Parameters explained:**
@@ -66,7 +60,7 @@ println("Contingency table created for 'learning'")
 
 ### Step 4: Calculate Association Scores
 
-Now let's calculate PMI (Pointwise Mutual Information) scores to identify strong collocates.
+Once the contingency table is ready, you can compute association scores to identify the strongest collocates of your target word. Here, we use one of the most widely used association measures — Pointwise Mutual Information (`PMI`) — to quantify how strongly each word is associated with the target. Higher PMI values indicate stronger and more specific co-occurrence relationships.
 
 ```@example tutorial
 # Calculate PMI scores
@@ -78,7 +72,7 @@ println(first(sort(results, :PMI, rev=true), 5))
 
 ### Step 5: Try Multiple Metrics
 
-Different metrics reveal different aspects of associations.
+`TextAssociations.jl` allows you to compute multiple association measures at once, not just a single one. This makes it easy to compare how different metrics capture various aspects of word association strength. For example, `PMI` highlights rare but exclusive co-occurrences, `LogDice` provides a balanced frequency-based view, and `LLR` (Log-Likelihood Ratio) offers statistical robustness for lower-frequency data. Exploring several metrics in parallel helps you obtain a more comprehensive understanding of collocational patterns in your corpus.
 
 ```@example tutorial
 # Calculate multiple metrics at once
@@ -90,7 +84,7 @@ println(first(sort(multi_results, :PMI, rev=true), 3))
 
 ## Working with Corpora
 
-For analyzing multiple documents, use the Corpus functionality.
+When you want to analyze multiple documents, switch from a single text string to a `Corpus`. This lets you compute association measures across document boundaries while controlling context windows and frequency thresholds.
 
 ```@example tutorial
 using TextAnalysis: StringDocument
@@ -102,21 +96,27 @@ corpus = Corpus(doc_objects)
 # Analyze "learning" across the corpus
 corpus_results = analyze_node(
     corpus,
-    "learning",     # Node word
-    PMI,           # Metric
-    windowsize=3,   # Context window
-    minfreq=2      # Min frequency across corpus
+    "learning",     # Target node (node word)
+    PMI,            # Association metric (you can pass multiple metrics too)
+    windowsize=3,   # Token window on each side
+    minfreq=2       # Minimum co-occurrence frequency across the corpus
 )
 
 println("Top collocates of 'learning' in corpus:")
 println(first(corpus_results, 5))
 ```
 
+**Notes**
+
+- `windowsize` controls how far from the target word we look for collocates.
+- `minfreq` filters out very rare pairs for more reliable scores.
+- You can compute multiple measures at once by passing a vector of metrics (e.g., [`PMI`, `LogDice`, `LLR`]); the result will include one column per metric alongside frequency columns.
+
 ## Understanding the Results
 
-### Interpreting PMI Scores
+### Interpreting `PMI` Scores
 
-PMI (Pointwise Mutual Information) measures how much more likely two words co-occur than by chance:
+`PMI` (Pointwise Mutual Information) measures how much more likely two words co-occur than by chance:
 
 - **PMI > 0**: Words co-occur more than expected (positive association)
 - **PMI = 0**: Co-occurrence matches random expectation
