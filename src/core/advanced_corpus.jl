@@ -1303,3 +1303,4 @@ function kwic(corpus::Corpus,
         statistics
     )
 end
+
