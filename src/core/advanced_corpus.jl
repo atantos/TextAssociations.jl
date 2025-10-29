@@ -765,6 +765,7 @@ function colloc_graph(corpus::Corpus,
 
     centrality_syms = compute_centrality ? unique(Symbol.(centrality_metrics)) : Symbol[]
     metric_name = string(metric)
+    metric_col = Symbol(metric_name)
     norm_config = corpus.norm_config
 
     normalized_seeds = String[]
@@ -846,13 +847,13 @@ function colloc_graph(corpus::Corpus,
 
             max_neighbors == 0 && continue
 
-            mask = results.Score .>= min_score
+            mask = results[!, metric_col] .>= min_score
             filtered = view(results, mask, :)
             if nrow(filtered) == 0
                 continue
             end
 
-            sorted = sort(filtered, :Score, rev=true)
+            sorted = sort(filtered, metric_col, rev=true)
             k = min(max_neighbors, nrow(sorted))
             truncated = k < nrow(sorted) ? first(sorted, k) : sorted
 
@@ -861,7 +862,7 @@ function colloc_graph(corpus::Corpus,
 
                 push!(sources, actual_node)
                 push!(targets, collocate)
-                push!(weights, Float64(row.Score))
+                push!(weights, Float64(row[metric_col]))
                 push!(metrics_col, metric_name)
 
                 if freq_requested && freq_available
