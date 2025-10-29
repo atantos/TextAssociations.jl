@@ -51,8 +51,9 @@ struct SubcorpusComparison
     subcorpora::Dict{String,Corpus}
     node::String
     results::Dict{String,DataFrame}
-    statistical_tests::DataFrame
+    summary::DataFrame
     effect_sizes::DataFrame
+    parameters::DataFrame
 end
 
 # =====================================
@@ -248,6 +249,48 @@ end
                       minfreq::Int=5) -> SubcorpusComparison
 
 Compare word associations across different subcorpora.
+
+# Arguments
+- `corpus`: The corpus to analyze
+- `split_field`: Metadata field to split on (e.g., :field, :year, :author)
+- `node`: The target word to analyze
+- `metric`: Association metric to use (e.g., PMI, LogDice, LLR)
+- `windowsize`: Context window size (default: 5)
+- `minfreq`: Minimum co-occurrence frequency (default: 5)
+
+# Returns
+`SubcorpusComparison` containing:
+- `subcorpora`: Dictionary of subcorpora by group
+- `node`: The normalized node word
+- `results`: Association scores for each subcorpus
+- `statistical_tests`: Statistical tests comparing groups
+- `effect_sizes`: Effect sizes for differences between groups
+
+# Example
+```julia
+# Load corpus with metadata
+corpus = read_corpus_df(
+    df;
+    text_column = :text,
+    metadata_columns = [:category, :year]
+)
+
+# Compare associations across categories
+comparison = compare_subcorpora(
+    corpus,
+    :category,
+    "innovation",
+    PMI;
+    windowsize = 5,
+    minfreq = 3
+)
+
+# Examine results
+for (group, result) in comparison.results
+    println("Group: \$group")
+    println(first(result, 10))
+end
+```
 """
 function compare_subcorpora(corpus::Corpus,
     split_field::Symbol,
@@ -270,6 +313,7 @@ function compare_subcorpora(corpus::Corpus,
     # 2) Build subcorpora + run analysis
     subcorpora = Dict{String,Corpus}()
     results = Dict{String,DataFrame}()
+    metric_col = Symbol(string(metric))
 
     for g in group_names
         idxs = groups[g]
@@ -291,27 +335,38 @@ function compare_subcorpora(corpus::Corpus,
         subcorpora[g] = subcorpus
 
         df = analyze_node(subcorpus, node, metric; windowsize=windowsize, minfreq=minfreq)
+
+        # Adding group column
+        if !isempty(df)
+            insertcols!(df, 1, :Group => g)
+        end
+
         results[g] = df
     end
 
-    # 3) Summary & parameters dataframes (to satisfy the 4th/5th args)
+    # 3) Summary statistics 
     summary = DataFrame(
         Subcorpus=group_names,
-        NumCollocates=[haskey(results, g) && !isempty(results[g]) ? nrow(results[g]) : 0 for g in group_names]
+        NumCollocates=[haskey(results, g) && !isempty(results[g]) ? nrow(results[g]) : 0 for g in group_names],
+        AvgScore=[haskey(results, g) && !isempty(results[g]) ? mean(results[g][!, metric_col]) : NaN for g in group_names]
     )
 
+    # 4) Parameters info
     parameters = DataFrame(
         Parameter=["split_field", "node", "metric", "windowsize", "minfreq"],
         Value=[string(split_field), String(node), string(metric), string(windowsize), string(minfreq)]
     )
 
-    # 4) Return in the expected signature
+    # 5) Effect sizes
+    effect_sizes = calculate_effect_sizes(results, metric)
+
     return SubcorpusComparison(
         subcorpora,               # Dict{String,Corpus}
         String(node),             # node
         results,                  # Dict{String,DataFrame}
-        summary,                  # DataFrame
-        parameters                # DataFrame
+        summary,                  # Summary stats
+        effect_sizes,             # Effect sizes
+        parameters                # Parameters info
     )
 end
 
@@ -345,7 +400,7 @@ function perform_statistical_tests(results::Dict{String,DataFrame},
         end
     end
 
-    metric_col = Symbol(string(metric))
+    score_col = :Score
 
     for collocate in common_collocates
         # Collect scores across groups
@@ -354,7 +409,7 @@ function perform_statistical_tests(results::Dict{String,DataFrame},
         for (group, df) in results
             idx = findfirst(==(collocate), df.Collocate)
             if idx !== nothing
-                scores_by_group[group] = df[idx, metric_col]
+                scores_by_group[group] = df[idx, score_col]
             end
         end
 

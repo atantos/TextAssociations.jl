@@ -228,19 +228,70 @@ centrality scores, providing a quick overview of the structural role of each ter
 
 Compare associations across subcorpora:
 
-```julia
+```@example jane_austen_corpus
+using DataFrames
+using TextAssociations
+using Downloads
+
+# Helper: URL -> String via IOBuffer
+       fetch_text_io(url::AbstractString) = begin
+           io = IOBuffer()
+           Downloads.download(url, io)
+           String(take!(io))
+       end
+
+austen_books = Dict(
+           "Sense_and_Sensibility" => ("https://www.gutenberg.org/cache/epub/161/pg161.txt", 1811),
+           "Pride_and_Prejudice"   => ("https://www.gutenberg.org/cache/epub/1342/pg1342.txt", 1813),
+           "Mansfield_Park"        => ("https://www.gutenberg.org/cache/epub/141/pg141.txt", 1814),
+           "Emma"                  => ("https://www.gutenberg.org/cache/epub/158/pg158.txt", 1815),
+           "Northanger_Abbey"      => ("https://www.gutenberg.org/cache/epub/121/pg121.txt", 1817),
+           "Persuasion"            => ("https://www.gutenberg.org/cache/epub/105/pg105.txt", 1817)
+       )
+
+metadata_list = [
+           Dict(:title => title, :text => fetch_text_io(url), :year => year)
+           for (title, (url, year)) in austen_books]
+
+df = DataFrame(
+               title = [m[:title] for m in metadata_list],
+           text = [m[:text] for m in metadata_list],
+           year = [m[:year] for m in metadata_list],
+       )
+
+corpus_df = read_corpus_df(
+           df;
+           text_column = :text,
+           metadata_columns = [:title, :year],
+           preprocess = true,
+           norm_config = TextNorm(
+               strip_case = true,
+               strip_punctuation = true,
+               strip_accents = false
+           )
+       )
+```
+
+Do the actual comparison
+
+```@example jane_austen_corpus
+node_word = "might"
+
 comparison = compare_subcorpora(
-    corpus, :category, "technology", PMI
-)
-
-
+           corpus_df,
+           :year,           # Split by year (biology, physics, chemistry)
+           node_word,        # Node word to analyze
+           LLR;              # Association metric
+           windowsize = 5,
+           minfreq = 1       # Low threshold for toy example
+       )
 ```
 
 ### Temporal Analysis
 
 Track how word associations change over time:
 
-```julia
+```@example corpus
 temporal_analysis = analyze_temporal(
     corpus, ["digital", "transformation"], :year, PMI
 )

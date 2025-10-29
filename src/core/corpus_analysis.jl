@@ -559,6 +559,74 @@ end
 Analyze a single node word across the entire corpus using corpus's normalization.
 Returns DataFrame with Node, Collocate, Score, Frequency, and DocFrequency columns.
 """
+# function analyze_node(corpus::Corpus,
+#     node::AbstractString,
+#     metric::Type{<:AssociationMetric};
+#     windowsize::Int,
+#     minfreq::Int=5)
+
+#     # Create corpus contingency table (will use corpus's norm_config)
+#     cct = CorpusContingencyTable(corpus, node; windowsize, minfreq)
+
+#     # Evaluate metric
+#     scores_df = assoc_score(metric, cct)
+
+#     # eltype ensures Collocate is String
+#     @assert eltype(scores_df.Collocate) === String "Collocate column must be String"
+
+#     if nrow(scores_df) == 0
+#         result = DataFrame(
+#             Node=String[],
+#             Collocate=String[],
+#             Score=Float64[],
+#             Frequency=Int[],
+#             DocFrequency=Int[]
+#         )
+#         metadata!(result, "status", "empty", style=:note)
+#         present = assoc_node_present(cct)
+#         msg = present === false ?
+#               "Node '$(cct.node)' not found in the corpus." :
+#               "Node found, but no collocates met the thresholds for node='$(cct.node)' (windowsize=$(windowsize), minfreq=$(minfreq))."
+#         metadata!(result, "message", msg, style=:note)
+#         metadata!(result, "metric", string(metric), style=:note)
+#         metadata!(result, "node", cct.node, style=:note)
+#         metadata!(result, "windowsize", windowsize, style=:note)
+#         metadata!(result, "minfreq", minfreq, style=:note)
+#         metadata!(result, "analysis_type", "corpus_analysis", style=:note)
+#         return result
+#     end
+
+#     # Calculate document frequency
+#     doc_freq = [count(t -> begin
+#             ct = cached_data(t.con_tbl)
+#             !isempty(ct) && col in ct.Collocate
+#         end, cct.tables) for col in scores_df.Collocate]
+
+#     # Build result DataFrame
+#     result = DataFrame(
+#         Node=scores_df.Node,
+#         Collocate=scores_df.Collocate,
+#         Score=scores_df[!, Symbol(string(metric))],
+#         Frequency=scores_df.Frequency,
+#         DocFrequency=doc_freq
+#     )
+
+#     sort!(result, :Score, rev=true)
+
+#     # Add metadata
+#     metadata!(result, "status", "ok", style=:note)
+#     if haskey(metadata(scores_df), "message")
+#         metadata!(result, "message", metadata(scores_df)["message"], style=:note)
+#     end
+#     metadata!(result, "metric", string(metric), style=:note)
+#     metadata!(result, "node", cct.node, style=:note)  # Use normalized node
+#     metadata!(result, "windowsize", windowsize, style=:note)
+#     metadata!(result, "minfreq", minfreq, style=:note)
+#     metadata!(result, "analysis_type", "corpus_analysis", style=:note)
+
+#     return result
+# end
+
 function analyze_node(corpus::Corpus,
     node::AbstractString,
     metric::Type{<:AssociationMetric};
@@ -575,13 +643,16 @@ function analyze_node(corpus::Corpus,
     @assert eltype(scores_df.Collocate) === String "Collocate column must be String"
 
     if nrow(scores_df) == 0
+        # Create empty result with metric-specific column
+        metric_col = Symbol(string(metric))
         result = DataFrame(
             Node=String[],
             Collocate=String[],
-            Score=Float64[],
             Frequency=Int[],
             DocFrequency=Int[]
         )
+        result[!, metric_col] = Float64[]  # ✅ Metric-specific column
+
         metadata!(result, "status", "empty", style=:note)
         present = assoc_node_present(cct)
         msg = present === false ?
@@ -602,16 +673,19 @@ function analyze_node(corpus::Corpus,
             !isempty(ct) && col in ct.Collocate
         end, cct.tables) for col in scores_df.Collocate]
 
-    # Build result DataFrame
+    # Build result DataFrame - keep metric-specific column name
+    metric_col = Symbol(string(metric))
     result = DataFrame(
         Node=scores_df.Node,
         Collocate=scores_df.Collocate,
-        Score=scores_df[!, Symbol(string(metric))],
         Frequency=scores_df.Frequency,
         DocFrequency=doc_freq
     )
+    # ✅ Add metric column with its specific name (LLR, PMI, etc.)
+    result[!, metric_col] = scores_df[!, metric_col]
 
-    sort!(result, :Score, rev=true)
+    # Sort by metric score
+    sort!(result, metric_col, rev=true)
 
     # Add metadata
     metadata!(result, "status", "ok", style=:note)
@@ -619,7 +693,7 @@ function analyze_node(corpus::Corpus,
         metadata!(result, "message", metadata(scores_df)["message"], style=:note)
     end
     metadata!(result, "metric", string(metric), style=:note)
-    metadata!(result, "node", cct.node, style=:note)  # Use normalized node
+    metadata!(result, "node", cct.node, style=:note)
     metadata!(result, "windowsize", windowsize, style=:note)
     metadata!(result, "minfreq", minfreq, style=:note)
     metadata!(result, "analysis_type", "corpus_analysis", style=:note)
