@@ -257,7 +257,7 @@ for (subcorpus_name, results) in comparison.results
     if !isempty(results)
         println("\n$subcorpus_name subcorpus:")
         for row in eachrow(first(results, 2))
-            println("  $(row.Collocate): Score=$(round(row.Score, digits=2))")
+            println("  $(row.Collocate): Score=$(round(row.LLR, digits=2))")
         end
     end
 end
