@@ -49,6 +49,150 @@ function normalize_node(node::AbstractString, config::TextNorm)
     return normalized
 end
 
+"""
+    split_ngram(ngram::AbstractString) -> Vector{String}
+
+Split a normalized n-gram into its constituent words.
+
+# Examples
+```julia
+julia> split_ngram("machine learning")
+2-element Vector{String}:
+ "machine"
+ "learning"
+```
+"""
+split_ngram(ngram::AbstractString) = split(ngram)
+
+"""
+    ngram_length(ngram::AbstractString) -> Int
+
+Get the number of words in an n-gram.
+
+# Examples
+```julia
+julia> ngram_length("machine learning")
+2
+
+julia> ngram_length("new york city")
+3
+```
+"""
+ngram_length(ngram::AbstractString) = length(split_ngram(ngram))
+
+"""
+    is_single_word(node::AbstractString) -> Bool
+
+Check if a node is a single word (unigram) or multi-word (n-gram).
+
+# Examples
+```julia
+julia> is_single_word("hello")
+true
+
+julia> is_single_word("hello world")
+false
+```
+"""
+is_single_word(node::AbstractString) = !contains(strip(node), r"\s")
+
+"""
+    find_ngram_positions(tokens::Vector{String}, ngram::AbstractString) -> Vector{Int}
+
+Find all starting positions where the n-gram occurs in the token sequence.
+Returns the index of the first token of each occurrence.
+
+# Arguments
+- `tokens`: Vector of tokens (already normalized)
+- `ngram`: Normalized n-gram string (e.g., "machine learning")
+
+# Returns
+Vector of starting positions (1-indexed) where the n-gram occurs
+
+# Examples
+```julia
+julia> tokens = ["i", "love", "machine", "learning", "and", "machine", "learning"];
+julia> find_ngram_positions(tokens, "machine learning")
+2-element Vector{Int64}:
+ 3
+ 6
+```
+"""
+function find_ngram_positions(tokens::Vector{String}, ngram::AbstractString)
+    ngram_words = split_ngram(ngram)
+    n = length(ngram_words)
+    n == 0 && return Int[]
+
+    positions = Int[]
+
+    # Scan through tokens looking for n-gram matches
+    for i in 1:(length(tokens)-n+1)
+        # Check if the next n tokens match the n-gram
+        if view(tokens, i:i+n-1) == ngram_words
+            push!(positions, i)
+        end
+    end
+
+    return positions
+end
+
+"""
+    extract_ngram_contexts(tokens::Vector{String}, 
+                          ngram_positions::Vector{Int},
+                          ngram_length::Int,
+                          windowsize::Int) -> Tuple{Vector{Bool}, Vector{Tuple{UnitRange{Int},UnitRange{Int}}}}
+
+Extract context words around n-gram occurrences.
+
+# Arguments
+- `tokens`: Full token vector
+- `ngram_positions`: Starting positions of n-gram occurrences
+- `ngram_length`: Number of words in the n-gram
+- `windowsize`: Size of context window (in tokens)
+
+# Returns
+Tuple of:
+- Boolean mask indicating which tokens are in any context window
+- Vector of (left_range, right_range) tuples for each occurrence
+
+# Notes
+The window extends `windowsize` tokens from the n-gram boundaries:
+- Left context: [position - windowsize : position - 1]
+- Right context: [position + ngram_length : position + ngram_length + windowsize - 1]
+"""
+function extract_ngram_contexts(tokens::Vector{String},
+    ngram_positions::Vector{Int},
+    ngram_length::Int,
+    windowsize::Int)
+    context_mask = falses(length(tokens))
+    contexts = Tuple{UnitRange{Int},UnitRange{Int}}[]
+
+    for pos in ngram_positions
+        # Calculate boundaries
+        ngram_end = pos + ngram_length - 1
+
+        # Left context: windowsize tokens before the n-gram
+        left_start = max(1, pos - windowsize)
+        left_end = pos - 1
+
+        # Right context: windowsize tokens after the n-gram
+        right_start = ngram_end + 1
+        right_end = min(length(tokens), ngram_end + windowsize)
+
+        # Mark context tokens
+        if left_end >= left_start
+            context_mask[left_start:left_end] .= true
+        end
+        if right_end >= right_start
+            context_mask[right_start:right_end] .= true
+        end
+
+        # Store ranges
+        push!(contexts, (left_start:left_end, right_start:right_end))
+    end
+
+    return context_mask, contexts
+end
 
 
 """
