@@ -3,6 +3,8 @@
 # Comprehensive test suite for TextAssociations.jl (CI-friendly + filterable)
 # Uses TextNorm in all constructors and preprocessing calls
 # =====================================
+using GLMakie
+GLMakie.activate!(visible=false)
 
 using Test
 using Random
