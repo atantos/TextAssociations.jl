@@ -735,7 +735,8 @@ Build a collocation network starting from seed words. The graph can be enriched 
 frequency metadata, weight normalization, undirected aggregation, and classical
 centrality measures.
 """
-function colloc_graph(corpus::Corpus,
+function colloc_graph(
+    corpus::Corpus,
     seed_words::Vector{String};
     metric::Type{<:AssociationMetric}=PMI,
     depth::Int=2,
@@ -751,8 +752,8 @@ function colloc_graph(corpus::Corpus,
     centrality_metrics::Vector{Symbol}=Symbol[:pagerank],
     pagerank_damping::Float64=0.85,
     undirected_weight_stat::Symbol=:mean,
-    cache_results::Bool=true)
-
+    cache_results::Bool=true,
+)
     isempty(seed_words) && throw(ArgumentError("seed_words must contain at least one term."))
     depth < 0 && throw(ArgumentError("depth must be ≥ 0 (got $(depth))."))
     max_neighbors < 0 && throw(ArgumentError("max_neighbors must be ≥ 0 (got $(max_neighbors))."))
@@ -764,64 +765,63 @@ function colloc_graph(corpus::Corpus,
         throw(ArgumentError("pagerank_damping must be between 0 and 1 (exclusive)."))
 
     centrality_syms = compute_centrality ? unique(Symbol.(centrality_metrics)) : Symbol[]
+    metric_col = Symbol(string(metric))
     metric_name = string(metric)
-    metric_col = Symbol(metric_name)
     norm_config = corpus.norm_config
 
+    # Normalize & dedup seeds
     normalized_seeds = String[]
     seen = Set{String}()
     for seed in seed_words
-        normalized = normalize_node(seed, norm_config)
-        if isempty(normalized)
-            continue
-        end
-        if !(normalized in seen)
-            push!(normalized_seeds, normalized)
-            push!(seen, normalized)
+        s = normalize_node(seed, norm_config)
+        isempty(s) && continue
+        if !(s in seen)
+            push!(normalized_seeds, s)
+            push!(seen, s)
         end
     end
     isempty(normalized_seeds) && throw(ArgumentError("No valid seed words after normalization."))
 
+    # Layer bookkeeping
     node_layers = Dict{String,Int}(seed => 0 for seed in normalized_seeds)
     node_order = copy(normalized_seeds)
     nodes_seen = Set{String}(node_order)
 
-    sources = String[]
-    targets = String[]
+    # Edge buffers (1 value per edge)
+    sources, targets = String[], String[]
     weights = Float64[]
     metrics_col = String[]
     freq_values = Int[]
     docfreq_values = Int[]
 
-    freq_requested = include_frequency
-    doc_requested = include_doc_frequency
-    freq_available = include_frequency
-    doc_available = include_doc_frequency
-    freq_checked = false
-    doc_checked = false
-
+    # Optional per-run cache of analyze_node results
     analysis_cache = cache_results ? Dict{String,DataFrame}() : nothing
+
     current_layer = copy(normalized_seeds)
 
     for layer in 1:depth
         isempty(current_layer) && break
         next_layer = String[]
         next_seen = Set{String}()
+
         @showprogress desc = "Building layer $layer..." for node in current_layer
+            # Fetch analysis for node (possibly cached)
             results = if cache_results && analysis_cache !== nothing && haskey(analysis_cache, node)
                 analysis_cache[node]
             else
-                analyzed = analyze_node(corpus, node, metric; windowsize=windowsize, minfreq=minfreq)
+                r = analyze_node(corpus, node, metric; windowsize=windowsize, minfreq=minfreq)
                 if cache_results && analysis_cache !== nothing
-                    analysis_cache[node] = analyzed
+                    analysis_cache[node] = r
                 end
-                analyzed
+                r
             end
 
+            # Skip empty results
             if !(results isa DataFrame) || nrow(results) == 0
                 continue
             end
 
+            # Canonical node label (if analyze_node returns :Node)
             actual_node = :Node in propertynames(results) ? results[1, :Node] : node
             if !(actual_node in nodes_seen)
                 push!(node_order, actual_node)
@@ -830,33 +830,17 @@ function colloc_graph(corpus::Corpus,
             existing_layer = get(node_layers, actual_node, layer - 1)
             node_layers[actual_node] = min(existing_layer, layer - 1)
 
-            if freq_requested && !freq_checked
-                freq_available = :Frequency in propertynames(results)
-                freq_checked = true
-                if !freq_available
-                    @warn "Frequency column requested but not available in analyze_node results." actual_node
-                end
-            end
-            if doc_requested && !doc_checked
-                doc_available = :DocFrequency in propertynames(results)
-                doc_checked = true
-                if !doc_available
-                    @warn "DocFrequency column requested but not available in analyze_node results." actual_node
-                end
-            end
-
             max_neighbors == 0 && continue
 
+            # Threshold + top-k on the chosen metric
             mask = results[!, metric_col] .>= min_score
             filtered = view(results, mask, :)
-            if nrow(filtered) == 0
-                continue
-            end
+            nrow(filtered) == 0 && continue
 
             sorted = sort(filtered, metric_col, rev=true)
             k = min(max_neighbors, nrow(sorted))
             truncated = k < nrow(sorted) ? first(sorted, k) : sorted
-
+            # Collect edges (row-level presence checks)
             for row in eachrow(truncated)
                 collocate = normalize_node(String(row.Collocate), norm_config)
 
@@ -865,11 +849,11 @@ function colloc_graph(corpus::Corpus,
                 push!(weights, Float64(row[metric_col]))
                 push!(metrics_col, metric_name)
 
-                if freq_requested && freq_available
-                    push!(freq_values, Int(row.Frequency))
+                if include_frequency
+                    push!(freq_values, haskey(row, :Frequency) ? Int(row[:Frequency]) : 0)
                 end
-                if doc_requested && doc_available
-                    push!(docfreq_values, Int(row.DocFrequency))
+                if include_doc_frequency
+                    push!(docfreq_values, haskey(row, :DocFrequency) ? Int(row[:DocFrequency]) : 0)
                 end
 
                 is_new = !(collocate in nodes_seen)
@@ -890,76 +874,66 @@ function colloc_graph(corpus::Corpus,
         current_layer = next_layer
     end
 
+    # Build edges DataFrame
     edges_df = DataFrame(
         Source=sources,
         Target=targets,
         Weight=weights,
         Metric=metrics_col,
     )
-    if freq_requested && freq_available
+    if include_frequency
         edges_df[!, :Frequency] = freq_values
     end
-    if doc_requested && doc_available
+    if include_doc_frequency
         edges_df[!, :DocFrequency] = docfreq_values
     end
 
-    # --- schema guards (pre-aggregation): make requested columns exist even if upstream lacks them
-    if freq_requested && !(:Frequency in names(edges_df))
-        edges_df[!, :Frequency] = zeros(Int, nrow(edges_df))
-    end
-    if doc_requested && !(:DocFrequency in names(edges_df))
-        edges_df[!, :DocFrequency] = zeros(Int, nrow(edges_df))
-    end
-
+    # Aggregate (direction-aware) and carry frequency columns when present
     if nrow(edges_df) > 0
         if direction == :undirected
+            # Canonicalize unordered pairs
             edges_df = transform(edges_df, [:Source, :Target] => ByRow(_canonical_pair) => :_pair)
             edges_df.Source = first.(edges_df._pair)
             edges_df.Target = last.(edges_df._pair)
             select!(edges_df, Not(:_pair))
+
             reducer = _resolve_weight_reducer(undirected_weight_stat)
             group_cols = [:Source, :Target, :Metric]
             aggregations = Any[:Weight=>reducer=>:Weight]
-            if freq_requested && freq_available && :Frequency in names(edges_df)
+            if :Frequency in propertynames(edges_df)
                 push!(aggregations, :Frequency => sum => :Frequency)
             end
-            if doc_requested && doc_available && :DocFrequency in names(edges_df)
+            if :DocFrequency in propertynames(edges_df)
                 push!(aggregations, :DocFrequency => sum => :DocFrequency)
             end
+
             edges_df = combine(groupby(edges_df, group_cols), aggregations...)
         else
             group_cols = [:Source, :Target, :Metric]
             aggregations = Any[:Weight=>maximum=>:Weight]
-            if freq_requested && freq_available && :Frequency in names(edges_df)
+            if :Frequency in propertynames(edges_df)
                 push!(aggregations, :Frequency => sum => :Frequency)
             end
-            if doc_requested && doc_available && :DocFrequency in names(edges_df)
+            if :DocFrequency in propertynames(edges_df)
                 push!(aggregations, :DocFrequency => sum => :DocFrequency)
             end
+
             edges_df = combine(groupby(edges_df, group_cols), aggregations...)
         end
         sort!(edges_df, :Weight, rev=true)
     end
 
-    # Ensure requested columns are present even if they got dropped during grouping
-    if freq_requested && !(:Frequency in names(edges_df))
-        edges_df[!, :Frequency] = zeros(Int, nrow(edges_df))
-    end
-    if doc_requested && !(:DocFrequency in names(edges_df))
-        edges_df[!, :DocFrequency] = zeros(Int, nrow(edges_df))
-    end
-
-    # Ensure NormalizedWeight exists (tests expect it in edges)
-    if !(:NormalizedWeight in names(edges_df))
+    # Ensure NormalizedWeight exists then normalize
+    if !(:NormalizedWeight in propertynames(edges_df))
         edges_df[!, :NormalizedWeight] = zeros(Float64, nrow(edges_df))
     end
-
     _normalize_weights!(edges_df, weight_normalization)
 
+    # -------- Node summary --------
     node_list = copy(node_order)
     node_summary = DataFrame(
         Node=node_list,
-        Layer=[node_layers[node] for node in node_list],
+        Layer=[node_layers[n] for n in node_list],
     )
     n_nodes = nrow(node_summary)
 
@@ -974,8 +948,7 @@ function colloc_graph(corpus::Corpus,
         end
         stats_df = combine(groupby(stats_nodes, :Node),
             :Weight => mean => :AvgScore,
-            :Weight => maximum => :MaxScore,
-        )
+            :Weight => maximum => :MaxScore)
         node_summary = leftjoin(node_summary, stats_df, on=:Node)
     end
     if !_hascolumn(node_summary, :AvgScore)
@@ -989,6 +962,7 @@ function colloc_graph(corpus::Corpus,
         node_summary.MaxScore = coalesce.(node_summary.MaxScore, NaN)
     end
 
+    # Degrees / strengths
     if nrow(edges_df) > 0
         if direction == :undirected
             deg_nodes = DataFrame(Node=vcat(edges_df.Source, edges_df.Target))
@@ -1010,7 +984,7 @@ function colloc_graph(corpus::Corpus,
             end
             node_summary[!, :InStrength] = copy(node_summary.OutStrength)
 
-            if :NormalizedWeight in names(edges_df)
+            if :NormalizedWeight in propertynames(edges_df)
                 norm_nodes = DataFrame(
                     Node=vcat(edges_df.Source, edges_df.Target),
                     Weight=vcat(edges_df.NormalizedWeight, edges_df.NormalizedWeight),
@@ -1051,7 +1025,7 @@ function colloc_graph(corpus::Corpus,
                 node_summary.InStrength = coalesce.(node_summary.InStrength, 0.0)
             end
 
-            if :NormalizedWeight in names(edges_df)
+            if :NormalizedWeight in propertynames(edges_df)
                 out_norm_df = combine(groupby(edges_df, :Source), :NormalizedWeight => sum => :NormalizedOutStrength)
                 rename!(out_norm_df, :Source => :Node)
                 node_summary = leftjoin(node_summary, out_norm_df, on=:Node)
@@ -1069,37 +1043,27 @@ function colloc_graph(corpus::Corpus,
         end
     end
 
+    # Fill missing summary columns
     if !_hascolumn(node_summary, :OutDegree)
         node_summary[!, :OutDegree] = zeros(Int, n_nodes)
-    else
-        node_summary.OutDegree = coalesce.(node_summary.OutDegree, 0)
     end
     if !_hascolumn(node_summary, :InDegree)
         node_summary[!, :InDegree] = zeros(Int, n_nodes)
-    else
-        node_summary.InDegree = coalesce.(node_summary.InDegree, 0)
     end
     if !_hascolumn(node_summary, :OutStrength)
         node_summary[!, :OutStrength] = zeros(Float64, n_nodes)
-    else
-        node_summary.OutStrength = coalesce.(node_summary.OutStrength, 0.0)
     end
     if !_hascolumn(node_summary, :InStrength)
         node_summary[!, :InStrength] = zeros(Float64, n_nodes)
-    else
-        node_summary.InStrength = coalesce.(node_summary.InStrength, 0.0)
     end
     if !_hascolumn(node_summary, :NormalizedOutStrength)
         node_summary[!, :NormalizedOutStrength] = zeros(Float64, n_nodes)
-    else
-        node_summary.NormalizedOutStrength = coalesce.(node_summary.NormalizedOutStrength, 0.0)
     end
     if !_hascolumn(node_summary, :NormalizedInStrength)
         node_summary[!, :NormalizedInStrength] = zeros(Float64, n_nodes)
-    else
-        node_summary.NormalizedInStrength = coalesce.(node_summary.NormalizedInStrength, 0.0)
     end
 
+    # Totals
     if direction == :undirected
         node_summary[!, :InDegree] = copy(node_summary.OutDegree)
         node_summary[!, :InStrength] = copy(node_summary.OutStrength)
@@ -1113,6 +1077,7 @@ function colloc_graph(corpus::Corpus,
         node_summary[!, :NormalizedTotalStrength] = node_summary.NormalizedOutStrength .+ node_summary.NormalizedInStrength
     end
 
+    # Centrality (topology-only)
     if compute_centrality && !isempty(node_list)
         if nrow(edges_df) == 0
             for metric_sym in centrality_syms
@@ -1121,7 +1086,6 @@ function colloc_graph(corpus::Corpus,
         else
             g = direction == :undirected ? SimpleGraph(length(node_list)) : SimpleDiGraph(length(node_list))
             node_index = Dict(node => idx for (idx, node) in enumerate(node_list))
-
             for row in eachrow(edges_df)
                 src = node_index[row.Source]
                 dst = node_index[row.Target]
@@ -1130,7 +1094,6 @@ function colloc_graph(corpus::Corpus,
                 end
                 add_edge!(g, src, dst)
             end
-
             for metric_sym in centrality_syms
                 values = nothing
                 try
@@ -1150,13 +1113,8 @@ function colloc_graph(corpus::Corpus,
                 catch err
                     @warn "Failed to compute centrality metric" metric_sym exception = err
                 end
-
-                colname = Symbol("Centrality_" * String(metric_sym))
-                if values === nothing
-                    node_summary[!, colname] = zeros(Float64, n_nodes)
-                else
-                    node_summary[!, colname] = Float64.(values)
-                end
+                node_summary[!, Symbol("Centrality_" * String(metric_sym))] =
+                    values === nothing ? zeros(Float64, n_nodes) : Float64.(values)
             end
         end
     end
@@ -1168,8 +1126,8 @@ function colloc_graph(corpus::Corpus,
         :max_neighbors => max_neighbors,
         :windowsize => windowsize,
         :minfreq => minfreq,
-        :include_frequency => freq_requested && freq_available,
-        :include_doc_frequency => doc_requested && doc_available,
+        :include_frequency => include_frequency && (:Frequency in propertynames(edges_df)),
+        :include_doc_frequency => include_doc_frequency && (:DocFrequency in propertynames(edges_df)),
         :direction => direction,
         :weight_normalization => weight_normalization,
         :compute_centrality => compute_centrality,
@@ -1186,6 +1144,8 @@ function colloc_graph(corpus::Corpus,
         parameters,
     )
 end
+
+
 
 
 """
