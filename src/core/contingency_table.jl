@@ -169,6 +169,7 @@ function cont_table(input_doc::StringDocument, target_word::AbstractString;
     end
 
     # Build frequency tables
+    context_indices = findall(context_mask)
     node_context_words = input_tokens[context_indices]
     a = freqtable(node_context_words)
     filter!(x -> x >= minfreq, a)
