@@ -90,9 +90,15 @@ function assoc_score(::Type{T}, x::AssociationDataFormat;
     # If there is literally no contingency data, return a typed empty result
     if isempty(df_in)
         present = assoc_node_present(x)
-        reason = present === false ?
-                 "Node not found in the corpus." :
-                 "Node found, but no collocates met the thresholds (windowsize/minfreq/filters)."
+        reason = if present === false
+            "Node '$(assoc_node(x))' not found in the corpus."
+        elseif present === nothing
+            # N-gram case: all component words exist but n-gram sequence might not
+            "Node '$(assoc_node(x))' might not exist as a sequence, or no collocates met the thresholds (windowsize=$(assoc_ws(x)), minfreq=$(get(kwargs, :minfreq, "default")))."
+        else  # present === true
+            # Node definitely exists but no collocates passed filters
+            "Node '$(assoc_node(x))' found, but no collocates met the thresholds (windowsize=$(assoc_ws(x)), minfreq=$(get(kwargs, :minfreq, "default")))."
+        end
         return scores_only ? Float64[] :
                _empty_result(x, T; reason=reason)
     end

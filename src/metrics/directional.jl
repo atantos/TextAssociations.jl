@@ -47,6 +47,13 @@ Where:
 # Note
 This function expects tokens to be provided. When called through assoc_score(),
 tokens are automatically fetched based on the NeedsTokens trait.
+
+# N-gram Notes
+For multi-word nodes:
+- f(node) counts complete n-gram occurrences
+- n+(node) counts types following the last word of the n-gram
+- f→ counts when collocate appears after the n-gram
+- f← counts when collocate appears before the n-gram
 """
 function eval_lexicalgravity(data::AssociationDataFormat;
     tokens::Vector{String},  # Required parameter
@@ -79,23 +86,32 @@ function _gravity_original_formula(
     # Inputs from the association context
     node = assoc_node(x)
     ws = assoc_ws(x)
+    n = ngram_length(node)
 
     nrows = nrow(con_tbl)
     scores = Vector{Float64}(undef, nrows)
     nrows == 0 && return scores
     ws <= 0 && return fill(-Inf, nrows)
 
-    # Positions & frequency of the node
-    node_positions = findall(==(node), tokens)
+    # Find node positions (handles both single word and n-gram)
+    node_positions = if n == 1
+        findall(==(node), tokens)
+    else
+        find_ngram_positions(tokens, node)
+    end
+
     f_node = length(node_positions)
     f_node == 0 && return fill(-Inf, nrows)
 
     # n⁺(node): distinct types in the RIGHT window of each node occurrence
+    # For n-grams, this is after the last word of the n-gram
     words_after_node = Set{String}()
     @inbounds for npos in node_positions
         # pre-clamp, then bound within document
+        # For n-grams, the right window starts after the last token
+        node_end = npos + n - 1
         r_start = npos + 1
-        r_stop = min(npos + ws, length(tokens))
+        r_stop = min(node_end + ws, length(tokens))
         (r1, r2) = _bounded_range(tokens, max(r_start, 1), r_stop)
         r2 < r1 && continue
         for j in r1:r2
@@ -134,9 +150,11 @@ function _gravity_original_formula(
         f_backward = 0  # node ← coll (node to the left of coll)
 
         # Count node → coll
+        # For n-grams, check if coll appears after the n-gram
         for npos in node_positions
-            r_start = npos + 1
-            r_stop = min(npos + ws, length(tokens))
+            node_end = npos + n - 1
+            r_start = node_end + 1
+            r_stop = min(node_end + ws, length(tokens))
             (r1, r2) = _bounded_range(tokens, max(r_start, 1), r_stop)
             r2 < r1 && continue
             @inbounds for j in r1:r2
@@ -149,16 +167,17 @@ function _gravity_original_formula(
         end
 
         # Count node ← coll
+        # For n-grams, check if coll appears before the n-gram
         for cpos in coll_positions
-            l_start = max(cpos - ws, 1)
-            l_stop = cpos - 1
-            (l1, l2) = _bounded_range(tokens, l_start, l_stop)
-            l2 < l1 && continue
-            @inbounds for j in reverse(l1:l2)
-                t = tokens[j]
-                t == _DOC_SEP && break
-                if t == node
+            # Find if any node occurrence has coll in its left window
+            for npos in node_positions
+                l_start = max(npos - ws, 1)
+                l_stop = npos - 1
+                (l1, l2) = _bounded_range(tokens, l_start, l_stop)
+                l2 < l1 && continue
+                if cpos in l1:l2
                     f_backward += 1
+                    break  # Count each coll position only once per node
                 end
             end
         end
@@ -185,8 +204,15 @@ G = log₂((f(w1,w2)² × span) / (f(w1) × f(w2)))
 function _gravity_simplified_formula(data::AssociationDataFormat, con_tbl::DataFrame, tokens::Vector{String})
     node = assoc_node(data)
     windowsize = assoc_ws(data)
+    n = ngram_length(node)
 
-    f_node = count(==(node), tokens)
+    # Count node occurrences (handles n-grams)
+    f_node = if n == 1
+        count(==(node), tokens)
+    else
+        length(find_ngram_positions(tokens, node))
+    end
+
     span_size = windowsize * 2
 
     gravity_scores = zeros(Float64, nrow(con_tbl))
@@ -214,9 +240,15 @@ G = f(w1,w2) × PMI(w1,w2)
 """
 function _gravity_pmi_weighted(data::AssociationDataFormat, con_tbl::DataFrame, tokens::Vector{String})
     node = assoc_node(data)
+    n = ngram_length(node)
 
     N = length(tokens)
-    f_node = count(==(node), tokens)
+    # Count node occurrences (handles n-grams)
+    f_node = if n == 1
+        count(==(node), tokens)
+    else
+        length(find_ngram_positions(tokens, node))
+    end
 
     gravity_scores = zeros(Float64, nrow(con_tbl))
 
@@ -279,13 +311,19 @@ function _gravity_directional_analysis(data::AssociationDataFormat, tokens::Vect
 
     node = assoc_node(data)
     windowsize = assoc_ws(data)
+    n = ngram_length(node)
 
-    node_positions = findall(==(node), tokens)
+    # Find node positions (handles n-grams)
+    node_positions = if n == 1
+        findall(==(node), tokens)
+    else
+        find_ngram_positions(tokens, node)
+    end
 
-    n = nrow(con_tbl)
-    left_scores = zeros(Float64, n)
-    right_scores = zeros(Float64, n)
-    asymmetry = zeros(Float64, n)
+    nrows = nrow(con_tbl)
+    left_scores = zeros(Float64, nrows)
+    right_scores = zeros(Float64, nrows)
+    asymmetry = zeros(Float64, nrows)
 
     for (i, row) in enumerate(eachrow(con_tbl))
         collocate = string(row.Collocate)
@@ -294,12 +332,14 @@ function _gravity_directional_analysis(data::AssociationDataFormat, tokens::Vect
         right_count = 0
 
         for pos in node_positions
+            node_end = pos + n - 1
+
             # Count left occurrences
             left_window = max(1, pos - windowsize):(pos-1)
             left_count += count(==(collocate), tokens[left_window])
 
-            # Count right occurrences  
-            right_window = (pos+1):min(length(tokens), pos + windowsize)
+            # Count right occurrences in the right window, after the n-gram
+            right_window = (node_end+1):min(length(tokens), node_end + windowsize)
             right_count += count(==(collocate), tokens[right_window])
         end
 
@@ -323,17 +363,19 @@ const lexicalgravity = eval_lexicalgravity
 
 # ΔP→(X→Y) = P(Y|X) − P(Y|¬X) = a/m − c/n
 """
-Directional analysis: rightward influence from X to Y following Gries(2013). 
+Directional analysis: rightward influence from X to Y following Gries(2013).
+Works with both single words and n-grams.
 """
 function eval_deltapiright(data::AssociationDataFormat)
     @extract_values data a c m n
     (a ./ max.(m, eps())) .- (c ./ max.(n, eps()))
 end
 
-"""
-Directional analysis: leftward influence from Y to X following Gries(2013). 
-"""
 # ΔP←(Y→X) = P(X|Y) − P(X|¬Y) = a/k − b/l
+"""
+Directional analysis: leftward influence from Y to X following Gries(2013).
+Works with both single words and n-grams.
+"""
 function eval_deltapileft(data::AssociationDataFormat)
     @extract_values data a b k l
     (a ./ max.(k, eps())) .- (b ./ max.(l, eps()))

@@ -1240,7 +1240,28 @@ end
                         context_size::Int=50,
                         max_lines::Int=1000) -> Concordance
 
-Generate KWIC concordance for a node word.
+Generate KWIC concordance for a node word or n-gram. The node can be a multi-word phrase like "machine learning".
+
+# Arguments
+- `corpus`: The corpus to search
+- `node`: Single word or multi-word phrase (will be normalized)
+- `context_size`: Number of tokens on each side of the node
+- `max_lines`: Maximum number of concordance lines to generate
+
+# Returns
+Concordance struct with:
+- `node`: The normalized node
+- `lines`: DataFrame with LeftContext, Node, RightContext, DocId, Position
+- `statistics`: Dict with occurrence counts
+
+# Examples
+```julia
+# Single word
+kwic(corpus, "innovation", context_size=30)
+
+# Multi-word n-gram
+kwic(corpus, "machine learning", context_size=20)
+```
 """
 function kwic(corpus::Corpus,
     node::String;
@@ -1249,6 +1270,7 @@ function kwic(corpus::Corpus,
 
     # Normalize node using corpus config
     normalized_node = normalize_node(node, corpus.norm_config)
+    n = ngram_length(normalized_node)
 
     concordance_lines = []
     total_occurrences = 0
@@ -1257,23 +1279,35 @@ function kwic(corpus::Corpus,
         doc_text = text(doc)
         tokens = TextAnalysis.tokenize(language(doc), doc_text)
 
-        # Find occurrences of normalized node
-        positions = findall(==(normalized_node), tokens)
+        # Find occurrences (handles both single words and n-grams)
+        positions = if n == 1
+            findall(==(normalized_node), tokens)
+        else
+            find_ngram_positions(tokens, normalized_node)
+        end
+
         total_occurrences += length(positions)
 
         for pos in positions
+            # For n-grams, extract the full n-gram and its context
+            node_end = pos + n - 1
+
             # Extract context
             left_start = max(1, pos - context_size)
             left_end = pos - 1
-            right_start = pos + 1
-            right_end = min(length(tokens), pos + context_size)
+            right_start = node_end + 1
+            right_end = min(length(tokens), node_end + context_size)
 
             left_context = join(tokens[left_start:left_end], " ")
+
+            # For display, show the actual n-gram tokens
+            node_display = join(tokens[pos:node_end], " ")
+
             right_context = join(tokens[right_start:right_end], " ")
 
             push!(concordance_lines, (
                 LeftContext=left_context,
-                Node=normalized_node,  # Use normalized version
+                Node=node_display,  # Use display version
                 RightContext=right_context,
                 DocId=doc_idx,
                 Position=pos
@@ -1293,8 +1327,16 @@ function kwic(corpus::Corpus,
     # Calculate statistics
     statistics = Dict(
         :total_occurrences => total_occurrences,
-        :documents_with_node => count(doc -> normalized_node in tokens(doc), corpus.documents),
-        :lines_generated => length(concordance_lines)
+        :documents_with_node => count(doc -> begin
+                toks = tokens(doc)
+                if n == 1
+                    normalized_node in toks
+                else
+                    !isempty(find_ngram_positions(toks, normalized_node))
+                end
+            end, corpus.documents),
+        :lines_generated => length(concordance_lines),
+        :ngram_length => n
     )
 
     return Concordance(
