@@ -20,6 +20,11 @@ HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
 InteractiveCodeSearch = "54eb57ff-b09b-5185-b2f4-7a93509e494f"
 IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+<<<<<<< HEAD
+=======
+Languages = "8ef0a80b-9436-5d2c-a485-80b904378c43"
+NetworkLayout = "46757867-2c16-5918-afeb-47bfcb05e46a"
+>>>>>>> feature/multiword_nodes
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
@@ -55,6 +60,11 @@ HypothesisTests = "0.11"
 InteractiveCodeSearch = "0.4.3"
 IterTools = "1.10.0"
 JSON = "0.21"
+<<<<<<< HEAD
+=======
+Languages = "0.4.7"
+NetworkLayout = "0.4.10"
+>>>>>>> feature/multiword_nodes
 OrderedCollections = "1.8.1"
 PlutoUI = "0.7.71"
 PrettyTables = "2.4.0"

@@ -17,6 +17,12 @@ Represents a contingency table for word co-occurrence analysis.
 - `minfreq`: Minimum frequency threshold
 - `input_ref`: Reference to the processed input document
 - `norm_config`: Text normalization configuration
+
+# Notes
+For multi-word nodes (n-grams), the window extends from the boundaries of the n-gram.
+For example, with node "machine learning" and windowsize=5:
+- Left context: 5 tokens before "machine"
+- Right context: 5 tokens after "learning"
 """
 struct ContingencyTable{T} <: AssociationDataFormat
     con_tbl::LazyProcess{T,DataFrame}
@@ -37,8 +43,9 @@ struct ContingencyTable{T} <: AssociationDataFormat
         minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
         !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
 
-        # Normalize node using config
+        # Normalize node using config (handles both single words and n-grams)
         normalized_node = normalize_node(node, norm_config)
+        isempty(normalized_node) && throw(ArgumentError("Node becomes empty after normalization"))
 
         # Preprocess text using same config
         prepared_string = prep_string(inputstring, norm_config)
@@ -81,10 +88,30 @@ function ContingencyTable(df::DataFrame,
 end
 
 """
-    cont_table(input_doc::StringDocument, target_word::AbstractString,
+    cont_table(input_doc::StringDocument, target_word::AbstractString;
               windowsize::Int=5, minfreq::Int=3) -> DataFrame
 
-Compute the contingency table for a target word in a document.
+Compute the contingency table for a target word or n-gram in a document.
+
+# Arguments
+- `input_doc`: Preprocessed document (tokens already normalized)
+- `target_word`: Normalized node (can be single word or n-gram like "machine learning")
+- `windowsize`: Number of tokens on each side of the node
+- `minfreq`: Minimum co-occurrence frequency threshold
+
+# Returns
+DataFrame with columns: Collocate, a, b, c, d, m, n, k, l, N, E₁₁, E₁₂, E₂₁, E₂₂
+
+# Notes
+- For n-grams, target_word should be space-separated (e.g., "machine learning")
+- The function automatically detects single vs. multi-word nodes
+- Windows are calculated from n-gram boundaries for multi-word nodes
+- Empty DataFrame is returned if node not found or no collocates meet minfreq
+
+# Examples
+```julia
+doc = StringDocument("machine learning is great and machine learning works")
+ct = cont_table(doc, "machine learning"; windowsize=2, minfreq=1)
 Note: target_word should already be normalized before calling this function.
 """
 function cont_table(input_doc::StringDocument, target_word::AbstractString;
@@ -92,27 +119,46 @@ function cont_table(input_doc::StringDocument, target_word::AbstractString;
 
     input_tokens = TextAnalysis.tokenize(language(input_doc), text(input_doc))
 
-    # Find target word indices
-    indices = findall(==(target_word), input_tokens)
-    isempty(indices) && return DataFrame()
+    # Determine if node is single word or n-gram
+    n = ngram_length(target_word)
 
-    # Collect context words
-    context_indices = falses(length(input_tokens))
-    contexts = Tuple{UnitRange{Int64},UnitRange{Int64}}[]
-
-    for index in indices
-        left_start = max(1, index - windowsize)
-        right_end = min(length(input_tokens), index + windowsize)
-
-        context_indices[left_start:index-1] .= true
-        context_indices[index+1:right_end] .= true
-        push!(contexts, (left_start:index-1, index+1:right_end))
+    # Find all occurrences of the node
+    indices = if n == 1
+        # Single word - use existing logic
+        findall(==(target_word), input_tokens)
+    else
+        # Multi-word - find n-gram occurrences
+        find_ngram_positions(input_tokens, target_word)
     end
 
-    # Count unique context words
+    isempty(indices) && return DataFrame()
+
+    # Extract context words with n-gram-aware windowing
+    context_mask, contexts = if n == 1
+        # Single word - original logic
+        mask = falses(length(input_tokens))
+        contexts = Tuple{UnitRange{Int64},UnitRange{Int64}}[]
+
+        for index in indices
+            left_start = max(1, index - windowsize)
+            right_end = min(length(input_tokens), index + windowsize)
+
+            mask[left_start:index-1] .= true
+            mask[index+1:right_end] .= true
+            push!(contexts, (left_start:index-1, index+1:right_end))
+        end
+
+        mask, contexts
+    else
+        # Multi-word - use new n-gram context extraction
+        extract_ngram_contexts(input_tokens, indices, n, windowsize)
+    end
+
+    # Count unique context words (same logic for both single and multi-word)
     unique_counts = Dict{String,Int}()
     for ctx in contexts
         seen_words = Set{String}()
+        # Combine left and right ranges
         words = input_tokens[union(ctx...)]
         for word in words
             if !in(word, seen_words)
@@ -123,6 +169,7 @@ function cont_table(input_doc::StringDocument, target_word::AbstractString;
     end
 
     # Build frequency tables
+    context_indices = findall(context_mask)
     node_context_words = input_tokens[context_indices]
     a = freqtable(node_context_words)
     filter!(x -> x >= minfreq, a)
@@ -140,8 +187,16 @@ function cont_table(input_doc::StringDocument, target_word::AbstractString;
     b = freqtable(collect(keys(b)), weights=collect(values(b)))
 
     # Compute c and d
-    context_indices[indices] .= true
-    other_words = input_tokens[.!context_indices]
+    # For n-grams, we need to mark all tokens that are part of any occurrence
+    if n == 1
+        context_mask[indices] .= true
+    else
+        # Mark all tokens that are part of n-gram occurrences
+        for idx in indices
+            context_mask[idx:idx+n-1] .= true
+        end
+    end
+    other_words = input_tokens[.!context_mask]
     c_words = filter(x -> x in valid_words, other_words)
     c = freqtable(c_words)
 
@@ -153,6 +208,7 @@ function cont_table(input_doc::StringDocument, target_word::AbstractString;
             return length(c) + idx
         end
     end
+
 
     # Pad array if needed
     if idx > 0
@@ -184,9 +240,12 @@ function cont_table(input_doc::StringDocument, target_word::AbstractString;
 end
 
 function Base.show(io::IO, con_tbl::ContingencyTable)
+    n = ngram_length(con_tbl.node)
+    node_type = n == 1 ? "unigram" : "$(n)-gram"
+
     println(io, "ContingencyTable instance with:")
-    println(io, "* Node word: $(con_tbl.node)")
-    println(io, "* Window size: $(con_tbl.windowsize)")
+    println(io, "* Node ($(node_type)): \"$(con_tbl.node)\"")
+    println(io, "* Window size: $(con_tbl.windowsize) tokens")
     println(io, "* Minimum collocation frequency: $(con_tbl.minfreq)")
     println(io, "* Normalization config: $(con_tbl.norm_config)")
 end

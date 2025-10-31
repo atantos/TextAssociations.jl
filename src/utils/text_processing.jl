@@ -30,23 +30,48 @@ end
 """
     normalize_node(node::AbstractString, config::TextNorm) -> String
 
-Normalize a node word according to the given TextNorm configuration.
+Normalize a node word or n-gram according to the given TextNorm configuration.
 This is the single source of truth for node normalization.
+
+For multi-word nodes, each word is normalized individually then rejoined with single space.
+
+# Examples
+```julia
+julia> cfg = TextNorm(strip_case=true, strip_accents=true);
+julia> normalize_node("New York", cfg)
+"new york"
+
+julia> normalize_node("MACHINE learning", cfg)
+"machine learning"
 """
 function normalize_node(node::AbstractString, config::TextNorm)
-    # Start with unicode normalization
-    normalized = Unicode.normalize(strip(node), config.unicode_form)
 
-    # Apply transformations in consistent order
-    if config.strip_case
-        normalized = lowercase(normalized)
+    # Trim and normalize whitespace first
+    node_trimmed = strip(node)
+    isempty(node_trimmed) && return ""
+
+    # Split on whitespace to handle multi-word nodes
+    words = split(node_trimmed)
+
+    # Normalize each word individually
+    normalized_words = map(words) do word
+        # Start with unicode normalization
+        normalized = Unicode.normalize(word, config.unicode_form)
+
+        # Apply transformations in consistent order
+        if config.strip_case
+            normalized = lowercase(normalized)
+        end
+
+        if config.strip_accents
+            normalized = strip_diacritics(normalized; target_form=config.unicode_form)
+        end
+
+        normalized
     end
 
-    if config.strip_accents
-        normalized = strip_diacritics(normalized; target_form=config.unicode_form)
-    end
-
-    return normalized
+    # Rejoin with single space
+    return join(normalized_words, " ")
 end
 
 """
@@ -62,7 +87,7 @@ julia> split_ngram("machine learning")
  "learning"
 ```
 """
-split_ngram(ngram::AbstractString) = split(ngram)
+split_ngram(ngram::AbstractString) = String.(split(ngram))
 
 """
     ngram_length(ngram::AbstractString) -> Int
@@ -119,7 +144,7 @@ julia> find_ngram_positions(tokens, "machine learning")
 ```
 """
 function find_ngram_positions(tokens::Vector{String}, ngram::AbstractString)
-    ngram_words = split_ngram(ngram)
+    ngram_words = String.(split(ngram))
     n = length(ngram_words)
     n == 0 && return Int[]
 
@@ -128,7 +153,14 @@ function find_ngram_positions(tokens::Vector{String}, ngram::AbstractString)
     # Scan through tokens looking for n-gram matches
     for i in 1:(length(tokens)-n+1)
         # Check if the next n tokens match the n-gram
-        if view(tokens, i:i+n-1) == ngram_words
+        match = true
+        for j in 1:n
+            if tokens[i+j-1] != ngram_words[j]
+                match = false
+                break
+            end
+        end
+        if match
             push!(positions, i)
         end
     end
