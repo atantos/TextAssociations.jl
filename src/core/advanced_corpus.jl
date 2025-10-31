@@ -157,7 +157,7 @@ function analyze_temporal(corpus::Corpus,
         results_by_period[time_periods[i]] = period_results
     end
 
-    # 7) Optional: compute trend_analysis (keep empty if you haven’t wired this yet)
+    # 7) Optional: compute trend_analysis (keep empty if you havenâ€™t wired this yet)
     trend_analysis = DataFrame()
 
     return TemporalCorpusAnalysis(
@@ -692,9 +692,9 @@ function _normalize_weights!(edges::DataFrame, mode::Symbol)
         normalized = range == 0 ? ones(Float64, length(weights)) : (weights .- wmin) ./ range
         edges[!, :NormalizedWeight] = normalized
     elseif mode === :zscore
-        μ = mean(weights)
-        σ = std(weights)
-        normalized = σ == 0 ? zeros(Float64, length(weights)) : (weights .- μ) ./ σ
+        Î¼ = mean(weights)
+        Ïƒ = std(weights)
+        normalized = Ïƒ == 0 ? zeros(Float64, length(weights)) : (weights .- Î¼) ./ Ïƒ
         edges[!, :NormalizedWeight] = normalized
     elseif mode === :rank
         order = sortperm(weights, rev=true)
@@ -830,18 +830,27 @@ function colloc_graph(corpus::Corpus,
             existing_layer = get(node_layers, actual_node, layer - 1)
             node_layers[actual_node] = min(existing_layer, layer - 1)
 
+            # Debug: show what columns are in the results
+            if !freq_checked || !doc_checked
+                @info "Results columns for node '$actual_node': $(names(results))"
+            end
+
             if freq_requested && !freq_checked
                 freq_available = :Frequency in propertynames(results)
                 freq_checked = true
                 if !freq_available
-                    @warn "Frequency column requested but not available in analyze_node results." actual_node
+                    @warn "Frequency column requested but not available in analyze_node results." actual_node propertynames(results)
+                else
+                    @info "Frequency column detected in results for node: $actual_node"
                 end
             end
             if doc_requested && !doc_checked
                 doc_available = :DocFrequency in propertynames(results)
                 doc_checked = true
                 if !doc_available
-                    @warn "DocFrequency column requested but not available in analyze_node results." actual_node
+                    @warn "DocFrequency column requested but not available in analyze_node results." actual_node propertynames(results)
+                else
+                    @info "DocFrequency column detected in results for node: $actual_node"
                 end
             end
 
@@ -866,10 +875,30 @@ function colloc_graph(corpus::Corpus,
                 push!(metrics_col, metric_name)
 
                 if freq_requested && freq_available
-                    push!(freq_values, Int(row.Frequency))
+                    if :Frequency in propertynames(row)
+                        push!(freq_values, Int(row.Frequency))
+                    else
+                        @warn "Frequency column exists in DataFrame but not in row!" row
+                        push!(freq_values, 0)
+                    end
+                else
+                    # This shouldn't happen, but let's track it
+                    if length(freq_values) < length(sources)
+                        @warn "freq_values array size mismatch!" freq_requested freq_available length(freq_values) length(sources)
+                    end
                 end
                 if doc_requested && doc_available
-                    push!(docfreq_values, Int(row.DocFrequency))
+                    if :DocFrequency in propertynames(row)
+                        push!(docfreq_values, Int(row.DocFrequency))
+                    else
+                        @warn "DocFrequency column exists in DataFrame but not in row!" row
+                        push!(docfreq_values, 0)
+                    end
+                else
+                    # Track size mismatch
+                    if length(docfreq_values) < length(sources)
+                        @warn "docfreq_values array size mismatch!" doc_requested doc_available length(docfreq_values) length(sources)
+                    end
                 end
 
                 is_new = !(collocate in nodes_seen)
@@ -896,6 +925,9 @@ function colloc_graph(corpus::Corpus,
         Weight=weights,
         Metric=metrics_col,
     )
+
+    @info "Before adding frequency columns:" length(sources) length(freq_values) length(docfreq_values) freq_requested freq_available doc_requested doc_available
+
     if freq_requested && freq_available
         edges_df[!, :Frequency] = freq_values
     end
@@ -1345,4 +1377,3 @@ function kwic(corpus::Corpus,
         statistics
     )
 end
-
