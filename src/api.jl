@@ -83,6 +83,7 @@ function assoc_score(::Type{T}, x::AssociationDataFormat;
     tokens::Union{Nothing,Vector{String}}=nothing,
     kwargs...) where {T<:AssociationMetric}
 
+
     f = _resolve_metric_function(T)
     needs_tok = NeedsTokens(T)                      # already defined in api.jl
     df_in = assoc_df(x)                             # unified accessor
