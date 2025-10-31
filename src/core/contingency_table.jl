@@ -17,6 +17,12 @@ Represents a contingency table for word co-occurrence analysis.
 - `minfreq`: Minimum frequency threshold
 - `input_ref`: Reference to the processed input document
 - `norm_config`: Text normalization configuration
+
+# Notes
+For multi-word nodes (n-grams), the window extends from the boundaries of the n-gram.
+For example, with node "machine learning" and windowsize=5:
+- Left context: 5 tokens before "machine"
+- Right context: 5 tokens after "learning"
 """
 struct ContingencyTable{T} <: AssociationDataFormat
     con_tbl::LazyProcess{T,DataFrame}
@@ -37,8 +43,9 @@ struct ContingencyTable{T} <: AssociationDataFormat
         minfreq > 0 || throw(ArgumentError("Minimum frequency must be positive"))
         !isempty(node) || throw(ArgumentError("Node word cannot be empty"))
 
-        # Normalize node using config
+        # Normalize node using config (handles both single words and n-grams)
         normalized_node = normalize_node(node, norm_config)
+        isempty(normalized_node) && throw(ArgumentError("Node becomes empty after normalization"))
 
         # Preprocess text using same config
         prepared_string = prep_string(inputstring, norm_config)
@@ -81,10 +88,30 @@ function ContingencyTable(df::DataFrame,
 end
 
 """
-    cont_table(input_doc::StringDocument, target_word::AbstractString,
+    cont_table(input_doc::StringDocument, target_word::AbstractString;
               windowsize::Int=5, minfreq::Int=3) -> DataFrame
 
-Compute the contingency table for a target word in a document.
+Compute the contingency table for a target word or n-gram in a document.
+
+# Arguments
+- `input_doc`: Preprocessed document (tokens already normalized)
+- `target_word`: Normalized node (can be single word or n-gram like "machine learning")
+- `windowsize`: Number of tokens on each side of the node
+- `minfreq`: Minimum co-occurrence frequency threshold
+
+# Returns
+DataFrame with columns: Collocate, a, b, c, d, m, n, k, l, N, E₁₁, E₁₂, E₂₁, E₂₂
+
+# Notes
+- For n-grams, target_word should be space-separated (e.g., "machine learning")
+- The function automatically detects single vs. multi-word nodes
+- Windows are calculated from n-gram boundaries for multi-word nodes
+- Empty DataFrame is returned if node not found or no collocates meet minfreq
+
+# Examples
+```julia
+doc = StringDocument("machine learning is great and machine learning works")
+ct = cont_table(doc, "machine learning"; windowsize=2, minfreq=1)
 Note: target_word should already be normalized before calling this function.
 """
 function cont_table(input_doc::StringDocument, target_word::AbstractString;
