@@ -41,7 +41,7 @@ julia> cfg = TextNorm(strip_case=true, strip_accents=true);
 julia> normalize_node("New York", cfg)
 "new york"
 
-julia> normalize_node("machine learning", cfg)
+julia> normalize_node("MACHINE learning", cfg)
 "machine learning"
 """
 function normalize_node(node::AbstractString, config::TextNorm)
@@ -87,7 +87,7 @@ julia> split_ngram("machine learning")
  "learning"
 ```
 """
-split_ngram(ngram::AbstractString) = split(ngram)
+split_ngram(ngram::AbstractString) = String.(split(ngram))
 
 """
     ngram_length(ngram::AbstractString) -> Int
@@ -144,7 +144,7 @@ julia> find_ngram_positions(tokens, "machine learning")
 ```
 """
 function find_ngram_positions(tokens::Vector{String}, ngram::AbstractString)
-    ngram_words = split_ngram(ngram)
+    ngram_words = String.(split(ngram))
     n = length(ngram_words)
     n == 0 && return Int[]
 
@@ -153,7 +153,14 @@ function find_ngram_positions(tokens::Vector{String}, ngram::AbstractString)
     # Scan through tokens looking for n-gram matches
     for i in 1:(length(tokens)-n+1)
         # Check if the next n tokens match the n-gram
-        if view(tokens, i:i+n-1) == ngram_words
+        match = true
+        for j in 1:n
+            if tokens[i+j-1] != ngram_words[j]
+                match = false
+                break
+            end
+        end
+        if match
             push!(positions, i)
         end
     end
