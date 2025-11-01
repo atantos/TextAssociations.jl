@@ -6,6 +6,7 @@ makedocs(
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://atantos.github.io/TextAssociations.jl/",
         assets=String["assets/custom.css"],
+        size_threshold_ignore=["index.md"],
         sidebar_sitename=true,
         collapselevel=2,
         repolink="https://github.com/atantos/TextAssociations.jl",
