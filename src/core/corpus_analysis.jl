@@ -554,10 +554,15 @@ end
 
 """
     analyze_node(corpus::Corpus, node::AbstractString, metric::Type{<:AssociationMetric};
-                  windowsize::Int, minfreq::Int=5) -> DataFrame
+                 windowsize::Int, minfreq::Int=5) -> DataFrame
 
-Analyze a single node word across the entire corpus using corpus's normalization.
-Returns DataFrame with Node, Collocate, Score, Frequency, and DocFrequency columns.
+Analyze a single node word with a single metric.
+Returns DataFrame with Node, Collocate, metric-specific column, Frequency, and DocFrequency.
+
+# Example
+```julia
+result = analyze_node(corpus, "important", PMI; windowsize=5, minfreq=10)
+```
 """
 # function analyze_node(corpus::Corpus,
 #     node::AbstractString,
@@ -702,12 +707,211 @@ function analyze_node(corpus::Corpus,
 end
 
 """
+    analyze_node(corpus::Corpus, node::AbstractString, metrics::Vector{DataType};
+                 windowsize::Int, minfreq::Int=5, top_n::Int=100) -> DataFrame
+
+Analyze a single node word with multiple metrics.
+Returns DataFrame with Node, Collocate, all metric columns, Frequency, and DocFrequency.
+
+This method accepts Vector{DataType} for compatibility with literal syntax like [PMI, LLR].
+
+# Example
+```julia
+result = analyze_node(corpus, "important", [PMI, LogDice, LLR]; 
+                     windowsize=5, minfreq=10, top_n=50)
+```
+"""
+function analyze_node(corpus::Corpus,
+    node::AbstractString,
+    metrics::Vector{DataType};
+    windowsize::Int,
+    minfreq::Int=5,
+    top_n::Int=100)
+
+    # Convert to proper type
+    typed_metrics = Type{<:AssociationMetric}[m for m in metrics]
+
+    # Create corpus contingency table
+    cct = CorpusContingencyTable(corpus, node; windowsize, minfreq)
+
+    agg_table = cached_data(cct.aggregated_table)
+
+    if isempty(agg_table)
+        # Create empty result with all metric columns
+        result = DataFrame(
+            Node=String[],
+            Collocate=String[],
+            Frequency=Int[],
+            DocFrequency=Int[]
+        )
+        for metric in typed_metrics
+            metric_col = Symbol(string(metric))
+            result[!, metric_col] = Float64[]
+        end
+
+        metadata!(result, "status", "empty", style=:note)
+        present = assoc_node_present(cct)
+        msg = present === false ?
+              "Node '$(cct.node)' not found in the corpus." :
+              "Node found, but no collocates met the thresholds for node='$(cct.node)' (windowsize=$(windowsize), minfreq=$(minfreq))."
+        metadata!(result, "message", msg, style=:note)
+        metric_names = join(string.(typed_metrics), ", ")
+        metadata!(result, "metrics", metric_names, style=:note)
+        metadata!(result, "node", cct.node, style=:note)
+        metadata!(result, "windowsize", windowsize, style=:note)
+        metadata!(result, "minfreq", minfreq, style=:note)
+        metadata!(result, "analysis_type", "corpus_analysis", style=:note)
+        return result
+    end
+
+    # Calculate all metrics
+    metric_results = assoc_score(typed_metrics, cct)
+
+    if isempty(metric_results)
+        # Create empty result with all metric columns
+        result = DataFrame(
+            Node=String[],
+            Collocate=String[],
+            Frequency=Int[],
+            DocFrequency=Int[]
+        )
+        for metric in typed_metrics
+            metric_col = Symbol(string(metric))
+            result[!, metric_col] = Float64[]
+        end
+
+        metadata!(result, "status", "empty", style=:note)
+        metadata!(result, "message", "No results after computing metrics", style=:note)
+        metric_names = join(string.(typed_metrics), ", ")
+        metadata!(result, "metrics", metric_names, style=:note)
+        metadata!(result, "node", cct.node, style=:note)
+        metadata!(result, "windowsize", windowsize, style=:note)
+        metadata!(result, "minfreq", minfreq, style=:note)
+        metadata!(result, "analysis_type", "corpus_analysis", style=:note)
+        return result
+    end
+
+    # Calculate document frequency
+    doc_freq = [count(t -> begin
+            ct = cached_data(t.con_tbl)
+            !isempty(ct) && col in ct.Collocate
+        end, cct.tables) for col in metric_results.Collocate]
+
+    # Add DocFrequency column
+    metric_results[!, :DocFrequency] = doc_freq
+
+    # Sort by first metric and apply top_n
+    first_metric = Symbol(string(typed_metrics[1]))
+    sort!(metric_results, first_metric, rev=true)
+    result = first(metric_results, min(top_n, nrow(metric_results)))
+
+    # Add metadata
+    metadata!(result, "status", "ok", style=:note)
+    metric_names = join(string.(typed_metrics), ", ")
+    metadata!(result, "metrics", metric_names, style=:note)
+    metadata!(result, "node", cct.node, style=:note)
+    metadata!(result, "windowsize", windowsize, style=:note)
+    metadata!(result, "minfreq", minfreq, style=:note)
+    metadata!(result, "top_n", top_n, style=:note)
+    metadata!(result, "analysis_type", "corpus_analysis", style=:note)
+
+    return result
+end
+
+"""
+    analyze_nodes(corpus::Corpus, nodes::Vector{String}, metric::Type{<:AssociationMetric};
+                 windowsize::Int, minfreq::Int=5, top_n::Int=100,
+                 parallel::Bool=false) -> MultiNodeAnalysis
+
+Analyze multiple node words with a single metric.
+Each result DataFrame includes Node, Collocate, metric column, Frequency, and DocFrequency.
+
+# Example
+```julia
+analysis = analyze_nodes(corpus, ["important", "significant"], PMI; 
+                        windowsize=5, minfreq=10)
+```
+"""
+function analyze_nodes(corpus::Corpus,
+    nodes::Vector{String},
+    metric::Type{<:AssociationMetric};
+    windowsize::Int,
+    minfreq::Int=5,
+    top_n::Int=100,
+    parallel::Bool=false)
+
+    results = Dict{String,DataFrame}()
+
+    if parallel && nworkers() > 1
+        # Parallel processing
+        node_results = @distributed (vcat) for node in nodes
+            [(node, analyze_node(corpus, node, metric; windowsize, minfreq))]
+        end
+        for (node, result) in node_results
+            # Apply top_n limit
+            metric_col = Symbol(string(metric))
+            if nrow(result) > 0 && metric_col in propertynames(result)
+                result = first(result, min(top_n, nrow(result)))
+            end
+            # Add top_n to metadata
+            metadata!(result, "top_n", top_n, style=:note)
+            # Get normalized node from result or use original
+            normalized_node = nrow(result) > 0 && :Node in propertynames(result) ?
+                              result[1, :Node] : normalize_node(node, corpus.norm_config)
+            results[normalized_node] = result
+        end
+    else
+        @showprogress desc = "Analyzing nodes..." for node in nodes
+            result = analyze_node(corpus, node, metric; windowsize, minfreq)
+
+            # Apply top_n limit
+            metric_col = Symbol(string(metric))
+            if nrow(result) > 0 && metric_col in propertynames(result)
+                result = first(result, min(top_n, nrow(result)))
+            end
+
+            # Add top_n to metadata
+            metadata!(result, "top_n", top_n, style=:note)
+
+            # Get normalized node from result or metadata
+            normalized_node = nrow(result) > 0 && :Node in propertynames(result) ?
+                              result[1, :Node] :
+                              haskey(metadata(result), "node") ?
+                              metadata(result)["node"] :
+                              normalize_node(node, corpus.norm_config)
+
+            results[normalized_node] = result
+        end
+    end
+
+    parameters = Dict(
+        :windowsize => windowsize,
+        :minfreq => minfreq,
+        :metric => metric,
+        :top_n => top_n
+    )
+
+    normalized_nodes = collect(keys(results))
+
+    return MultiNodeAnalysis(normalized_nodes, results, corpus, parameters)
+end
+
+
+"""
     analyze_nodes(corpus::Corpus, nodes::Vector{String}, metrics::Vector{DataType};
                  windowsize::Int, minfreq::Int=5, top_n::Int=100,
                  parallel::Bool=false) -> MultiNodeAnalysis
 
-Analyze multiple nodes with consistent normalization.
-Each result DataFrame now includes the Node column and metadata.
+Analyze multiple nodes with multiple metrics and consistent normalization.
+Each result DataFrame includes the Node column and metadata.
+
+This method accepts Vector{DataType} for compatibility with literal syntax like [PMI, LLR].
+
+# Example
+```julia
+analysis = analyze_nodes(corpus, ["important", "significant"], [PMI, LogDice, LLR]; 
+                        windowsize=5, minfreq=10, top_n=50)
+```
 """
 function analyze_nodes(corpus::Corpus,
     nodes::Vector{String},
@@ -717,10 +921,14 @@ function analyze_nodes(corpus::Corpus,
     top_n::Int=100,
     parallel::Bool=false)
 
+    # Convert to proper type - THIS IS THE KEY ADDITION
+    typed_metrics = Type{<:AssociationMetric}[m for m in metrics]
+
     results = Dict{String,DataFrame}()
 
     if parallel && nworkers() > 1
         # Parallel processing (implementation omitted for brevity)
+        # Note: If implementing parallel version, also use typed_metrics there
     else
         @showprogress desc = "Analyzing nodes..." for node in nodes
             # Create corpus contingency table (node normalized inside)
@@ -729,15 +937,17 @@ function analyze_nodes(corpus::Corpus,
             agg_table = cached_data(cct.aggregated_table)
 
             if !isempty(agg_table)
-                metric_results = assoc_score(metrics, cct)
+                # Use typed_metrics instead of metrics
+                metric_results = assoc_score(typed_metrics, cct)
 
                 if !isempty(metric_results)
-                    first_metric = Symbol(string(metrics[1]))
+                    # Use typed_metrics[1] instead of metrics[1]
+                    first_metric = Symbol(string(typed_metrics[1]))
                     sort!(metric_results, first_metric, rev=true)
                     result = first(metric_results, min(top_n, nrow(metric_results)))
 
-                    # Add metadata
-                    metric_names = join(string.(metrics), ", ")
+                    # Add metadata - use typed_metrics for proper string representation
+                    metric_names = join(string.(typed_metrics), ", ")
                     metadata!(result, "metrics", metric_names, style=:note)
                     metadata!(result, "node", cct.node, style=:note)
                     metadata!(result, "windowsize", windowsize, style=:note)
@@ -757,7 +967,7 @@ function analyze_nodes(corpus::Corpus,
     parameters = Dict(
         :windowsize => windowsize,
         :minfreq => minfreq,
-        :metrics => metrics,
+        :metrics => typed_metrics,  # Store typed_metrics, not raw metrics
         :top_n => top_n
     )
 
@@ -765,6 +975,7 @@ function analyze_nodes(corpus::Corpus,
 
     return MultiNodeAnalysis(normalized_nodes, results, corpus, parameters)
 end
+
 
 """
     corpus_stats(corpus::Corpus; 
