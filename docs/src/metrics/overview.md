@@ -282,11 +282,11 @@ using TextAssociations
 text = "cause leads to effect, but effect rarely leads to cause"
 ct = ContingencyTable(text, "cause"; windowsize=3, minfreq=1)
 
-deltap = assoc_score(DeltaPi, ct)
+deltapiright = assoc_score(DeltaPiRight, ct)
 println("\nDelta P (directional association):")
 for row in eachrow(deltap)
     direction = row.DeltaPiRight > 0 ? "forward" : "backward"
-    println("  $(row.Collocate): $(round(row.DeltaPi, digits=3)) ($direction)")
+    println("  $(row.Collocate): $(round(row.DeltaPiRight, digits=3)) ($direction)")
 end
 ```
 
