@@ -134,14 +134,14 @@ using TextAssociations
 results = analyze_node(
     corpus,
     "learning",
-    PMI;
+    LLR;
     windowsize=5,
     minfreq=1
 )
 
 println("Top collocates of 'learning' across corpus:")
 for row in eachrow(first(results, 5))
-    println("  $(row.Collocate): Score=$(round(row.Score, digits=2)), DocFreq=$(row.DocFrequency)")
+    println("  $(row.Collocate): Score=$(round(row.LLR, digits=2)), DocFreq=$(row.DocFrequency)")
 end
 ```
 
@@ -247,7 +247,7 @@ comparison = compare_subcorpora(
     categorized_corpus,
     :field,
     "analysis",
-    PMI;
+    LLR;
     windowsize=5,
     minfreq=1
 )
