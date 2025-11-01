@@ -108,14 +108,15 @@ function assoc_score(::Type{T}, x::AssociationDataFormat;
     if needs_tok === Val(true)
         toks = tokens === nothing ? assoc_tokens(x) : tokens
         if toks === nothing
-            return scores_only ? Float64[] :
+            # Return NaN-filled vector of correct length when scores_only=true
+            return scores_only ? fill(NaN, nrow(df_in)) :
                    _empty_result(x, T; reason="Metric $(T) requires tokens but none were provided or available via assoc_tokens().")
         end
         # Safe compute with tokens
         scores = try
             f(x; tokens=toks, kwargs...)
         catch err
-            return scores_only ? Float64[] :
+            return scores_only ? fill(NaN, nrow(df_in)) :
                    _empty_result(x, T; reason="Metric $(T) failed during evaluation: $(err)", error=true)
         end
         return scores_only ? scores : begin
@@ -131,7 +132,7 @@ function assoc_score(::Type{T}, x::AssociationDataFormat;
         scores = try
             f(x; kwargs...)
         catch err
-            return scores_only ? Float64[] :
+            return scores_only ? fill(NaN, nrow(df_in)) :
                    _empty_result(x, T; reason="Metric $(T) failed during evaluation: $(err)", error=true)
         end
         return scores_only ? scores : begin
