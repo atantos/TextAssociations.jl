@@ -284,7 +284,7 @@ ct = ContingencyTable(text, "cause"; windowsize=3, minfreq=1)
 
 deltapiright = assoc_score(DeltaPiRight, ct)
 println("\nDelta P (directional association):")
-for row in eachrow(deltap)
+for row in eachrow(deltapiright)
     direction = row.DeltaPiRight > 0 ? "forward" : "backward"
     println("  $(row.Collocate): $(round(row.DeltaPiRight, digits=3)) ($direction)")
 end
