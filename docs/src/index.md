@@ -291,10 +291,10 @@ comparison = compare_subcorpora(
 
 Track how word associations change over time:
 
-```@example corpus
-# temporal_analysis = analyze_temporal(
-#     corpus, ["digital", "transformation"], :year, PMI
-# )
+```julia
+temporal_analysis = analyze_temporal(
+    corpus, ["digital", "transformation"], :year, PMI
+)
 ```
 
 ## Package Architecture
