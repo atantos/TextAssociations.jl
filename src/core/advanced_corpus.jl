@@ -1193,37 +1193,54 @@ end
 
 """
     kwic(corpus::Corpus,
-                        node::String;
-                        context_size::Int=50,
-                        max_lines::Int=1000) -> Concordance
+         node::String;
+         context_size::Int=50,
+         max_lines::Int=1000,
+         display::Bool=true) -> Concordance
 
-Generate KWIC concordance for a node word or n-gram. The node can be a multi-word phrase like "machine learning".
+Generate KWIC (Key Word In Context) concordance for a node word or n-gram. 
+The node can be a multi-word phrase like "machine learning".
+
+This function extracts concordance lines and optionally displays them in an interactive 
+table viewer (VS Code) or terminal. The concordance object is always returned for 
+further processing or export.
 
 # Arguments
 - `corpus`: The corpus to search
 - `node`: Single word or multi-word phrase (will be normalized)
-- `context_size`: Number of tokens on each side of the node
-- `max_lines`: Maximum number of concordance lines to generate
+- `context_size`: Number of tokens (words) on each side of the node (default: 50)
+- `max_lines`: Maximum number of concordance lines to generate (default: 1000)
+- `display`: Whether to display the concordance table (default: true)
+  - `true`: Shows table in VS Code viewer or terminal
+  - `false`: Silent mode for batch processing
 
 # Returns
 Concordance struct with:
 - `node`: The normalized node
 - `lines`: DataFrame with LeftContext, Node, RightContext, DocId, Position
-- `statistics`: Dict with occurrence counts
+- `statistics`: Dict with occurrence counts and context_size
 
 # Examples
 ```julia
-# Single word
-kwic(corpus, "innovation", context_size=30)
+# Interactive use - display table automatically
+conc = kwic(corpus, "innovation", context_size=30)
+
+# Batch processing - suppress display
+conc = kwic(corpus, "technology", context_size=30, display=false)
+export_kwic(conc, "technology.csv")
 
 # Multi-word n-gram
-kwic(corpus, "machine learning", context_size=20)
+conc = kwic(corpus, "machine learning", context_size=20)
+
+# Limit results
+conc = kwic(corpus, "the", context_size=15, max_lines=100)
 ```
 """
 function kwic(corpus::Corpus,
     node::String;
     context_size::Int=50,
-    max_lines::Int=1000)
+    max_lines::Int=1000,
+    display::Bool=true)
 
     # Normalize node using corpus config
     normalized_node = normalize_node(node, corpus.norm_config)
@@ -1293,12 +1310,158 @@ function kwic(corpus::Corpus,
                 end
             end, corpus.documents),
         :lines_generated => length(concordance_lines),
-        :ngram_length => n
+        :ngram_length => n,
+        :context_size => context_size
     )
 
-    return Concordance(
+    # Create concordance object
+    conc = Concordance(
         normalized_node,  # Store normalized node
         DataFrame(concordance_lines),
         statistics
     )
+
+    # Display if requested
+    if display
+        _display_concordance(conc)
+    end
+
+    return conc
 end
+
+"""
+    _display_concordance(conc::Concordance)
+
+Internal function to display a concordance table.
+This is called automatically by kwic() when display=true.
+"""
+function _display_concordance(conc::Concordance)
+    # Create display version with line numbers
+    df_display = copy(conc.lines)
+    insertcols!(df_display, 1, :Line => 1:nrow(df_display))
+
+    # Try to use vscodedisplay if available (VS Code environment)
+    if isdefined(Main, :vscodedisplay)
+        Main.vscodedisplay(df_display)
+        println("\n✓ Concordance table opened in VS Code viewer")
+        println("  Node: \"$(conc.node)\"")
+        println("  Total lines: $(nrow(df_display))")
+    else
+        # Fallback to regular display
+        display(df_display)
+        println("\nShowing concordance for: \"$(conc.node)\"")
+    end
+
+    return nothing
+end
+
+"""
+    Base.show(io::IO, mime::MIME"text/plain", conc::Concordance)
+
+Display concordance summary in a compact format.
+"""
+function Base.show(io::IO, mime::MIME"text/plain", conc::Concordance)
+    println(io, "Concordance for: \"$(conc.node)\"")
+    println(io, "─"^50)
+    println(io, "Total occurrences: $(conc.statistics[:total_occurrences])")
+    println(io, "Documents with node: $(conc.statistics[:documents_with_node])")
+    println(io, "Lines generated: $(conc.statistics[:lines_generated])")
+    println(io, "N-gram length: $(conc.statistics[:ngram_length])")
+    if haskey(conc.statistics, :context_size)
+        println(io, "Context size: $(conc.statistics[:context_size]) tokens")
+    end
+    println(io, "─"^50)
+    println(io, "\nAccess DataFrame: concordance.lines")
+    println(io, "Export to file: export_kwic(concordance, \"file.csv\")")
+end
+
+"""
+    export_kwic(conc::Concordance, filepath::String; format::Symbol=:csv)
+
+Export concordance lines to a file.
+
+# Arguments
+- `conc`: Concordance object
+- `filepath`: Output file path (supports ~, ., .., and relative paths)
+- `format`: Output format (:csv, :tsv, :xlsx) - default :csv
+
+# Examples
+```julia
+conc = kwic(corpus, "innovation")
+
+# Absolute path
+export_kwic(conc, "/path/to/concordance.csv")
+
+# Relative path
+export_kwic(conc, "results/concordance.csv")
+
+# Current directory
+export_kwic(conc, "./concordance.csv")
+
+# Parent directory
+export_kwic(conc, "../concordance.csv")
+
+# Home directory
+export_kwic(conc, "~/Documents/concordance.csv")
+
+# Excel format
+export_kwic(conc, "~/results/concordance.xlsx", format=:xlsx)
+```
+"""
+function export_kwic(conc::Concordance, filepath::String; format::Symbol=:csv)
+    # Expand path: handle ~, ., .., and relative paths
+    expanded_path = expanduser(filepath)  # Expands ~ to home directory
+    expanded_path = abspath(expanded_path)  # Converts to absolute path, handles . and ..
+
+    # Ensure directory exists
+    dir = dirname(expanded_path)
+    if !isempty(dir) && !isdir(dir)
+        mkpath(dir)
+        println("  Created directory: $dir")
+    end
+
+    df = copy(conc.lines)
+
+    # Add metadata as first row comment or separate sheet
+    if format == :csv
+        CSV.write(expanded_path, df)
+        println("✓ Concordance exported to: $expanded_path")
+    elseif format == :tsv
+        CSV.write(expanded_path, df; delim='\t')
+        println("✓ Concordance exported to: $expanded_path")
+    elseif format == :xlsx
+        # Requires XLSX.jl - add metadata sheet
+        try
+            XLSX.openxlsx(expanded_path, mode="w") do xf
+                # Main data sheet
+                sheet = xf[1]
+                XLSX.rename!(sheet, "Concordance Lines")
+                XLSX.writetable!(sheet, df)
+
+                # Statistics sheet
+                stats_sheet = XLSX.addsheet!(xf, "Statistics")
+                stats_data = [
+                    ["Node", conc.node],
+                    ["Total Occurrences", conc.statistics[:total_occurrences]],
+                    ["Documents with Node", conc.statistics[:documents_with_node]],
+                    ["Lines Generated", conc.statistics[:lines_generated]],
+                    ["N-gram Length", conc.statistics[:ngram_length]]
+                ]
+                XLSX.writetable!(stats_sheet, stats_data, ["Metric", "Value"])
+            end
+            println("✓ Concordance exported to: $expanded_path (with statistics)")
+        catch e
+            @warn "XLSX export failed: $e. Install XLSX.jl for Excel support."
+            # Fallback to CSV
+            csv_path = replace(expanded_path, ".xlsx" => ".csv")
+            CSV.write(csv_path, df)
+            println("✓ Concordance exported to CSV instead: $csv_path")
+            return csv_path
+        end
+    else
+        error("Unsupported format: $format. Use :csv, :tsv, or :xlsx")
+    end
+
+    return expanded_path
+end
+

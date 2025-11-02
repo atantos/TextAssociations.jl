@@ -13,6 +13,7 @@ using Chain
 using ProgressMeter
 using Unicode
 using SpecialFunctions: logbeta
+using XLSX
 
 # === Types & core ===
 include("types.jl")
@@ -72,7 +73,8 @@ export
     # Advanced features
     analyze_temporal, compare_subcorpora,
     keyterms, colloc_graph,
-    gephi_graph, kwic,
+    gephi_graph,
+    kwic, export_kwic,
 
     # Utility functions
     normalize_node, prep_string,
