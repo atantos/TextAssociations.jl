@@ -14,6 +14,8 @@ using ProgressMeter
 using Unicode
 using SpecialFunctions: logbeta
 using XLSX
+using Languages
+using StatsBase: countmap
 
 # === Types & core ===
 include("types.jl")
@@ -21,6 +23,7 @@ include("types.jl")
 # === Utils ===
 include("utils/io.jl")
 include("utils/text_processing.jl")
+include("utils/dataframe_utils.jl")
 include("utils/statistical.jl")
 include("utils/text_analysis.jl")
 include("utils/compare_metrics.jl")

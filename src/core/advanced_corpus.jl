@@ -4,7 +4,6 @@
 # =====================================
 
 using DataFrames
-using StatsBase: countmap
 using Statistics: mean, median, std, var, cor
 using ProgressMeter: @showprogress
 using SparseArrays: sparse
