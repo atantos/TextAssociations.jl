@@ -503,44 +503,108 @@ function calculate_effect_sizes(results::Dict{String,DataFrame},
 end
 
 # =====================================
-# Keyword Extraction
-# =====================================
+# Keyword Extraction with Languages.jl Stopwords API
+# ====================================
 
 """
     keyterms(corpus::Corpus;
                     method::Symbol=:tfidf,
                     num_keywords::Int=50,
                     min_doc_freq::Int=3,
-                    max_doc_freq_ratio::Float64=0.5) -> DataFrame
+                    max_doc_freq_ratio::Float64=0.5,
+                    language::Union{Language,Nothing}=nothing) -> DataFrame
 
-Extract keywords from corpus using various methods.
+Extract keywords from corpus using various methods with multilingual stopword support.
+
+# Arguments
+- `corpus::Corpus`: Input corpus
+- `method::Symbol`: Extraction method (:tfidf, :textrank, :rake)
+- `num_keywords::Int`: Number of keywords to extract
+- `min_doc_freq::Int`: Minimum document frequency (TF-IDF only)
+- `max_doc_freq_ratio::Float64`: Maximum document frequency ratio (TF-IDF only)
+- `language::Union{Language,Nothing}`: Language for stopword filtering
+  - For TF-IDF and TextRank: Optional
+  - For RAKE: Defaults to English if not specified
+
+# Examples
+```julia
+using Languages
+
+# English
+keywords = keyterms(corpus, method=:rake, language=Languages.English())
+
+# Greek (handles polytonic accents automatically)
+keywords = keyterms(corpus, method=:rake, language=Languages.Greek())
+
+# Spanish
+keywords = keyterms(corpus, method=:tfidf, language=Languages.Spanish())
+```
 """
 function keyterms(corpus::Corpus;
     method::Symbol=:tfidf,
     num_keywords::Int=50,
     min_doc_freq::Int=3,
-    max_doc_freq_ratio::Float64=0.5)
+    max_doc_freq_ratio::Float64=0.5,
+    language::Union{Language,Nothing}=nothing)
 
     if method == :tfidf
-        return extract_tfidf_keywords(corpus, num_keywords, min_doc_freq, max_doc_freq_ratio)
+        return extract_tfidf_keywords(corpus, num_keywords, min_doc_freq,
+            max_doc_freq_ratio; language=language)
     elseif method == :textrank
-        return extract_textrank_keywords(corpus, num_keywords)
+        return extract_textrank_keywords(corpus, num_keywords; language=language)
     elseif method == :rake
-        return extract_rake_keywords(corpus, num_keywords)
+        lang = language === nothing ? Languages.English() : language
+        return extract_rake_keywords(corpus, num_keywords, language=lang)
     else
         throw(ArgumentError("Unknown keyword extraction method: $method"))
     end
 end
 
 """
-    extract_tfidf_keywords(corpus, num_keywords, min_doc_freq, max_doc_freq_ratio) -> DataFrame
+    extract_tfidf_keywords(corpus, num_keywords, min_doc_freq, max_doc_freq_ratio,
+                          language=language) -> DataFrame
 
-Extract keywords using TF-IDF scoring.
+Extract keywords using TF-IDF scoring with optional stopword filtering.
+
+# Arguments
+- `corpus::Corpus`: Input corpus
+- `num_keywords::Int`: Number of keywords to extract
+- `min_doc_freq::Int`: Minimum document frequency threshold
+- `max_doc_freq_ratio::Float64`: Maximum document frequency ratio (0.0-1.0)
+- `language::Union{Language, Nothing}`: Optional language for stopword filtering
+
+# Note
+While TF-IDF traditionally relies on document frequency, adding stopwords improves results
+by removing language-specific function words that may not have high enough document frequency.
+
+# Examples
+```julia
+using Languages
+
+# English corpus with stopword filtering
+keywords = extract_tfidf_keywords(corpus, 20, 3, 0.5, 
+    language=Languages.English())
+
+# Greek corpus with stopword filtering
+keywords = extract_tfidf_keywords(corpus, 20, 3, 0.5,
+    language=Languages.Greek())
+
+# Without stopword filtering
+keywords = extract_tfidf_keywords(corpus, 20, 3, 0.5)
+```
 """
 function extract_tfidf_keywords(corpus::Corpus,
     num_keywords::Int,
     min_doc_freq::Int,
-    max_doc_freq_ratio::Float64)
+    max_doc_freq_ratio::Float64;
+    language::Union{Language,Nothing}=nothing)
+
+    # Get stopwords if language specified
+    stop_words = if language !== nothing
+        Set(lowercase.(Languages.stopwords(language)))
+    else
+        Set{String}()
+    end
 
     # Build document-term matrix if not exists
     if corpus.doc_term_matrix === nothing
@@ -552,11 +616,41 @@ function extract_tfidf_keywords(corpus::Corpus,
     n_docs = length(corpus.documents)
     n_terms = length(corpus.vocabulary)
 
+    # Get inverse vocabulary
+    inv_vocab = Dict(v => k for (k, v) in corpus.vocabulary)
+
     # Calculate document frequencies
     doc_freq = vec(sum(dtm .> 0, dims=1))
 
-    # Filter by document frequency
-    valid_terms = findall(x -> x >= min_doc_freq && x <= n_docs * max_doc_freq_ratio, doc_freq)
+    # Filter by document frequency AND stopwords
+    valid_terms = Int[]
+    for term_idx in 1:n_terms
+        term = inv_vocab[term_idx]
+
+        # CHANGED (Option 1): Check if stopword using normalize_for_stopwords()
+        # This handles polytonic Greek and other language-specific normalization
+        check_token = if language !== nothing
+            normalize_for_stopwords(term, language)
+        else
+            lowercase(term)
+        end
+
+        if check_token in stop_words
+            continue
+        end
+
+        # Check document frequency
+        if doc_freq[term_idx] >= min_doc_freq &&
+           doc_freq[term_idx] <= n_docs * max_doc_freq_ratio
+            push!(valid_terms, term_idx)
+        end
+    end
+
+    if isempty(valid_terms)
+        @warn "No valid terms after filtering"
+        return DataFrame(Keyword=String[], TFIDF=Float64[],
+            DocFreq=Int[], DocFreqRatio=Float64[])
+    end
 
     # Calculate TF-IDF scores
     tfidf_scores = zeros(length(valid_terms))
@@ -569,9 +663,6 @@ function extract_tfidf_keywords(corpus::Corpus,
 
     # Get top keywords
     top_indices = partialsortperm(tfidf_scores, 1:min(num_keywords, length(tfidf_scores)), rev=true)
-
-    # Get term names
-    inv_vocab = Dict(v => k for (k, v) in corpus.vocabulary)
 
     keywords_data = []
     for idx in top_indices
@@ -589,26 +680,240 @@ function extract_tfidf_keywords(corpus::Corpus,
     return DataFrame(keywords_data)
 end
 
-"""
-    extract_textrank_keywords(corpus, num_keywords) -> DataFrame
 
-Extract keywords using TextRank algorithm (placeholder).
+
 """
-function extract_textrank_keywords(corpus::Corpus, num_keywords::Int)
-    # Placeholder implementation
-    @warn "TextRank keyword extraction not yet implemented"
-    return DataFrame()
+    extract_textrank_keywords(corpus, num_keywords; language=nothing) -> DataFrame
+
+Extract keywords using TextRank algorithm with optional stopword filtering.
+"""
+function extract_textrank_keywords(corpus::Corpus,
+    num_keywords::Int;
+    language::Union{Language,Nothing}=nothing)
+
+    # Parameters
+    window_size = 5
+    damping_factor = 0.85
+    max_iterations = 100
+    convergence_threshold = 1e-4
+
+    # Get stop words if language specified
+    stop_words = if language !== nothing
+        get_stopwords(language)
+    else
+        Set{String}()
+    end
+
+    # Collect and filter tokens
+    all_tokens = String[]
+    for doc in corpus.documents
+        append!(all_tokens, tokens(doc))
+    end
+
+    filtered_tokens = [t for t in all_tokens if !(lowercase(t) in stop_words)]
+    terms = collect(keys(corpus.vocabulary))
+    terms = [t for t in terms if !(lowercase(t) in stop_words)]
+    n_terms = length(terms)
+
+    if n_terms == 0
+        @warn "No terms remaining after filtering"
+        return DataFrame(Keyword=String[], TextRankScore=Float64[],
+            Frequency=Int[], DocFrequency=Int[])
+    end
+
+    term_to_idx = Dict(term => idx for (idx, term) in enumerate(terms))
+
+    # Build co-occurrence graph
+    co_occurrence = zeros(Float64, n_terms, n_terms)
+
+    for doc in corpus.documents
+        doc_tokens = [t for t in tokens(doc) if haskey(term_to_idx, t)]
+        n_tokens = length(doc_tokens)
+
+        for i in 1:n_tokens
+            center_idx = term_to_idx[doc_tokens[i]]
+            window_start = max(1, i - window_size)
+            window_end = min(n_tokens, i + window_size)
+
+            for j in window_start:window_end
+                i == j && continue
+                neighbor_idx = term_to_idx[doc_tokens[j]]
+                co_occurrence[center_idx, neighbor_idx] += 1.0
+                co_occurrence[neighbor_idx, center_idx] += 1.0
+            end
+        end
+    end
+
+    # Normalize
+    row_sums = vec(sum(co_occurrence, dims=2))
+    for i in 1:n_terms
+        if row_sums[i] > 0
+            co_occurrence[i, :] ./= row_sums[i]
+        else
+            co_occurrence[i, :] .= 1.0 / n_terms
+        end
+    end
+
+    # TextRank iteration
+    scores = ones(Float64, n_terms) ./ n_terms
+
+    for iter in 1:max_iterations
+        new_scores = (1 - damping_factor) / n_terms .+
+                     damping_factor * (co_occurrence' * scores)
+
+        if maximum(abs.(new_scores .- scores)) < convergence_threshold
+            scores = new_scores
+            break
+        end
+        scores = new_scores
+        scores ./= sum(scores)
+    end
+
+    # Calculate metrics
+    term_freqs = countmap(filtered_tokens)
+    doc_freqs = Dict{String,Int}()
+    for doc in corpus.documents
+        for token in Set(tokens(doc))
+            if haskey(term_to_idx, token)
+                doc_freqs[token] = get(doc_freqs, token, 0) + 1
+            end
+        end
+    end
+
+    # Collect results
+    results = []
+    for (idx, term) in enumerate(terms)
+        push!(results, (
+            Keyword=term,
+            TextRankScore=scores[idx],
+            Frequency=get(term_freqs, term, 0),
+            DocFrequency=get(doc_freqs, term, 0)
+        ))
+    end
+
+    sort!(results, by=x -> x.TextRankScore, rev=true)
+    return DataFrame(results[1:min(num_keywords, length(results))])
 end
 
 """
-    extract_rake_keywords(corpus, num_keywords) -> DataFrame
+    extract_rake_keywords(corpus, num_keywords; language=Languages.English()) -> DataFrame
 
-Extract keywords using RAKE algorithm (placeholder).
+Extract keywords using RAKE (Rapid Automatic Keyword Extraction) algorithm.
+
+RAKE identifies multi-word phrases as keywords by splitting text at stopwords.
+Automatically handles polytonic Greek and other language-specific normalization.
+
+# Arguments
+- `corpus::Corpus`: Input corpus
+- `num_keywords::Int`: Number of keywords/phrases to extract
+- `language::Language`: Language object for stopwords (defaults to English)
+
+# Returns
+DataFrame with columns:
+- `Keyword`: Extracted phrase (may be multi-word)
+- `RAKEScore`: Co-occurrence-based score
+- `Frequency`: Corpus frequency
+- `WordCount`: Number of words in phrase
+- `DocFrequency`: Number of documents containing phrase
+
+# Examples
+```julia
+using Languages
+
+# English
+keywords = extract_rake_keywords(corpus, 30, language=Languages.English())
+
+# Greek (automatically handles polytonic accents via normalize_for_stopwords)
+keywords = extract_rake_keywords(corpus, 30, language=Languages.Greek())
+
+# Spanish
+keywords = extract_rake_keywords(corpus, 30, language=Languages.Spanish())
+```
 """
-function extract_rake_keywords(corpus::Corpus, num_keywords::Int)
-    # Placeholder implementation
-    @warn "RAKE keyword extraction not yet implemented"
-    return DataFrame()
+function extract_rake_keywords(corpus::Corpus, num_keywords::Int;
+    language::Language=Languages.English())
+
+    # Get stopwords for the language
+    stop_words = Set(lowercase.(Languages.stopwords(language)))
+
+    # Extract candidate phrases
+    all_phrases = String[]
+    phrase_docs = Dict{String,Set{Int}}()
+
+    for (doc_idx, doc) in enumerate(corpus.documents)
+        doc_tokens = tokens(doc)
+        current_phrase = String[]
+
+        for token in doc_tokens
+            check_token = normalize_for_stopwords(token, language)
+
+            # Split at stopwords or very short tokens
+            if check_token in stop_words || length(token) <= 1
+                if !isempty(current_phrase)
+                    phrase = join(current_phrase, " ")
+                    push!(all_phrases, phrase)
+                    get!(phrase_docs, phrase, Set{Int}())
+                    push!(phrase_docs[phrase], doc_idx)
+                end
+                current_phrase = String[]
+            else
+                # Keep original token (not normalized)
+                push!(current_phrase, token)
+            end
+        end
+
+        # Handle last phrase
+        if !isempty(current_phrase)
+            phrase = join(current_phrase, " ")
+            push!(all_phrases, phrase)
+            get!(phrase_docs, phrase, Set{Int}())
+            push!(phrase_docs[phrase], doc_idx)
+        end
+    end
+
+    if isempty(all_phrases)
+        @warn "No candidate phrases found"
+        return DataFrame(
+            Keyword=String[], RAKEScore=Float64[],
+            Frequency=Int[], WordCount=Int[], DocFrequency=Int[]
+        )
+    end
+
+    # Calculate word scores
+    word_degree = Dict{String,Float64}()
+    word_freq = Dict{String,Int}()
+
+    for phrase in all_phrases
+        words = split(phrase)
+        for word in words
+            word_freq[word] = get(word_freq, word, 0) + 1
+            word_degree[word] = get(word_degree, word, 0.0) + length(words)
+        end
+    end
+
+    word_scores = Dict(w => word_degree[w] / word_freq[w] for w in keys(word_freq))
+
+    # Calculate phrase scores
+    phrase_freqs = countmap(all_phrases)
+    phrase_scores = Dict(
+        phrase => sum(get(word_scores, w, 0.0) for w in split(phrase))
+        for phrase in keys(phrase_freqs)
+    )
+
+    # Prepare results
+    results = [
+        (
+            Keyword=phrase,
+            RAKEScore=phrase_scores[phrase],
+            Frequency=phrase_freqs[phrase],
+            WordCount=length(split(phrase)),
+            DocFrequency=length(phrase_docs[phrase])
+        )
+        for phrase in keys(phrase_scores)
+    ]
+
+    sort!(results, by=x -> x.RAKEScore, rev=true)
+    return DataFrame(results[1:min(num_keywords, length(results))])
 end
 
 """

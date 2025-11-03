@@ -322,3 +322,86 @@ function build_vocab(input::Union{StringDocument,Vector{String}})
     end
     return vocab
 end
+
+"""
+    normalize_for_stopwords(text::String, language::Language) -> String
+
+Normalize text for stopword matching, handling language-specific issues.
+
+For Greek: Strips polytonic/ancient Greek accents to match modern Greek stopwords. In the case of polytonic Greek it converts:
+- Polytonic accents (ὁ, ἡ, ᾽, ὅ, etc.) → monotonic (ο, η, ', ο, etc.)
+- Removes all diacritics/breathing marks
+- Normalizes to NFC form
+- Lowercases
+
+For other languages: Just lowercase for now.
+
+# Examples
+```julia
+# Greek - strips polytonic accents
+normalize_for_stopwords("τοὺ", Languages.Greek())  # → "του"
+normalize_for_stopwords("νὰ", Languages.Greek())   # → "να"
+
+# English - just lowercase
+normalize_for_stopwords("THE", Languages.English())  # → "the"
+```
+"""
+function normalize_for_stopwords(text::String, language::Language)
+    if typeof(language) == Languages.Greek
+        # Strip polytonic accents for Greek
+        text = Unicode.normalize(text, :NFD)       # Decompose
+        text = replace(text, r"\p{M}" => "")       # Remove marks
+        text = Unicode.normalize(text, :NFC)       # Recompose
+    end
+    return lowercase(text)
+end
+
+"""
+    get_stopwords(language::Language) -> Set{String}
+
+Get stop words for a given language using Languages.jl API.
+
+# Note
+Despite what the Languages.jl README says, the `stopwords()` function actually 
+works for many languages beyond just English and German!
+
+# Examples
+```julia
+using Languages
+
+# English
+sw = get_stopwords(Languages.English())
+
+# German
+sw = get_stopwords(Languages.German())
+
+# Greek - works!
+sw = get_stopwords(Languages.Greek())
+
+# Spanish - works!
+sw = get_stopwords(Languages.Spanish())
+
+# French - works!
+sw = get_stopwords(Languages.French())
+```
+
+# Testing Which Languages Work
+```julia
+# Try any language to see if it has stopwords
+try
+    sw = stopwords(Languages.Greek())
+    println("Greek has \$(length(sw)) stopwords")
+catch e
+    println("Greek stopwords not available: \$(e)")
+end
+```
+"""
+function get_stopwords(language::Language)
+    try
+        return Set(Languages.stopwords(language))
+    catch e
+        @info "Stopwords not available for $(typeof(language)). " *
+              "Returning empty set. Error: $e"
+        return Set{String}()
+    end
+end

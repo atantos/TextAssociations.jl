@@ -82,7 +82,7 @@ export
     # Utility functions
     normalize_node, prep_string,
     strip_diacritics, build_vocab,
-    cont_table,
+    normalize_for_stopwords, cont_table,
 
     # All metric types
     PMI, PMI², PMI³, PPMI,

@@ -93,3 +93,58 @@ function count_substrings(text::String, substrings::Vector{String})::Dict{String
     end
     return counts
 end
+
+"""
+    check_stopwords_support(languages::Vector{Language}) -> DataFrame
+
+Check which languages have stopwords available in Languages.jl.
+
+# Example
+```julia
+using Languages
+
+# Test common languages
+test_langs = [
+    Languages.English(),
+    Languages.German(),
+    Languages.Greek(),
+    Languages.Spanish(),
+    Languages.French(),
+    Languages.Italian(),
+    Languages.Portuguese(),
+    Languages.Dutch(),
+    Languages.Russian(),
+    Languages.Chinese(),
+    Languages.Japanese()
+]
+
+support_df = check_stopwords_support(test_langs)
+```
+"""
+function check_stopwords_support(languages::Vector{<:Language})
+    results = []
+
+    for lang in languages
+        lang_name = string(typeof(lang))
+        lang_name = replace(lang_name, r"^Languages\." => "")
+
+        try
+            sw = Languages.stopwords(lang)
+            push!(results, (
+                Language=lang_name,
+                Supported=true,
+                NumStopwords=length(sw),
+                Sample=join(first(sw, 3), ", ")
+            ))
+        catch e
+            push!(results, (
+                Language=lang_name,
+                Supported=false,
+                NumStopwords=0,
+                Sample="N/A"
+            ))
+        end
+    end
+
+    return DataFrame(results)
+end
