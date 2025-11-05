@@ -61,14 +61,51 @@ end
 
 """
     analyze_temporal(corpus::Corpus,
-                            nodes::Vector{String},
-                            time_field::Symbol,
-                            metric::Type{<:AssociationMetric};
-                            time_bins::Int=5,
-                            windowsize::Int=5,
-                            minfreq::Int=5) -> TemporalCorpusAnalysis
+                     nodes::Vector{String},
+                     time_field::Symbol,
+                     metric::Type{<:AssociationMetric};
+                     time_bins::Int=5,
+                     windowsize::Int=5,
+                     minfreq::Int=5,
+                     top_n::Int=100,
+                     parallel::Bool=false,
+                     compute_trends::Bool=true) -> TemporalCorpusAnalysis
 
-Analyze how word associations change over time.
+Analyze how word associations change over time periods.
+
+# Arguments
+- `corpus::Corpus`: The corpus to analyze
+- `nodes::Vector{String}`: Target words to analyze
+- `time_field::Symbol`: Metadata field containing time values (supports Int, Real, Date, DateTime)
+- `metric::Type{<:AssociationMetric}`: Association metric to use
+
+# Keyword Arguments
+- `time_bins::Int=5`: Number of time periods to create
+- `windowsize::Int=5`: Context window size for collocations
+- `minfreq::Int=5`: Minimum frequency threshold
+- `top_n::Int=100`: Maximum number of collocates per node
+- `parallel::Bool=false`: Enable parallel processing for period analysis
+- `compute_trends::Bool=true`: Calculate trend statistics for collocates over time
+
+# Returns
+A `TemporalCorpusAnalysis` containing:
+- `time_periods`: Vector of period labels
+- `results_by_period`: Analysis results for each time period
+- `trend_analysis`: DataFrame with correlation, slope, and statistics for trending collocates
+- `corpus_ref`: Reference to the original corpus
+
+# Examples
+```julia
+# Analyze how "democracy" associations changed over decades
+temporal = analyze_temporal(corpus, ["democracy"], :year, PMI; 
+                           time_bins=10, windowsize=5)
+
+# Access results for a specific period
+period_results = temporal.results_by_period["2000-2010"]
+
+# View trending collocates
+println(temporal.trend_analysis)
+```
 """
 function analyze_temporal(corpus::Corpus,
     nodes::Vector{String},
@@ -76,7 +113,10 @@ function analyze_temporal(corpus::Corpus,
     metric::Type{<:AssociationMetric};
     time_bins::Int=5,
     windowsize::Int=5,
-    minfreq::Int=5)
+    minfreq::Int=5,
+    top_n::Int=100,
+    parallel::Bool=false,
+    compute_trends::Bool=true)
 
     # 1) Collect time values aligned to documents[i] via "doc_i" keys
     raw_times = Any[]
@@ -93,7 +133,6 @@ function analyze_temporal(corpus::Corpus,
     isempty(raw_times) && throw(ArgumentError("No documents have the specified time field: $time_field"))
 
     # 2) Normalize times to numeric for binning (supports Int/Real/Date/DateTime)
-    #    Default: keep numbers; Dates => use year.
     tvals = Vector{Float64}(undef, length(raw_times))
     for (k, v) in enumerate(raw_times)
         if v isa Dates.Date
@@ -113,12 +152,11 @@ function analyze_temporal(corpus::Corpus,
     tmin, tmax = extrema(tvals)
     if tmin == tmax
         time_bins = 1
+        @info "All documents have the same timestamp. Using single time bin."
     end
 
-    # 3) Build bin edges and assign each kept doc to a bin
+    # 3) Build bin edges and assign each document to a bin
     edges = collect(range(tmin, tmax; length=time_bins + 1))
-    # For a value t, searchsortedlast(edges, t) returns the index in 1..length(edges).
-    # We clamp to 1..time_bins so each t goes to a valid interval [edges[i], edges[i+1]].
     doc_bins = [clamp(searchsortedlast(edges, t), 1, time_bins) for t in tvals]
 
     # 4) Group kept documents into periods (bins), preserving original doc indices
@@ -127,18 +165,30 @@ function analyze_temporal(corpus::Corpus,
         push!(period_docs[bin], kept_doc_indices[k])
     end
 
-    # 5) Build human-readable period labels (use rounded numeric edges)
-    #    If you want integer years, these will already be whole numbers.
-    period_label = i -> string(round(edges[i]; digits=0), "-", round(edges[i+1]; digits=0))
+    # 5) Build human-readable period labels
+    period_label = i -> begin
+        start_val = edges[i]
+        end_val = edges[i+1]
+        # If values are effectively integers (years), format as such
+        if all(v -> isinteger(v), [start_val, end_val])
+            string(Int(start_val), "-", Int(end_val))
+        else
+            string(round(start_val; digits=1), "-", round(end_val; digits=1))
+        end
+    end
     time_periods = [period_label(i) for i in 1:time_bins]
 
     # 6) Analyze each non-empty period
     results_by_period = Dict{String,MultiNodeAnalysis}()
+    non_empty_periods = 0
+
     for i in 1:time_bins
         idxs = period_docs[i]
         if isempty(idxs)
             continue
         end
+
+        non_empty_periods += 1
 
         # Subcorpus reuses normalization config
         period_corpus = Corpus(corpus.documents[idxs], norm_config=corpus.norm_config)
@@ -149,25 +199,37 @@ function analyze_temporal(corpus::Corpus,
             [metric];
             windowsize=windowsize,
             minfreq=minfreq,
-            top_n=100,         # keep your package default if different
-            parallel=false
+            top_n=top_n,
+            parallel=parallel
         )
 
         results_by_period[time_periods[i]] = period_results
     end
 
-    # 7) Optional: compute trend_analysis (keep empty if you havenâ€™t wired this yet)
-    trend_analysis = DataFrame()
+    # Warn if many periods are empty
+    empty_periods = time_bins - non_empty_periods
+    if empty_periods > time_bins / 2
+        @warn "More than half of the time periods are empty ($empty_periods/$time_bins). Consider using fewer bins."
+    end
+
+    # 7) Compute trend analysis if requested and we have multiple periods
+    trend_analysis = if compute_trends && non_empty_periods >= 2
+        compute_association_trends(results_by_period, nodes, metric)
+    else
+        DataFrame()
+    end
 
     return TemporalCorpusAnalysis(
         time_periods,
         results_by_period,
         trend_analysis,
-        corpus,   # 4th positional arg must be the Corpus
+        corpus
     )
 end
 
-
+# =====================================
+# Replace lines 173-237 in advanced_corpus.jl with this exact code
+# =====================================
 
 """
     compute_association_trends(results_by_period, nodes, metric) -> DataFrame
@@ -185,34 +247,59 @@ function compute_association_trends(results_by_period::Dict{String,MultiNodeAnal
         all_collocates = Set{String}()
         for (period, analysis) in results_by_period
             if haskey(analysis.results, node) && !isempty(analysis.results[node])
-                union!(all_collocates, analysis.results[node].Collocate)
+                df = analysis.results[node]
+                # Check if DataFrame has columns before accessing
+                if ncol(df) > 0 && nrow(df) > 0
+                    union!(all_collocates, df.Collocate)
+                end
             end
         end
 
         # Track each collocate over time
         for collocate in all_collocates
             scores_over_time = Float64[]
-            periods = String[]
+            periods_list = String[]
 
-            for (period, analysis) in sort(collect(results_by_period))
+            # Sort only the keys (period names)
+            for period in sort(collect(keys(results_by_period)))
+                analysis = results_by_period[period]
                 if haskey(analysis.results, node)
                     df = analysis.results[node]
-                    idx = findfirst(==(collocate), df.Collocate)
+                    # Check if DataFrame has data before accessing
+                    if ncol(df) > 0 && nrow(df) > 0
+                        idx = findfirst(==(collocate), df.Collocate)
 
-                    if idx !== nothing
-                        push!(scores_over_time, df[idx, Symbol(string(metric))])
-                        push!(periods, period)
+                        if idx !== nothing
+                            push!(scores_over_time, df[idx, Symbol(string(metric))])
+                            push!(periods_list, period)
+                        end
                     end
                 end
             end
 
+            # Need at least 2 periods AND variation in scores
             if length(scores_over_time) > 1
+                # Check for zero variance (avoid NaN/0.0 correlation)
+                score_std = std(scores_over_time)
+                if score_std < 1e-10
+                    # All scores identical - record as flat line
+                    push!(trend_data, (
+                        Node=node,
+                        Collocate=collocate,
+                        Correlation=0.0,
+                        Slope=0.0,
+                        MeanScore=mean(scores_over_time),
+                        StdScore=0.0,
+                        NumPeriods=length(scores_over_time)
+                    ))
+                    continue
+                end
+
                 # Calculate trend statistics
                 xs = collect(1:length(scores_over_time))
                 correlation = cor(xs, scores_over_time)
 
-                # Simple linear regression without GLM
-                # Calculate slope using least squares formula
+                # Simple linear regression
                 mean_x = mean(xs)
                 mean_y = mean(scores_over_time)
                 numerator = sum((xs .- mean_x) .* (scores_over_time .- mean_y))
@@ -225,7 +312,7 @@ function compute_association_trends(results_by_period::Dict{String,MultiNodeAnal
                     Correlation=correlation,
                     Slope=slope,
                     MeanScore=mean(scores_over_time),
-                    StdScore=std(scores_over_time),
+                    StdScore=score_std,
                     NumPeriods=length(scores_over_time)
                 ))
             end
