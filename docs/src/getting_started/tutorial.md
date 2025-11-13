@@ -315,20 +315,3 @@ Possible causes:
 2. `windowsize` too small - try `windowsize=10`
 3. Word not in text - check spelling and case
 4. Text too short - need more context
-
-### Memory Issues
-
-```julia
-# Use scores_only for large analyses
-scores = assoc_score(PMI, ct, scores_only=true)  # Returns Vector{Float64}
-```
-
-## Practice Exercises
-
-1. Analyze your own text data
-2. Compare different window sizes
-3. Try all available metrics
-4. Build a collocate extraction pipeline
-5. Analyze a corpus of documents
-
-Happy analyzing!
